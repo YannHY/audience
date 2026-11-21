@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aide - Audience</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=2">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2">
+    <script>
+        try {
+            const savedTheme = localStorage.getItem('audience-theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('theme-dark');
+            } else if (savedTheme === 'light') {
+                document.documentElement.classList.add('theme-light');
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('theme-dark');
+            }
+        } catch (_) {}
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="accountBar" class="account-bar"></div>
+
+    <div class="brand-title">
+        <a href="index.html" aria-label="Retour à l'accueil Audience">
+            <img class="brand-title-logo" src="logo.png" alt="Logo Audience">
+        </a>
+        <h1>Audience</h1>
+    </div>
+    <p class="site-tagline">Créez vos questions et affichez les réponses en direct</p>
+
+    <main class="legal-page">
+        <h1>Aide</h1>
+        <p><em>Guide rapide d'utilisation de la plateforme Audience</em></p>
+
+        <h2><i class="fa-solid fa-square-plus" aria-hidden="true"></i> Créer un questionnaire</h2>
+        <p>Depuis la page d'accueil, utilisez <strong>Créer un nouveau questionnaire</strong> pour ajouter vos questions et vos réponses.</p>
+        <p>Vous pouvez nommer votre questionnaire, ajouter autant de questions que nécessaire, régler le temps de réponse pour chaque question, puis lancer la session.</p>
+        <p>Dans la zone <strong>Préparer un lot de questions</strong>, vous pouvez aussi activer l'option <strong>Autoriser un rapport personnel en fin de questionnaire</strong>. Le créateur du questionnaire choisit donc explicitement si les participants pourront ou non consulter ce rapport une fois la session terminée.</p>
+
+        <h2><i class="fa-solid fa-font" aria-hidden="true"></i> Mettre en forme le texte</h2>
+        <p>Dans l'intitulé d'une question, vous pouvez sélectionner du texte pour faire apparaître une barre de mise en forme.</p>
+        <p>Cette barre permet d'appliquer un <strong>gras</strong>, un <em>italique</em>, un <u>soulignement</u>, une liste numérotée ou une liste à puces.</p>
+        <p>Les raccourcis clavier <code>Ctrl/Cmd+B</code>, <code>Ctrl/Cmd+I</code> et <code>Ctrl/Cmd+U</code> sont également disponibles pendant l'édition.</p>
+
+        <h2><i class="fa-solid fa-square-root-variable" aria-hidden="true"></i> Ajouter des formules mathématiques</h2>
+        <p>Un bouton <strong>∑</strong> est disponible dans le champ de question ainsi que dans les champs de réponses possibles.</p>
+        <p>Il permet d'ouvrir un éditeur de formule et d'insérer une expression mathématique à l'emplacement du curseur.</p>
+        <p>Pour une <strong>question ouverte</strong>, vous pouvez aussi activer l'option <strong>Réponse mathématique</strong> afin que le participant réponde avec un clavier mathématique dédié.</p>
+
+        <h2><i class="fa-solid fa-list-check" aria-hidden="true"></i> Types de questions disponibles</h2>
+        <ul>
+            <li><strong>Cases à cocher</strong> : plusieurs réponses possibles parmi plusieurs propositions.</li>
+            <li><strong>Choix unique</strong> : une réponse choisie parmi plusieurs propositions.</li>
+            <li><strong>Classement</strong> : remise en ordre d'éléments.</li>
+            <li><strong>Évaluation</strong> : notation (étoiles/score).</li>
+            <li><strong>Légender une image</strong> : placement d'étiquettes sur une image.</li>
+            <li><strong>Nuage de mots</strong> : collecte de mots-clés en direct.</li>
+            <li><strong>Réponse ouverte</strong> : texte libre saisi par le participant, ou réponse mathématique si l'option correspondante est activée.</li>
+            <li><strong>Texte à trous</strong> : réponse à compléter dans des blancs.</li>
+            <li><strong>Vidéo</strong> : question associée à un contenu vidéo.</li>
+        </ul>
+
+        <h2><i class="fa-regular fa-clock" aria-hidden="true"></i> Temps de réponse par question</h2>
+        <p>Chaque question peut avoir une durée de réponse dédiée. Par défaut, la durée proposée est de <strong>30 secondes</strong>.</p>
+        <p>Vous pouvez choisir parmi plusieurs durées (de quelques secondes à plusieurs minutes) directement lors de la création de la question.</p>
+        <p>Une barre de progression sous la question indique le temps restant côté participant et côté présentateur (vue live et résultats).</p>
+        <p>Pour les questions <strong>vidéo YouTube</strong>, le timer est masqué afin de laisser le temps de visionnage.</p>
+
+        <h2><i class="fa-solid fa-tower-broadcast" aria-hidden="true"></i> Diffuser une question en direct</h2>
+        <p>Une fois la session lancée, Audience génère un <strong>code</strong> et un <strong>QR code</strong> à partager avec le public.</p>
+        <p>Les participants répondent via l'URL de réponse. Avant de voir la première question, ils sont invités à saisir le <strong>nom ou prénom</strong> qu'ils souhaitent associer à leurs réponses.</p>
+        <p>Les questions n'apparaissent que lorsque le présentateur clique sur <strong>Résultats live</strong>. Tant qu'aucune question n'est affichée, le participant voit simplement un message d'attente. Vous pouvez ensuite passer à la question suivante.</p>
+        <p>Le nombre de répondants connectés est affiché en temps réel en <strong>bas à gauche</strong> de l'interface.</p>
+        <p>Si le rapport personnel a été autorisé par le créateur, les participants voient, à la fin du questionnaire, un <strong>rapport personnel</strong> qu'ils peuvent consulter puis <strong>télécharger en PDF</strong>.</p>
+
+        <h2><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Afficher les résultats</h2>
+        <p>L'onglet <strong>Résultats</strong> permet d'afficher les réponses en temps réel.</p>
+        <p>Selon le type de question, vous pouvez actualiser, afficher la bonne réponse, exporter en CSV et consulter le bilan final.</p>
+        <p>L'export <strong>CSV</strong> du bilan final reprend désormais les <strong>noms/prénoms choisis par les participants</strong>, afin d'identifier plus facilement qui a répondu quoi.</p>
+        <p>Lorsque cette option a été autorisée au moment de la création du questionnaire, chaque participant peut obtenir, <strong>à la fin du questionnaire</strong>, un <strong>rapport personnel</strong> qui récapitule ses propres réponses.</p>
+        <p>Ce rapport personnel distingue les <strong>réponses correctes</strong>, les <strong>réponses incorrectes</strong> et les <strong>réponses qui ne sont pas notées comme justes ou fausses</strong> (par exemple une vidéo, une notation ou un nuage de mots).</p>
+        <p>Quand une question est corrigée automatiquement et que la réponse donnée est fausse, le rapport indique aussi la <strong>réponse attendue</strong>. Le participant peut consulter ce récapitulatif à l'écran puis le <strong>télécharger en PDF</strong>.</p>
+
+        <h2><i class="fa-solid fa-folder-open" aria-hidden="true"></i> Gérer vos questionnaires</h2>
+        <p>Dans <strong>Mes questionnaires</strong>, vous pouvez retrouver vos questionnaires, les <strong>exporter</strong>, les <strong>importer</strong> ou les restaurer depuis la corbeille.</p>
+        <p>L'import fonctionne désormais de deux façons : soit en choisissant un fichier <strong>Markdown (.md)</strong>, soit en <strong>collant directement</strong> le texte Markdown dans la fenêtre d'import.</p>
+        <p>Le format d'import/export est en <strong>Markdown (.md)</strong>. Le contenu commence par un titre <code>#</code>, puis des métadonnées (par ex. <code>- Code:</code>, <code>- Nombre de questions:</code>). Chaque question est ensuite déclarée avec <code>## Question X</code>, suivie de l'énoncé.</p>
+        <p>Pour un QCM, utilisez des choix avec cases Markdown (<code>- [ ]</code> et <code>- [x]</code> pour la bonne réponse). Pour les questions à <strong>Cases à cocher</strong>, ajoutez <code>- Type: cases à cocher</code> puis les options en <code>- [ ]</code> et <code>- [x]</code> (toutes les lignes en <code>[x]</code> sont considérées comme correctes). Pour les autres types, utilisez une ligne <code>- Type:</code> (ex. <code>question ouverte</code>, <code>nuage de mots</code>, <code>classement</code>, <code>texte à trous</code>, <code>vidéo YouTube</code>, <code>notation en étoiles (1 à 5)</code>, <code>légender une image</code>) puis, si nécessaire, le bloc associé (texte à trous, éléments à classer, URL vidéo, étiquettes).</p>
+        <p>Pour une <strong>question ouverte mathématique</strong>, ajoutez après <code>- Type: question ouverte</code> une ligne <code>- Format de réponse: mathématique</code>.</p>
+        <p><strong>Cas particulier « Légender une image » :</strong> l'import/export Markdown gère maintenant le type, l'image, le zoom et les étiquettes (positions incluses).</p>
+        <details class="help-admonition">
+            <summary><i class="fa-solid fa-circle-info" aria-hidden="true"></i> Voir un exemple</summary>
+            <pre><code># L'intelligence artificielle
+
+## Question 1
+
+À quelle année est généralement attribuée la naissance de l'expression « intelligence artificielle » ?
+
+- [ ] 1945
+- [x] 1956
+- [ ] 1972
+
+## Question 2
+
+Qui a inventé l'acronyme IA ?
+
+- [x] John McCarthy
+- [ ] Yann Le Cun
+- [ ] Alan Turing
+
+## Question 3
+
+Vrai ou faux ? Les réseaux de neurones naissent dans les années 80 ?
+
+- [x] VRAI
+- [ ] FAUX
+
+## Question 4
+
+Complète la phrase suivante.
+
+- Type: texte à trous
+- Texte à trous:
+```
+Un [LLM] est un modèle de langage de grande [taille] entraîné sur de très nombreux textes.
+```
+
+## Question 5
+
+Comment fonctionne chatGPT ?
+
+- Type: légender une image
+- Image: uploads/questions/395129/3f22d86ea5ce7ae17a837473dec35f3db1474269.jpg
+- Zoom image: 1.00
+- Étiquettes:
+```json
+[
+  {
+    "id": "lbl1",
+    "text": "Prompt",
+    "x": 6.9,
+    "y": 55.04
+  },
+  {
+    "id": "lbl17717528421362",
+    "text": "Tokenization",
+    "x": 26.29,
+    "y": 57.2
+  },
+  {
+    "id": "lbl17717531087543",
+    "text": "Embeddings",
+    "x": 37.43,
+    "y": 58.01
+  },
+  {
+    "id": "lbl17717531905554",
+    "text": "Transformer",
+    "x": 47,
+    "y": 59.7
+  },
+  {
+    "id": "lbl17717532680985",
+    "text": "Réponse en langage naturel",
+    "x": 92.47,
+    "y": 48.61
+  }
+]
+```
+
+## Question 6
+
+Classez ces films évoquant une IA par ordre de parution.
+
+- Type: classement
+- Éléments à classer:
+```
+Metropolis
+2001 l'Odyssée de l'espace
+Terminator
+Matrix
+Her
+```
+
+## Question 7
+
+Regardez cette vidéo
+
+- Type: vidéo YouTube
+- URL vidéo: https://youtu.be/ARJ8cAGm6JE?si=zKQdR6Wd4IGzhup1
+
+## Question 8
+
+Mon nom est celui de l'IA dans le film 2001 Odyssée de l'espace
+
+- Type: question ouverte
+
+## Question 9
+
+Écris la formule de la prédiction d'un modèle de régression linéaire simple.
+
+- Type: question ouverte
+- Format de réponse: mathématique
+
+## Question 10
+
+Quels personnages sont des IA au cinéma ?
+
+- Type: cases à cocher
+- [ ] Eleven
+- [x] Skynet
+- [ ] Robocop
+- [x] Samantha
+- [x] Agent Smith
+- [x] JARVIS
+
+## Question 11
+
+Cite en un mot un usage de l'IA dans la vie quotidienne.
+
+- Type: nuage de mots
+
+## Question 12
+
+À ton avis, l'IA peut-elle t'aider à apprendre mieux et plus vite ?
+
+- Type: notation en étoiles (1 à 5)
+
+## Question 13
+
+Dans la régression linéaire utilisée en apprentissage automatique, comment note-t-on souvent la prédiction du modèle ?
+
+- [ ] \\(x + y\\)
+- [x] \\(\\hat{y} = wx + b\\)
+- [ ] \\(\\int_0^1 x^2\\,dx\\)</code></pre>
+        </details>
+        <p>Une suppression définitive est possible depuis la corbeille.</p>
+
+        <h2><i class="fa-solid fa-user" aria-hidden="true"></i> Compte et accès</h2>
+        <p>Les pages <strong>Connexion</strong>, <strong>Profil</strong> et <strong>Administration</strong> permettent de gérer l'accès à la plateforme.</p>
+        <p>Si vous êtes administrateur, vous pouvez gérer les comptes et les paramètres liés à l'instance.</p>
+
+        <h2><i class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i> Mode clair / mode sombre</h2>
+        <p>Le bouton en haut à droite permet de basculer entre les thèmes clair et sombre.</p>
+        <p>Votre préférence est mémorisée automatiquement.</p>
+
+        <h2><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> Conseils pratiques</h2>
+        <ul>
+            <li>Préparez votre questionnaire avant la séance pour gagner du temps.</li>
+            <li>Testez une question avant de lancer la session en classe.</li>
+            <li>Exportez régulièrement vos données importantes.</li>
+            <li>Vous pouvez demander à une <strong>IA générative</strong> de rédiger un questionnaire directement au format <strong>Markdown</strong> compatible avec Audience, puis l'importer en quelques secondes.</li>
+        </ul>
+        <p>Le plus simple est de fournir à l'IA <strong>l'exemple complet présenté plus haut dans cette page</strong>, afin qu'elle comprenne immédiatement comment structurer le questionnaire au bon format.</p>
+        <p>Une fois le texte généré, il suffit de le <strong>copier-coller</strong> dans la fenêtre d'import Markdown, ou de l'enregistrer dans un fichier <code>.md</code> puis de l'importer.</p>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p class="made-with">
+                Créé avec <i class="fas fa-heart" aria-hidden="true"></i> par
+                <a href="https://www.linkedin.com/in/yann-houry-a2350651/" target="_blank" rel="noopener noreferrer">Yann Houry</a>
+            </p>
+            <p class="footer-legal">
+                <a href="conditions-utilisation.html">Conditions d'utilisation</a> | <a href="aide.html">Aide</a> | <a href="contact.html">Contact</a>
+            </p>
+            <div class="license">
+                <p><i class="fa-regular fa-copyright" aria-hidden="true"></i> Tous droits réservés</p>
+            </div>
+            <p class="year"><span id="current-year"></span></p>
+        </div>
+    </footer>
+
+    <script src="site-nav.js"></script>
+    <script src="theme.js"></script>
+    <script>
+        const yearEl = document.getElementById('current-year');
+        if (yearEl) yearEl.textContent = new Date().getFullYear();
+    </script>
+</body>
+</html>

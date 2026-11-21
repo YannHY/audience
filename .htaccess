@@ -1,0 +1,2 @@
+# Audience - kept intentionally minimal to avoid host-specific 500 errors.
+# Configuration is now loaded from app-config.php.

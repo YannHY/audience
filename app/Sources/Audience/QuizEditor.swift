@@ -1,0 +1,332 @@
+import SwiftUI
+import UniformTypeIdentifiers
+#if SWIFT_PACKAGE
+import AudienceCore
+#endif
+
+struct QuizEditor: View {
+    @Bindable var store: LibraryStore
+    let code: String
+    @State private var selected: Int? = 0
+    @State private var deleteIndex: Int?
+    private var quiz: Quiz { store.archive.quizzes[code] ?? Quiz(code: code) }
+    private var index: Int? {
+        guard let selected, quiz.questions.indices.contains(selected) else { return nil }
+        return selected
+    }
+    private func question(at index: Int) -> Binding<Question> {
+        Binding(get: { quiz.questions.indices.contains(index) ? quiz.questions[index] : Question() },
+                set: { value in store.update(code) { q in var questions = q.questions; if questions.indices.contains(index) { questions[index] = value; q.questions = questions } } })
+    }
+    private var locked: Bool { store.liveCode == code || store.readOnly }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            navigator
+                .frame(width: 250)
+            Divider()
+            Form {
+                Section {
+                    TextField("Titre", text: Binding(get: { quiz.title }, set: { value in store.update(code) { $0.title = value } }),
+                              prompt: Text("Titre du questionnaire"))
+                        .font(.title3.weight(.semibold))
+                        .labelsHidden()
+                }
+                if let index {
+                    QuestionEditor(question: question(at: index), number: index + 1)
+                } else {
+                    Section {
+                        ContentUnavailableView {
+                            Label(quiz.questions.isEmpty ? "La première question" : "Aucune question sélectionnée", systemImage: "text.badge.plus")
+                        } description: {
+                            Text(quiz.questions.isEmpty ? "Choisissez un format pour commencer." : "Sélectionnez une question dans la liste.")
+                        } actions: {
+                            if quiz.questions.isEmpty {
+                                addMenu.buttonStyle(.glassProminent).fixedSize()
+                            }
+                        }
+                    }
+                }
+            }
+            .formStyle(.grouped)
+            .disabled(locked)
+        }
+        .overlay(alignment: .top) {
+            if store.liveCode == code {
+                Label("Session en direct · Arrêtez-la pour modifier le questionnaire.", systemImage: "dot.radiowaves.left.and.right")
+                    .font(.callout).padding(.horizontal, 16).padding(.vertical, 10)
+                    .glassEffect(.regular, in: .capsule).padding(10)
+            }
+        }
+        .onChange(of: quiz.questions.count) { _, count in
+            if let selected, selected >= count { self.selected = count > 0 ? count - 1 : nil }
+        }
+        .confirmationDialog("Supprimer la question \((deleteIndex ?? 0) + 1) ?", isPresented: Binding(
+            get: { deleteIndex != nil }, set: { if !$0 { deleteIndex = nil } }), titleVisibility: .visible) {
+            Button("Supprimer", role: .destructive) { if let deleteIndex { remove(deleteIndex) } }
+        } message: { Text("Les réponses déjà recueillies pour cette question resteront sur le site.") }
+    }
+
+    private var navigator: some View {
+        List(selection: $selected) {
+            ForEach(Array(quiz.questions.enumerated()), id: \.offset) { i, question in
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text("\(i + 1)").font(.callout.monospacedDigit()).foregroundStyle(.secondary).frame(minWidth: 18, alignment: .trailing)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(question.text.isEmpty ? "Nouvelle question" : question.text.plainText)
+                            .lineLimit(2).foregroundStyle(question.text.isEmpty ? .secondary : .primary)
+                        Label(question.kind.title, systemImage: question.kind.symbol)
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 0)
+                    if let message = question.validationMessage {
+                        Image(systemName: "exclamationmark.circle.fill").foregroundStyle(.orange).help(message)
+                            .accessibilityLabel("Question incomplète")
+                    }
+                }
+                .padding(.vertical, 3)
+                .tag(i)
+                .contextMenu {
+                    Button("Dupliquer", systemImage: "plus.square.on.square") { duplicate(i) }
+                    Button("Monter", systemImage: "arrow.up") { move(from: i, to: i - 1) }.disabled(i == 0)
+                    Button("Descendre", systemImage: "arrow.down") { move(from: i, to: i + 1) }.disabled(i >= quiz.questions.count - 1)
+                    Divider()
+                    Button("Supprimer…", systemImage: "trash", role: .destructive) { deleteIndex = i }
+                }
+            }
+            .onMove { source, destination in
+                guard !locked else { return }
+                let moved = source.first
+                store.update(code) { q in var questions = q.questions; questions.move(fromOffsets: source, toOffset: destination); q.questions = questions }
+                if let moved, source.count == 1 { selected = moved < destination ? destination - 1 : destination }
+            }
+        }
+        .onDeleteCommand { if let index, !locked { deleteIndex = index } }
+        .safeAreaBar(edge: .bottom) {
+            HStack {
+                addMenu.buttonStyle(.borderless).fixedSize()
+                Spacer()
+                Text(quiz.questions.count == 1 ? "1 question" : "\(quiz.questions.count) questions")
+                    .font(.caption).foregroundStyle(.secondary).fixedSize()
+            }
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            .disabled(locked)
+        }
+    }
+
+    private var addMenu: some View {
+        Menu {
+            ForEach(QuestionKind.allCases) { kind in
+                Button(kind.title, systemImage: kind.symbol) { add(kind) }
+            }
+        } label: { Label("Ajouter une question", systemImage: "plus") }
+    }
+    private func add(_ kind: QuestionKind) {
+        let insertion = index.map { $0 + 1 } ?? quiz.questions.count
+        store.update(code) { var q = $0.questions; q.insert(Question(kind: kind), at: min(insertion, q.count)); $0.questions = q }
+        selected = min(insertion, quiz.questions.count - 1)
+    }
+    private func duplicate(_ i: Int) {
+        guard quiz.questions.indices.contains(i) else { return }
+        store.update(code) { var q = $0.questions; q.insert(q[i], at: i + 1); $0.questions = q }
+        selected = i + 1
+    }
+    private func move(from: Int, to: Int) {
+        guard quiz.questions.indices.contains(from), quiz.questions.indices.contains(to) else { return }
+        store.update(code) { var q = $0.questions; q.swapAt(from, to); $0.questions = q }
+        selected = to
+    }
+    private func remove(_ i: Int) {
+        store.update(code) { var q = $0.questions; if q.indices.contains(i) { q.remove(at: i) }; $0.questions = q }
+        let count = quiz.questions.count
+        selected = count == 0 ? nil : min(i, count - 1)
+    }
+}
+
+struct QuestionEditor: View {
+    @Binding var question: Question
+    var number = 1
+    @State private var imageError: String?
+    @State private var imageTargeted = false
+    private static let timeLimits = [5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240]
+    var body: some View {
+        Section("Question \(number)") {
+            Picker("Format", selection: $question.kind) {
+                ForEach(QuestionKind.allCases) { Label($0.title, systemImage: $0.symbol).tag($0) }
+            }
+            // The site stores the statement as HTML ("l&#39;origine"): edit it as plain text.
+            TextField("Énoncé", text: Binding(get: { question.text.unformattedText }, set: { value in
+                if value != question.text.unformattedText { question.text = value.htmlEscaped }
+            }), prompt: Text("Énoncé de la question"), axis: .vertical)
+                .lineLimit(3...8).labelsHidden()
+            let limit = question.fields["timeLimitSec"]?.int ?? 30
+            Picker("Temps de réponse", selection: int("timeLimitSec", fallback: 30)) {
+                // Keep a nonstandard value from an older questionnaire selectable.
+                ForEach(Self.timeLimits.contains(limit) ? Self.timeLimits : (Self.timeLimits + [limit]).sorted(), id: \.self) {
+                    Text($0 < 60 || $0 % 60 != 0 ? "\($0) secondes" : $0 == 60 ? "1 minute" : "\($0 / 60) minutes").tag($0)
+                }
+            }
+            if let message = question.validationMessage {
+                Label(message, systemImage: "info.circle").font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        if question.kind.hasAnswers {
+            Section(question.kind == .ranking ? "Éléments à classer" : "Réponses") {
+                if question.kind == .multiple { Toggle("Sondage sans bonne réponse", isOn: bool("isPollMode")) }
+                ForEach(question.answers.indices, id: \.self) { i in
+                    HStack(spacing: 10) {
+                        if question.kind != .ranking && !(question.kind == .multiple && question["isPollMode"].bool) {
+                            Button {
+                                if question.kind == .multiple { question["correctIndex"] = .number(Double(i)) }
+                                else {
+                                    var indices = question["correctIndexes"].array.map(\.int)
+                                    if indices.contains(i) { indices.removeAll { $0 == i } } else { indices.append(i) }
+                                    question["correctIndexes"] = .array(indices.map { .number(Double($0)) })
+                                }
+                            } label: {
+                                Image(systemName: isCorrect(i) ? "checkmark.circle.fill" : "circle").foregroundStyle(isCorrect(i) ? Color.green : Color.secondary)
+                            }.buttonStyle(.plain).help("Marquer comme bonne réponse").accessibilityLabel("Réponse \(i + 1) correcte").accessibilityValue(isCorrect(i) ? "Oui" : "Non")
+                        } else { Text("\(i + 1)").foregroundStyle(.secondary).frame(width: 20) }
+                        TextField("Réponse \(i + 1)", text: Binding(get: { question.answers.indices.contains(i) ? question.answers[i].unformattedText : "" }, set: { value in
+                            var answers = question.answers; guard answers.indices.contains(i) else { return }; answers[i] = value.htmlEscaped; question.answers = answers
+                        }), prompt: Text("Réponse \(i + 1)")).labelsHidden()
+                        Button("Supprimer la réponse", systemImage: "minus.circle") { question.removeAnswer(at: i) }
+                            .labelStyle(.iconOnly).buttonStyle(.borderless).disabled(question.answers.count <= 2)
+                    }
+                }
+                Button("Ajouter une réponse", systemImage: "plus") { var answers = question.answers; answers.append(""); question.answers = answers }
+                if question.kind == .ranking { Text("Placez les éléments dans l’ordre attendu.").font(.caption).foregroundStyle(.secondary) }
+            }
+        }
+        if question.kind == .open {
+            Section("Réponse libre") {
+                Picker("Format de réponse", selection: string("responseFormat", fallback: "text")) {
+                    Text("Texte").tag("text"); Text("Mathématiques (LaTeX)").tag("math")
+                }
+            }
+        }
+        if question.kind == .cloze {
+            Section("Texte à compléter") {
+                TextField("Texte", text: string("clozeText"), prompt: Text("Texte avec [trous]"), axis: .vertical)
+                    .lineLimit(5...14).labelsHidden()
+                Text("Un trou : [réponse]. Un choix : {{réponse, autre choix}}.").font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        if question.kind == .video {
+            Section("Vidéo YouTube") {
+                TextField("URL", text: string("youtubeUrl"))
+                Stepper("Début : \(question["videoStartSec"].int) s", value: int("videoStartSec"), in: 0...43200, step: 5)
+                Stepper("Fin : \(question["videoEndSec"].int) s (0 = fin de la vidéo)", value: int("videoEndSec"), in: 0...43200, step: 5)
+            }
+        }
+        if question.kind == .rating {
+            Section { Text("Les participants attribuent une note de 1 à 5 étoiles.").foregroundStyle(.secondary) }
+        }
+        if [.multiple, .checkbox, .open, .cloze, .labelimage].contains(question.kind) {
+            Section("Image") {
+                if !question["questionImage"].string.isEmpty {
+                    QuestionImage(source: question["questionImage"].string).frame(maxHeight: 220)
+                    Button("Retirer l’image", role: .destructive) { question["questionImage"] = .string("") }
+                }
+                Button("Choisir une image…", systemImage: "photo") { chooseImage() }
+                Text("Vous pouvez aussi glisser une image ici (2 Mo au maximum).").font(.caption).foregroundStyle(.secondary)
+                if let imageError { Text(imageError).font(.caption).foregroundStyle(.red) }
+            }
+            .dropDestination(for: URL.self) { urls, _ in
+                guard let url = urls.first else { return false }
+                loadImage(url); return true
+            } isTargeted: { imageTargeted = $0 }
+            .listRowBackground(imageTargeted ? Color.accentColor.opacity(0.15) : nil)
+        }
+        if question.kind == .labelimage {
+            Section("Étiquettes") {
+                Text("Les positions sont exprimées en pourcentage de l’image.").font(.caption).foregroundStyle(.secondary)
+                ForEach(question["legendLabels"].array.indices, id: \.self) { i in
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            TextField("Étiquette \(i + 1)", text: labelText(i), prompt: Text("Étiquette \(i + 1)")).labelsHidden()
+                            Button("Retirer", systemImage: "minus.circle") {
+                                var labels = question["legendLabels"].array
+                                if labels.indices.contains(i) { labels.remove(at: i) }
+                                question["legendLabels"] = .array(labels)
+                            }.labelStyle(.iconOnly).buttonStyle(.borderless)
+                        }
+                        HStack {
+                            Text("X").foregroundStyle(.secondary); Slider(value: coordinate(i, "x"), in: 0...100)
+                            Text("Y").foregroundStyle(.secondary); Slider(value: coordinate(i, "y"), in: 0...100)
+                        }
+                        Text("X : \(Int(coordinate(i, "x").wrappedValue)) % · Y : \(Int(coordinate(i, "y").wrappedValue)) %").font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                Button("Ajouter une étiquette", systemImage: "plus") {
+                    var labels = question["legendLabels"].array
+                    labels.append(.object(["id": .string(UUID().uuidString), "text": .string(""), "x": .number(50), "y": .number(50)]))
+                    question["legendLabels"] = .array(labels)
+                }
+            }
+        }
+        Section {
+            Toggle("Montrer les résultats aux participants", isOn: bool("participantResponsesVisible", fallback: true))
+        }
+    }
+    private func isCorrect(_ i: Int) -> Bool { question.kind == .multiple ? question["correctIndex"].int == i : question["correctIndexes"].array.map(\.int).contains(i) }
+    private func string(_ key: String, fallback: String = "") -> Binding<String> {
+        Binding(get: { question.fields[key]?.string ?? fallback }, set: { question[key] = .string($0) })
+    }
+    private func int(_ key: String, fallback: Int = 0) -> Binding<Int> {
+        Binding(get: { question.fields[key]?.int ?? fallback }, set: { question[key] = .number(Double($0)) })
+    }
+    private func bool(_ key: String, fallback: Bool = false) -> Binding<Bool> {
+        Binding(get: { question.fields[key]?.bool ?? fallback }, set: { question[key] = .bool($0) })
+    }
+    private func labelText(_ i: Int) -> Binding<String> {
+        Binding(get: { question["legendLabels"].array.indices.contains(i) ? question["legendLabels"].array[i]["text"].string : "" }, set: { value in
+            var labels = question["legendLabels"].array; guard labels.indices.contains(i) else { return }; var f = labels[i].object; f["text"] = .string(value); labels[i] = .object(f); question["legendLabels"] = .array(labels)
+        })
+    }
+    private func coordinate(_ i: Int, _ axis: String) -> Binding<Double> {
+        Binding(get: { question["legendLabels"].array.indices.contains(i) ? question["legendLabels"].array[i][axis].double : 50 }, set: { value in
+            var labels = question["legendLabels"].array; guard labels.indices.contains(i) else { return }; var f = labels[i].object; f[axis] = .number(value); labels[i] = .object(f); question["legendLabels"] = .array(labels)
+        })
+    }
+    private func chooseImage() {
+        let panel = NSOpenPanel(); panel.allowedContentTypes = [.png, .jpeg, .gif, .webP]
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        loadImage(url)
+    }
+    private func loadImage(_ url: URL) {
+        guard let type = UTType(filenameExtension: url.pathExtension), [UTType.png, .jpeg, .gif, .webP].contains(where: { type.conforms(to: $0) }) else {
+            imageError = "Choisissez une image PNG, JPEG, GIF ou WebP."; return
+        }
+        do {
+            let data = try Data(contentsOf: url)
+            guard data.count <= 2 * 1024 * 1024 else { imageError = "Choisissez une image de 2 Mo maximum."; return }
+            let mime = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType ?? "image/png"
+            question["questionImage"] = .string("data:\(mime);base64,\(data.base64EncodedString())"); imageError = nil
+        } catch { imageError = error.localizedDescription }
+    }
+}
+
+/// Decoding a 2 MB data URL on every keystroke would make typing sluggish.
+@MainActor private let decodedImages: NSCache<NSString, NSImage> = { let cache = NSCache<NSString, NSImage>(); cache.countLimit = 40; return cache }()
+
+struct QuestionImage: View, Equatable {
+    let source: String
+    private var embedded: NSImage? {
+        guard source.hasPrefix("data:"), let comma = source.firstIndex(of: ",") else { return nil }
+        let key = source as NSString
+        if let image = decodedImages.object(forKey: key) { return image }
+        guard let data = Data(base64Encoded: String(source[source.index(after: comma)...])), let image = NSImage(data: data) else { return nil }
+        decodedImages.setObject(image, forKey: key)
+        return image
+    }
+    var body: some View {
+        if let image = embedded {
+            Image(nsImage: image).resizable().scaledToFit().accessibilityLabel("Image de la question")
+        } else if let url = URL(string: source), url.scheme == "https" {
+            AsyncImage(url: url) { image in image.resizable().scaledToFit() } placeholder: { ProgressView() }
+        } else {
+            Label("Image indisponible hors ligne", systemImage: "photo").foregroundStyle(.secondary)
+        }
+    }
+}

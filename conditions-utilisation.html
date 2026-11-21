@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conditions d'utilisation - Audience</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=2">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2">
+    <script>
+        try {
+            const savedTheme = localStorage.getItem('audience-theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('theme-dark');
+            } else if (savedTheme === 'light') {
+                document.documentElement.classList.add('theme-light');
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('theme-dark');
+            }
+        } catch (_) {}
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="accountBar" class="account-bar"></div>
+
+    <div class="brand-title">
+        <a href="index.html" aria-label="Retour à l'accueil Audience">
+            <img class="brand-title-logo" src="logo.png" alt="Logo Audience">
+        </a>
+        <h1>Audience</h1>
+    </div>
+    <p class="site-tagline">Créez vos questions et affichez les réponses en direct</p>
+
+    <main class="legal-page">
+        <h1>Conditions d'utilisation</h1>
+        <p><em>Dernière mise à jour : février 2026</em></p>
+
+        <p>Ce site est actuellement en cours de développement. En l'utilisant, vous acceptez les conditions suivantes :</p>
+
+        <h2>Site en développement</h2>
+        <p>Ce site est une version bêta, fourni « en l'état ». Des bugs, erreurs d'affichage, interruptions de service ou comportements inattendus peuvent survenir à tout moment.</p>
+
+        <h2>Absence de garantie</h2>
+        <p>Aucune garantie n'est offerte quant à la disponibilité, la continuité ou le bon fonctionnement du site. Des fonctionnalités peuvent être modifiées, supprimées ou ajoutées sans préavis.</p>
+        <p>Par précaution, vous êtes invité(e) à exporter régulièrement vos questionnaires depuis la section <strong>Mes questionnaires</strong>.</p>
+
+        <h2>Responsabilité limitée</h2>
+        <p>L'utilisation du site se fait à vos propres risques. Je décline toute responsabilité pour les éventuels dysfonctionnements ou pertes de données liés à l'utilisation du site pendant cette phase de développement.</p>
+        <p>En particulier, en cas d'incident, il vous appartient de conserver vos contenus en utilisant la fonction d'export disponible dans <strong>Mes questionnaires</strong>.</p>
+
+        <h2>Signalement de bugs</h2>
+        <p>Si vous constatez un dysfonctionnement, je vous encourage à me le signaler via la <a href="contact.html">page de contact</a>, afin d'améliorer le service.</p>
+
+        <h2>Évolution des conditions</h2>
+        <p>Ces conditions peuvent être modifiées à tout moment, en fonction de l'avancement du développement du site.</p>
+
+        <p>En continuant à naviguer sur ce site, vous reconnaissez avoir pris connaissance de ces conditions et les accepter.</p>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p class="made-with">
+                Créé avec <i class="fas fa-heart" aria-hidden="true"></i> par
+                <a href="https://www.linkedin.com/in/yann-houry-a2350651/" target="_blank" rel="noopener noreferrer">Yann Houry</a>
+            </p>
+            <p class="footer-legal">
+                <a href="conditions-utilisation.html">Conditions d'utilisation</a> | <a href="aide.html">Aide</a> | <a href="contact.html">Contact</a>
+            </p>
+            <div class="license">
+                <p><i class="fa-regular fa-copyright" aria-hidden="true"></i> Tous droits réservés</p>
+            </div>
+            <p class="year"><span id="current-year"></span></p>
+        </div>
+    </footer>
+
+    <script src="site-nav.js"></script>
+    <script src="theme.js"></script>
+    <script>
+        const yearEl = document.getElementById('current-year');
+        if (yearEl) yearEl.textContent = new Date().getFullYear();
+    </script>
+</body>
+</html>

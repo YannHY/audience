@@ -1,0 +1,6 @@
+config.local.php
+.DS_Store
+.playwright-mcp/
+.claude/settings.local.json
+app/build/
+app/.build/

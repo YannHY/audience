@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audience</title>
+    <meta name="description" content="Créez vos questions et affichez les réponses en direct avec Audience.">
+    <link rel="canonical" href="https://www.ralentirtravaux.com/apps/audience/">
+    <meta property="og:locale" content="fr_FR">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Audience">
+    <meta property="og:title" content="Audience">
+    <meta property="og:description" content="Créez vos questions et affichez les réponses en direct.">
+    <meta property="og:url" content="https://www.ralentirtravaux.com/apps/audience/">
+    <meta property="og:image" content="https://www.ralentirtravaux.com/apps/audience/audience-social-preview.png">
+    <meta property="og:image:secure_url" content="https://www.ralentirtravaux.com/apps/audience/audience-social-preview.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="627">
+    <meta property="og:image:alt" content="Audience — Créez vos questions et affichez les réponses en direct.">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Audience">
+    <meta name="twitter:description" content="Créez vos questions et affichez les réponses en direct.">
+    <meta name="twitter:image" content="https://www.ralentirtravaux.com/apps/audience/audience-social-preview.png">
+    <meta name="twitter:image:alt" content="Audience — Créez vos questions et affichez les réponses en direct.">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=2">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2">
+    <script>
+        try {
+            const savedTheme = localStorage.getItem('audience-theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.classList.add('theme-dark');
+            } else if (savedTheme === 'light') {
+                document.documentElement.classList.add('theme-light');
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('theme-dark');
+            }
+        } catch (_) {}
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.min.css">
+    <link rel="stylesheet" href="styles.css?v=20261121s">
+</head>
+<body>
+    <div id="accountBar" class="account-bar"></div>
+
+    <div class="brand-title">
+        <a href="index.html" aria-label="Retour à l'accueil Audience">
+            <img class="brand-title-logo" src="logo.png" alt="Logo Audience">
+        </a>
+        <h1>Audience</h1>
+    </div>
+    <p class="site-tagline">Créez vos questions et affichez les réponses en direct</p>
+
+    <div class="tabs-nav hidden"></div>
+
+    <!-- Onglet Création -->
+    <div id="createTab" class="tab active">
+        <div id="homePanel">
+            <div class="home-header">
+                <div class="home-heading">
+                    <h2 id="homeGreeting">Mes questionnaires</h2>
+                    <p id="homeStats" class="home-stats" aria-live="polite"></p>
+                </div>
+                <div class="home-actions">
+                    <button type="button" id="importQuizMdBtn" class="secondary-btn home-btn">
+                        <i class="fa-solid fa-file-import" aria-hidden="true"></i>Importer
+                    </button>
+                    <button type="button" id="startNewQuizBtn" class="home-btn home-btn-primary" title="Créer un nouveau questionnaire" aria-label="Créer un nouveau questionnaire">
+                        <i class="fa-solid fa-plus" aria-hidden="true"></i>Nouveau
+                    </button>
+                </div>
+            </div>
+            <div id="savedQuizzesPanel" class="saved-quizzes-panel hidden">
+                <div class="home-filters" role="search">
+                    <label class="home-search">
+                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                        <input type="search" id="homeSearchInput" placeholder="Rechercher un questionnaire" title="Recherche dans les titres, les codes, les dossiers et les étiquettes" autocomplete="off" aria-label="Rechercher un questionnaire">
+                    </label>
+                    <label class="home-select">
+                        <i class="fa-regular fa-calendar" aria-hidden="true"></i>
+                        <select id="homeDateFilter" aria-label="Filtrer par date de modification">
+                            <option value="all">Toutes les dates</option>
+                            <option value="today">Modifiés aujourd'hui</option>
+                            <option value="week">7 derniers jours</option>
+                            <option value="month">30 derniers jours</option>
+                            <option value="older">Plus de 30 jours</option>
+                        </select>
+                    </label>
+                    <label class="home-select">
+                        <i class="fa-solid fa-arrow-down-wide-short" aria-hidden="true"></i>
+                        <select id="homeSortSelect" aria-label="Trier les questionnaires">
+                            <option value="recent">Plus récents</option>
+                            <option value="oldest">Plus anciens</option>
+                            <option value="title">Titre A → Z</option>
+                        </select>
+                    </label>
+                </div>
+                <div id="homeTagFilters" class="home-tag-filters" aria-label="Filtrer par étiquette"></div>
+                <div id="savedQuizCards" class="saved-quiz-cards"></div>
+                <input type="file" id="importQuizMdInput" accept=".md,text/markdown" class="hidden" aria-hidden="true">
+            </div>
+            <div id="trashQuizzesPanel" class="saved-quizzes-panel trash-panel hidden">
+                <h3 class="saved-quiz-section-title"><i class="fa-solid fa-trash-can" aria-hidden="true"></i> Corbeille</h3>
+                <div class="saved-quizzes-row trash-row">
+                    <select id="trashQuizSelect" aria-label="Questionnaire supprimé"></select>
+                    <button type="button" id="restoreTrashQuizBtn" class="secondary-btn">
+                        <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>Restaurer
+                    </button>
+                    <button type="button" id="purgeTrashQuizBtn" class="secondary-btn danger-btn-subtle">
+                        <i class="fa-solid fa-xmark" aria-hidden="true"></i>Supprimer définitivement
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="editorPanel" class="hidden">
+            <h2 id="createTabTitle">Préparer un lot de questions</h2>
+            <form id="questionForm">
+                <div class="form-group">
+                    <label for="quizTitleInput">Titre du questionnaire</label>
+                    <input type="text" id="quizTitleInput" placeholder="Ex: Révision chapitre 3" required>
+                </div>
+                <div class="form-group form-group-checkbox">
+                    <label for="requireParticipantNameInput" class="option-checkbox-card">
+                        <input type="checkbox" id="requireParticipantNameInput" checked>
+                        <span class="option-checkbox-copy">
+                            <strong>Demander le nom aux participants</strong>
+                            <small>Avant de répondre, chaque participant doit indiquer son nom ou prénom. Si désactivé, les réponses sont anonymes.</small>
+                        </span>
+                    </label>
+                </div>
+                <div class="form-group form-group-checkbox">
+                    <label for="participantReportEnabledInput" class="option-checkbox-card">
+                        <input type="checkbox" id="participantReportEnabledInput">
+                        <span class="option-checkbox-copy">
+                            <strong>Autoriser un rapport personnel en fin de questionnaire</strong>
+                            <small>Quand le questionnaire est terminé, chaque participant peut consulter et télécharger un rapport indiquant ses réponses justes et fausses.</small>
+                        </span>
+                    </label>
+                </div>
+                <div id="batchQuestions"></div>
+
+                <button type="button" id="addQuestionBtn" class="add-question-btn"><i class="fa-solid fa-plus" aria-hidden="true"></i>Ajouter une question</button>
+
+                <div class="editor-footer batch-builder-actions">
+                    <button type="button" id="backHomeBtn" class="secondary-btn editor-footer-btn"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i>Accueil</button>
+                    <button type="submit" class="editor-footer-btn editor-footer-primary"><i class="fa-solid fa-play" aria-hidden="true"></i>Démarrer</button>
+                </div>
+            </form>
+
+            <div id="createSuccess" class="hidden">
+                <div id="liveStatusBanner" class="code-success">En attente du lancement live<span class="loading-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></span></div>
+
+                <div class="question-summary">
+                    <div class="question-summary-head">
+                        <h4 id="batchProgressText">Question 1 / 1</h4>
+                        <div class="live-compact-nav" aria-label="Navigation du questionnaire">
+                            <button id="prevQuestionBtn" class="secondary-btn icon-only-btn" aria-label="Question précédente" title="Question précédente">
+                                <i class="fa-solid fa-backward-step" aria-hidden="true"></i>
+                            </button>
+                            <button id="nextQuestionBtn" class="secondary-btn icon-only-btn" aria-label="Question suivante" title="Question suivante">
+                                <i class="fa-solid fa-forward-step" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="createdQuestionText" class="created-question formatted-question"></div>
+                    <div id="createdQuestionTimer" class="question-timer hidden" aria-live="polite">
+                        <div class="question-timer-head">
+                            <span class="question-timer-label">Temps restant</span>
+                            <strong id="createdQuestionTimerValue">00:30</strong>
+                        </div>
+                        <div class="question-timer-track">
+                            <div id="createdQuestionTimerBar" class="question-timer-bar"></div>
+                        </div>
+                    </div>
+
+                    <h4>Réponses possibles</h4>
+                    <ul id="createdAnswersList" class="created-answers"></ul>
+                    <div id="createdMediaPreview" class="created-media-preview hidden"></div>
+                    <p id="correctAnswerText" class="correct-answer hidden"></p>
+                </div>
+
+                <div class="share-row">
+                    <div class="qr-section">
+                        <h4>QR Code pour répondre</h4>
+                        <img id="qrCodeImage">
+                    </div>
+
+                    <div id="codeDisplay" class="code-display"></div>
+                </div>
+
+                <div id="reponseURL" class="url-display"></div>
+
+                <div class="action-buttons live-action-buttons">
+                    <button id="viewResultsBtn"><i class="fa-solid fa-chart-line" aria-hidden="true"></i><span class="btn-label">Live</span></button>
+                    <button id="toggleAllParticipantResponsesBtn" class="secondary-btn"><i class="fa-solid fa-eye-slash" aria-hidden="true"></i><span class="btn-label">Masquer les réponses</span></button>
+                    <button id="createNewBtn" class="secondary-btn"><i class="fa-solid fa-pen" aria-hidden="true"></i><span class="btn-label">Modifier</span></button>
+                    <button id="newSessionBtn" class="secondary-btn"><i class="fa-solid fa-rotate-right" aria-hidden="true"></i><span class="btn-label">Nouvelle session</span></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Onglet Résultats -->
+    <div id="resultsTab" class="tab">
+        <h2>Résultats en direct</h2>
+        <form id="resultsForm">
+            <div class="form-group">
+                <label for="resultsCode">Entrez le code de la question</label>
+                <input type="text" id="resultsCode" name="resultsCode" required>
+            </div>
+            <button type="submit"><i class="fa-solid fa-magnifying-glass-chart" aria-hidden="true"></i>Afficher</button>
+        </form>
+
+        <div id="resultsContent" class="hidden">
+            <p id="resultsQuestionMeta" class="results-question-meta hidden"></p>
+                <div id="resultsQuestionText" class="formatted-question"></div>
+                <div id="resultsQuestionImageWrap" class="question-image-display hidden">
+                    <img id="resultsQuestionImage" alt="Image de la question">
+                </div>
+                <div id="resultsQuestionTimer" class="question-timer hidden" aria-live="polite">
+                    <div class="question-timer-head">
+                        <span class="question-timer-label">Temps restant</span>
+                        <strong id="resultsQuestionTimerValue">00:30</strong>
+                    </div>
+                    <div class="question-timer-track">
+                        <div id="resultsQuestionTimerBar" class="question-timer-bar"></div>
+                    </div>
+                </div>
+                <p class="results-help-text hidden"></p>
+                <div id="resultsStats"></div>
+                <div class="results-actions">
+                    <button id="prevFromResultsBtn" class="secondary-btn"><i class="fa-solid fa-backward" aria-hidden="true"></i>Précédente</button>
+                    <button id="nextFromResultsBtn" class="live-btn"><i class="fa-solid fa-forward" aria-hidden="true"></i>Suivante</button>
+                    <button id="showFinalReportBtn" class="secondary-btn hidden"><i class="fa-solid fa-list-check" aria-hidden="true"></i>Bilan final</button>
+                    <button id="exportCsvBtn" class="secondary-btn hidden"><i class="fa-solid fa-file-csv" aria-hidden="true"></i>CSV</button>
+                    <button id="toggleWordcloudSizeBtn" class="secondary-btn hidden"><i class="fa-solid fa-expand" aria-hidden="true"></i>Nuage grand</button>
+                    <button id="toggleParticipantResponsesBtn" class="secondary-btn"><i class="fa-solid fa-eye-slash" aria-hidden="true"></i>Masquer les réponses</button>
+                    <button id="revealCorrectBtn" class="secondary-btn hidden"><i class="fa-solid fa-circle-check" aria-hidden="true"></i>Afficher la réponse</button>
+
+                    <button id="backToQuestionBtn" class="secondary-btn"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i>Retour édition</button>
+                    <button id="goHomeFromResultsBtn" class="secondary-btn"><i class="fa-solid fa-house" aria-hidden="true"></i>Accueil</button>
+                </div>
+                <div id="finalReport" class="final-report hidden"></div>
+            </div>
+        </div>
+
+    <!-- Onglet Réponse (caché de la navigation, accessible par code) -->
+    <div id="answerTab" class="tab">
+        <h2>Répondre à une question</h2>
+        <form id="codeForm">
+            <div class="form-group">
+                <label for="accessCode">Entrez le code d'accès</label>
+                <input type="text" id="accessCode" name="accessCode" required>
+            </div>
+            <button type="submit"><i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>Accéder</button>
+        </form>
+    </div>
+
+    <div id="importMarkdownModal" class="math-modal hidden" aria-hidden="true">
+        <div class="math-modal-backdrop" data-action="close-import-modal"></div>
+        <div class="math-modal-panel import-markdown-panel" role="dialog" aria-modal="true" aria-labelledby="importMarkdownTitle">
+            <div class="math-modal-header">
+                <h3 id="importMarkdownTitle">Importer un questionnaire Markdown</h3>
+                <button type="button" id="importMarkdownCloseBtn" class="secondary-btn icon-only-btn" aria-label="Fermer" title="Fermer">
+                    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="math-modal-body">
+                <p class="math-modal-help">Choisissez un fichier <code>.md</code> ou collez directement un questionnaire en Markdown.</p>
+                <div class="import-markdown-actions-row">
+                    <button type="button" id="importMarkdownFileBtn" class="secondary-btn">
+                        <i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i>Choisir un fichier .md
+                    </button>
+                </div>
+                <label for="importMarkdownTextarea">Coller du Markdown</label>
+                <textarea id="importMarkdownTextarea" class="import-markdown-textarea" rows="12" placeholder="# Mon questionnaire&#10;&#10;## Question 1&#10;&#10;Énoncé de la question..."></textarea>
+            </div>
+            <div class="action-buttons">
+                <button type="button" id="importMarkdownApplyBtn" class="primary-action-btn">Importer le texte</button>
+                <button type="button" id="importMarkdownCancelBtn" class="secondary-btn">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="mathInsertModal" class="math-modal hidden" aria-hidden="true">
+        <div class="math-modal-backdrop" data-action="close-math-modal"></div>
+        <div class="math-modal-panel" role="dialog" aria-modal="true" aria-labelledby="mathInsertTitle">
+            <div class="math-modal-header">
+                <h3 id="mathInsertTitle">Insérer une formule</h3>
+                <button type="button" id="mathInsertCloseBtn" class="secondary-btn icon-only-btn" aria-label="Fermer" title="Fermer">
+                    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="math-modal-body">
+                <p class="math-modal-help">La formule sera insérée à la position du curseur dans ce champ.</p>
+                <math-field id="mathInsertField" class="math-insert-field" math-virtual-keyboard-policy="manual" smart-mode="true"></math-field>
+                <div class="math-preview-block">
+                    <p class="math-preview-label">Aperçu</p>
+                    <div id="mathInsertPreview" class="math-preview-surface"></div>
+                </div>
+            </div>
+            <div class="action-buttons">
+                <button type="button" id="mathInsertCancelBtn" class="secondary-btn">Annuler</button>
+                <button type="button" id="mathInsertApplyBtn">Insérer</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="siteNotice" class="site-notice hidden" aria-live="polite"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/contrib/auto-render.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathlive@0.109.0"></script>
+    <script src="client-common.js?v=20261121s"></script>
+    <script src="site-nav.js"></script>
+    <script src="audience.js?v=20261121s"></script>
+    <script src="theme.js"></script>
+
+    <div id="sessionCorner" class="session-corner hidden">
+        <p class="session-corner-title"><i class="fa-solid fa-link" aria-hidden="true"></i>Session</p>
+        <img id="sessionCornerQr" alt="QR session">
+        <p class="session-corner-code-label">Code</p>
+        <p id="sessionCornerCode" class="session-corner-code"></p>
+    </div>
+
+    <div id="connectedAudienceBadge" class="connected-audience-badge hidden" aria-live="polite" aria-label="Participants connectés">
+        <i class="fa-solid fa-users" aria-hidden="true"></i>
+        <span id="connectedAudienceCount">0</span>
+    </div>
+
+    <footer class="footer" data-animate="fade-up" data-delay="700">
+        <div class="footer-content">
+            <p class="made-with">
+                Créé avec <i class="fas fa-heart" aria-hidden="true"></i> par
+                <a href="https://www.linkedin.com/in/yann-houry-a2350651/" target="_blank" rel="noopener noreferrer">Yann Houry</a>
+            </p>
+            <p class="footer-legal">
+                <a href="conditions-utilisation.html">Conditions d'utilisation</a> | <a href="aide.html">Aide</a> | <a href="contact.html">Contact</a>
+            </p>
+            <div class="license">
+                <p><i class="fa-regular fa-copyright" aria-hidden="true"></i> Tous droits réservés</p>
+            </div>
+            <p class="year"><span id="current-year"></span></p>
+        </div>
+    </footer>
+</body>
+</html>
