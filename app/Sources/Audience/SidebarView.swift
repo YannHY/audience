@@ -65,7 +65,9 @@ struct SidebarView: View {
     }
 
     private func row(_ item: SidebarItem) -> some View {
-        Label(store.title(of: item), systemImage: item.symbol)
+        // The # symbol already marks a tag: the label shows the bare name.
+        let title: String = if case .tag(let tag) = item { tag } else { store.title(of: item) }
+        return Label(title, systemImage: item.symbol)
             .badge(store.quizzes(in: item).count)
             .tag(item)
     }

@@ -12,13 +12,18 @@ struct QuizListView: View {
     var body: some View {
         let quizzes = store.listedQuizzes(sort: sort)
         let section = store.sidebar ?? .all
-        List(quizzes, selection: $store.selection) { quiz in
-            QuizRow(store: store, quiz: quiz, showsFolder: !isFolder(section))
-                .tag(quiz.code)
-                .draggable(quiz.code) {
-                    Label(quiz.title.isEmpty ? "Sans titre" : quiz.title, systemImage: "doc.text")
-                        .padding(8).glassEffect(.regular, in: .rect(cornerRadius: 10))
-                }
+        let showsFolder = !isFolder(section)
+        // The row identity includes what sets its height: macOS keeps a row's first measured
+        // height, so adding a tag or lengthening the title would otherwise clip the row.
+        List(selection: $store.selection) {
+            ForEach(quizzes, id: \.layoutKey) { quiz in
+                QuizRow(store: store, quiz: quiz, showsFolder: showsFolder)
+                    .tag(quiz.code)
+                    .draggable(quiz.code) {
+                        Label(quiz.title.isEmpty ? "Sans titre" : quiz.title, systemImage: "doc.text")
+                            .padding(8).glassEffect(.regular, in: .rect(cornerRadius: 10))
+                    }
+            }
         }
         .contextMenu(forSelectionType: String.self) { codes in
             QuizActions(store: store, codes: codes, purge: { purgeCodes = $0 }, present: present)
@@ -132,7 +137,7 @@ struct QuizRow: View {
                 }
                 .font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
                 if folder != nil || !quiz.tags.isEmpty {
-                    HStack(spacing: 5) {
+                    FlowLayout(spacing: 5) {
                         if let folder {
                             Chip(text: folder.name, symbol: "folder.fill", tint: folder.quizColor.color, selected: selected)
                         }
@@ -144,7 +149,6 @@ struct QuizRow: View {
                         }
                     }
                     .padding(.top, 3)
-                    .lineLimit(1)
                 }
             }
         }
@@ -174,7 +178,7 @@ struct QuizRow: View {
     private var relativeDate: String {
         let date = quiz.updatedAt, calendar = Calendar.current
         if date == .distantPast { return "Sans date" }
-        if calendar.isDateInToday(date) { return "Aujourd’hui, " + date.formatted(date: .omitted, time: .shortened) }
+        if calendar.isDateInToday(date) { return date.formatted(date: .omitted, time: .shortened) }
         if calendar.isDateInYesterday(date) { return "Hier" }
         if calendar.isDate(date, equalTo: .now, toGranularity: .year) {
             return date.formatted(.dateTime.day().month(.abbreviated))
@@ -217,13 +221,18 @@ private struct Chip: View {
     var body: some View {
         HStack(spacing: 3) {
             if let symbol { Image(systemName: symbol).imageScale(.small) }
-            Text(text)
+            Text(text).lineLimit(1)
         }
         .font(.caption.weight(.medium))
         .padding(.horizontal, 7).padding(.vertical, 2)
         .foregroundStyle(selected ? AnyShapeStyle(.white) : tint.map { AnyShapeStyle($0) } ?? AnyShapeStyle(.secondary))
         .background(Capsule().fill(selected ? AnyShapeStyle(.white.opacity(0.2)) : tint.map { AnyShapeStyle($0.opacity(0.14)) } ?? AnyShapeStyle(.quinary)))
     }
+}
+
+private extension Quiz {
+    /// Changes whenever the row's height may change; used as the list row identity.
+    var layoutKey: String { [code, title, folderID ?? "", tags.joined(separator: "\u{1F}")].joined(separator: "\u{1E}") }
 }
 
 /// Actions shared by the list's context menu, the toolbar and the menu bar.
