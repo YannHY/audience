@@ -150,7 +150,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <a href="https://www.linkedin.com/in/yann-houry-a2350651/" target="_blank" rel="noopener noreferrer">Yann Houry</a>
                 </p>
                 <p class="footer-legal">
-                    <a href="conditions-utilisation.html">Conditions d'utilisation</a> | <a href="aide.html">Aide</a> | <a href="contact.html">Contact</a>
+                    <a href="conditions-utilisation.html">Conditions d'utilisation</a> | <a href="aide.html">Aide</a> | <a href="mac.html">App Mac</a> | <a href="contact.html">Contact</a>
                 </p>
                 <div class="license">
                     <p><i class="fa-brands fa-creative-commons" aria-hidden="true"></i> Logiciel libre : code sous <a href="https://www.gnu.org/licenses/gpl-3.0.fr.html" target="_blank" rel="noopener noreferrer">GPL v3</a>, contenus sous <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.fr" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a></p>
