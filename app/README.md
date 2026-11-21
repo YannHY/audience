@@ -10,7 +10,7 @@ L’archive prête à utiliser est `build/Audience-macOS.zip` : décompressez-la
 open build/Audience.app
 ```
 
-Le binaire est universel : Apple Silicon et Intel. Il est signé localement, sans certificat Developer ID ni notarisation. Pour une distribution publique, utilisez votre identité Developer ID et notarisez l’archive depuis Xcode.
+Le binaire est universel : Apple Silicon et Intel. Par défaut, les scripts appliquent une signature locale ad hoc. Pour produire une version signée avec le compte développeur Apple et notarisée, utilisez les variables ci-dessous.
 
 ## Développer et compiler
 
@@ -31,6 +31,23 @@ La compilation produit `build/Audience.app` et `build/Audience-macOS.zip`. La si
 
 Le projet Swift Package permet aussi `swift build` et `swift test`. Pour ajouter des fichiers au projet Xcode, exécutez `python3 scripts/generate-project.py`.
 
+## Signature Apple Developer
+
+Le certificat existant `Developer ID Application: Yann Houry (D73WW234K6)` et le profil de notarisation `scenarisation-notary` peuvent être réutilisés pour Audience. Ils restent dans le trousseau du Mac ; aucun mot de passe ni clé privée n’est enregistré dans le projet.
+
+Depuis le dossier `app`, pour signer et notariser la version déjà compilée :
+
+```sh
+SIGN_IDENTITY='Developer ID Application: Yann Houry (D73WW234K6)' \
+NOTARY_PROFILE=scenarisation-notary ./scripts/package.sh
+```
+
+Pour recompiler également, remplacez `./scripts/package.sh` par `./scripts/build.sh`. Pour signer sans notarisation, omettez `NOTARY_PROFILE`.
+
+Le script signe avec le runtime renforcé et un horodatage Apple, vérifie la signature des deux architectures, soumet l’archive à Apple si demandé, puis agrafe et vérifie le ticket de notarisation. Il produit `build/Audience.app` et `build/Audience-macOS.zip`. Le résultat de notarisation est conservé dans `build/Audience-notarization.json` ; un refus interrompt la préparation. Pour distribuer ou installer l’app depuis ce projet iCloud, utilisez le ZIP et décompressez-le hors iCloud (par exemple dans Téléchargements), puis déplacez l’app dans Applications. Le script signale si les attributs ajoutés par iCloud empêchent de valider la copie `.app` du projet ; le ZIP contient la version vérifiée hors iCloud.
+
+Références : [certificats Developer ID](https://developer.apple.com/help/account/certificates/create-developer-id-certificates), [notarisation macOS](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution).
+
 ## Utilisation
 
 - **Bibliothèque** : dossiers colorés, étiquettes, couleurs de questionnaire, favoris, tri, recherche (titre, code ou étiquette), sélection multiple, duplication, corbeille et vidage de la corbeille. Glissez un questionnaire sur un dossier, une étiquette, les Favoris ou la Corbeille dans la barre latérale.
@@ -38,7 +55,9 @@ Le projet Swift Package permet aussi `swift build` et `swift test`. Pour ajouter
 - **Éditeur** : liste des questions à gauche (réorganisation par glisser-déposer, touche Suppr, menu contextuel), choix unique, choix multiples, réponse libre, nuage de mots, évaluation, texte à trous, vidéo YouTube, classement et image à légender. Images intégrées aux sauvegardes, limite de 2 Mo, ajout par glisser-déposer possible.
 - **Présentation** : fenêtre native indépendante, plein écran (⌃⌘F), flèches gauche/droite ou espace, correction (C) et réponses reçues (R). Les éléments d’un classement sont mélangés jusqu’à la correction. **Lancer en direct** ouvre d’abord une salle d’attente : QR code généré localement, adresse et code en grand, nombre de participants connectés. Les téléphones affichent « Merci de patienter » jusqu’à **Commencer** (Entrée ou espace), qui ouvre la première question et son minuteur. Pendant la session, le bouton Participer réaffiche le QR code.
 - **Résultats** : barres par réponse (lettre, nombre, pourcentage, bonne réponse en vert) et réponses textuelles, récupérés depuis le site ou une sauvegarde. **Exporter en CSV** enregistre le même tableau que le bilan final du site (une ligne par question, une colonne par participant). Les résultats du direct sont actualisés toutes les trois secondes tant que la fenêtre de présentation reste ouverte.
-- **Réglages** : apparence système/claire/sombre, sauvegardes et connexion au site.
+- **Statistiques** : nombre de soumissions, réponses justes/fausses, taux de réussite sur les réponses évaluées et réponses les plus fréquentes par question. La correction des choix multiples exige toutes les bonnes réponses sans choix supplémentaire. Les réponses libres, sondages et données insuffisantes restent non évalués. Les anciens totaux par choix ne permettent pas toujours de retrouver le nombre de soumissions.
+- **Synthèse locale** : résumé, difficultés observées et pistes de reprise avec Ollama sur ce Mac. Ouvrez **Modèles…** dans Statistiques ou **Réglages → Modèles locaux** pour détecter les modèles installés et télécharger Qwen, Gemma, DeepSeek ou un autre modèle local, avec progression et annulation. Installez et ouvrez [Ollama](https://ollama.com/download/mac) au préalable. Le téléchargement nécessite Internet ; les synthèses fonctionnent ensuite hors ligne, sans clé API ni transmission des noms et identifiants des participants. Les données agrégées sont limitées à environ 24 000 caractères, 60 questions et 8 réponses fréquentes par question. Les synthèses sont conservées pendant la session de l’app, copiables et invalidées quand les résultats changent ; leurs interprétations restent à vérifier.
+- **Réglages** : apparence système/claire/sombre, sauvegardes, connexion au site et modèles locaux.
 
 Raccourcis : ⌘N nouveau questionnaire, ⇧⌘N nouveau dossier (avec la sélection), ⌘D dupliquer, ⌥⌘P présenter, ⌘R synchroniser.
 
@@ -60,7 +79,7 @@ Les sauvegardes JSON Electron (version 1) sont importables. Un import ajoute les
 
 Dans **Audience → Réglages → Compte**, connectez-vous avec votre adresse e-mail et votre mot de passe habituels. L’adresse du site Audience est intégrée à l’application. L’adresse e-mail est retenue dans les préférences et le mot de passe dans le trousseau de session macOS (élément « Audience », service `fr.audience.native.account`) : l’app se reconnecte seule à chaque lancement. Hors ligne au lancement, elle réessaie quand sa fenêtre redevient active ou depuis le bouton de la barre latérale. Un mot de passe refusé par le site est effacé du trousseau ; **Se déconnecter** l’efface aussi. Les cookies de session restent en mémoire.
 
-L’app est signée ad hoc : sa signature change à chaque nouvelle build, et macOS demande alors une fois l’autorisation d’accéder au trousseau. Saisissez le mot de passe de session du Mac et choisissez **Toujours autoriser**.
+Avec une signature ad hoc, macOS peut redemander l’autorisation d’accéder au trousseau à chaque nouvelle compilation. Une signature Developer ID conserve l’identité de l’app entre les versions signées avec la même équipe. Au passage de la signature ad hoc à Developer ID, macOS peut demander de nouveau l’accès : saisissez le mot de passe de session du Mac et choisissez **Toujours autoriser**.
 
 La bibliothèque est synchronisée automatiquement après la connexion. Les questionnaires du site apparaissent progressivement, avec leurs résultats disponibles. Les modifications locales sont envoyées après deux secondes sans nouvelle saisie ; l’app vérifie aussi le site toutes les trente secondes et quand sa fenêtre redevient active. **Synchroniser maintenant** permet de relancer immédiatement un échange.
 

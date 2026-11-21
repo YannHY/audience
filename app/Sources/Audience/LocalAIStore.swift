@@ -39,6 +39,7 @@ final class LocalAIStore {
             if !found.contains(where: { $0.name == selectedModel }) { selectedModel = found.first?.name ?? "" }
             error = nil
         } catch is CancellationError {} catch {
+            models = []
             available = false
             self.error = message(error)
         }
@@ -95,8 +96,8 @@ struct LocalModelsView: View {
                 if ai.available { Label("Ollama connecté", systemImage: "checkmark.circle").foregroundStyle(.secondary) }
                 if let error = ai.error { Text(error).foregroundStyle(.red).textSelection(.enabled) }
             }
-            Section("Modèles installés") {
-                if ai.models.isEmpty { Text("Aucun modèle local détecté.").foregroundStyle(.secondary) }
+            Section("Modèles de synthèse installés") {
+                if ai.models.isEmpty { Text("Aucun modèle local compatible avec la synthèse détecté.").foregroundStyle(.secondary) }
                 else {
                     Picker("Modèle pour les synthèses", selection: $ai.selectedModel) {
                         ForEach(ai.models) { model in

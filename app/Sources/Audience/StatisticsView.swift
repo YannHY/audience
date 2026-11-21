@@ -116,7 +116,7 @@ struct StatisticsView: View {
                         Button("Annuler", action: cancelGeneration)
                     } else {
                         Button(synthesis == nil ? "Générer la synthèse" : "Régénérer", systemImage: "text.badge.plus") { generate(stats) }
-                            .disabled(ai.selectedModel.isEmpty || ai.downloading != nil)
+                            .disabled(ai.checking || !ai.available || !ai.models.contains(where: { $0.name == ai.selectedModel }) || ai.downloading != nil)
                     }
                 }
                 if let error = generationError { Text(error).font(.callout).foregroundStyle(.red).textSelection(.enabled) }

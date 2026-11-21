@@ -33,16 +33,30 @@ public struct OllamaClient: Sendable {
         }
     }
     public func models() async throws -> [LocalModel] {
-        let request = request(path: "tags", timeout: 8)
-        let (data, response) = try await session.data(for: request)
+        let tagsRequest = request(path: "tags", timeout: 8)
+        let (data, response) = try await session.data(for: tagsRequest)
         try Self.check(response, data: data)
         let root = try JSONDecoder().decode(JSONValue.self, from: data)
         guard case .array(let rows) = root["models"] else { throw AudienceError.message("Liste de modèles Ollama illisible.") }
-        return rows.compactMap { row in
+        var models: [LocalModel] = []
+        for row in rows {
+            try Task.checkCancellation()
             let name = row["name"].string
-            guard (try? Self.validateModel(name)) != nil, row["remote_host"].string.isEmpty else { return nil }
-            return LocalModel(name: name, bytes: Int64(max(0, row["size"].int)))
-        }.sorted { $0.name < $1.name }
+            guard (try? Self.validateModel(name)) != nil, row["remote_host"].string.isEmpty,
+                  row["capabilities"]["completion_chat"] != .bool(false) else { continue }
+            // /api/tags also lists embedding and speech models. Only /api/show
+            // confirms text completion support, including for custom model names.
+            var detailsRequest = request(path: "show", timeout: 8)
+            detailsRequest.httpMethod = "POST"
+            detailsRequest.httpBody = try JSONEncoder().encode(JSONValue.object(["model": .string(name)]))
+            let (detailsData, detailsResponse) = try await session.data(for: detailsRequest)
+            try Self.check(detailsResponse, data: detailsData)
+            let details = try JSONDecoder().decode(JSONValue.self, from: detailsData)
+            guard details["capabilities"].array.contains(.string("completion")),
+                  details["remote_host"].string.isEmpty else { continue }
+            models.append(LocalModel(name: name, bytes: Int64(max(0, row["size"].int))))
+        }
+        return models.sorted { $0.name < $1.name }
     }
     public func pull(_ name: String, progress: @Sendable (ModelDownloadProgress) async -> Void) async throws {
         try Self.validateModel(name)

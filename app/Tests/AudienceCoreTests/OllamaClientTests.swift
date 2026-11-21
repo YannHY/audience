@@ -13,7 +13,7 @@ struct OllamaClientTests {
         #expect(OllamaClient.visibleOutput("<think>interne</think>Résumé") == "Résumé")
         #expect(OllamaClient.visibleOutput("<think>encore en cours") == "")
     }
-    @Test func installedModelsFilterCloudAndUseLoopbackWithoutCredentials() async throws {
+    @Test func installedModelsOnlyIncludeLocalTextGenerators() async throws {
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [OllamaProtocol.self]
         let client = OllamaClient(session: URLSession(configuration: config))
@@ -28,10 +28,40 @@ private final class OllamaProtocol: URLProtocol, @unchecked Sendable {
     override func stopLoading() {}
     override func startLoading() {
         #expect(request.url?.host == "127.0.0.1")
-        #expect(request.url?.path == "/api/tags")
         #expect(request.value(forHTTPHeaderField: "Cookie") == nil)
         #expect(request.value(forHTTPHeaderField: "Authorization") == nil)
-        let data = Data(#"{"models":[{"name":"qwen3:4b","size":2000000000},{"name":"qwen3:cloud"},{"name":"remote","remote_host":"https://ollama.com"},{"name":"gemma3:1b","size":800000000}]}"#.utf8)
+        let data: Data
+        if request.url?.path == "/api/tags" {
+            data = Data(#"{"models":[{"name":"qwen3:4b","size":2000000000},{"name":"qwen3:cloud"},{"name":"remote","remote_host":"https://ollama.com"},{"name":"gemma3:1b","size":800000000},{"name":"bge-m3:latest"},{"name":"mxbai-embed-large:latest"},{"name":"nomic-embed-text:latest"},{"name":"phonon:fr"},{"name":"unknown:latest"},{"name":"chat-disabled","capabilities":{"completion_chat":false}}]}"#.utf8)
+        } else {
+            #expect(request.url?.path == "/api/show")
+            #expect(request.httpMethod == "POST")
+            let body: Data
+            if let raw = request.httpBody { body = raw }
+            else if let stream = request.httpBodyStream {
+                stream.open(); defer { stream.close() }
+                var collected = Data(), buffer = [UInt8](repeating: 0, count: 1024)
+                while stream.hasBytesAvailable {
+                    let count = stream.read(&buffer, maxLength: buffer.count)
+                    guard count > 0 else { break }
+                    collected.append(contentsOf: buffer.prefix(count))
+                }
+                body = collected
+            } else { body = Data() }
+            let model = (try? JSONDecoder().decode(JSONValue.self, from: body))?["model"].string
+            #expect(model != "chat-disabled" && model != "remote" && model != "qwen3:cloud")
+            switch model {
+            case "qwen3:4b": data = Data(#"{"capabilities":["completion","thinking","tools"]}"#.utf8)
+            case "gemma3:1b": data = Data(#"{"capabilities":["completion","vision"]}"#.utf8)
+            case "bge-m3:latest", "mxbai-embed-large:latest", "nomic-embed-text:latest":
+                data = Data(#"{"capabilities":["embedding"]}"#.utf8)
+            case "phonon:fr": data = Data(#"{"capabilities":["speech"]}"#.utf8)
+            case "unknown:latest": data = Data(#"{}"#.utf8)
+            default:
+                Issue.record("Unexpected model metadata request")
+                data = Data(#"{}"#.utf8)
+            }
+        }
         client?.urlProtocol(self, didReceive: HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: data)
         client?.urlProtocolDidFinishLoading(self)
