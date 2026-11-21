@@ -25,6 +25,9 @@ struct ResultsView: View {
                     }
                     Spacer()
                     if refreshing { ProgressView().controlSize(.small) }
+                    Button("Exporter en CSV", systemImage: "square.and.arrow.up") { store.exportResultsCSV(quiz) }
+                        .disabled(resultQuestions.isEmpty)
+                        .help("Enregistrer les réponses dans un tableau CSV, comme le bilan du site")
                     Button("Actualiser", systemImage: "arrow.clockwise") { Task { await refresh() } }
                         .disabled(!canRefresh || refreshing)
                         .help(canRefresh ? "Télécharger les dernières réponses" : "Connectez-vous pour récupérer les réponses")

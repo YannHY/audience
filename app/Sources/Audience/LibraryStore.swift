@@ -468,6 +468,20 @@ final class ArchiveWriter: @unchecked Sendable {
             notice = "Sauvegarde exportée."
         } catch { report(error.localizedDescription) }
     }
+    func exportResultsCSV(_ quiz: Quiz) {
+        guard let responses = archive.responses[quiz.code],
+              let csv = ResultsCSV.build(quiz: quiz, responses: responses) else {
+            report("Aucun résultat à exporter."); return
+        }
+        let panel = NSSavePanel(); panel.allowedContentTypes = [.commaSeparatedText]
+        panel.nameFieldStringValue = ResultsCSV.filename(code: quiz.code)
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            // The byte order mark lets Excel read accented characters correctly.
+            try Data(("\u{FEFF}" + csv).utf8).write(to: url, options: .atomic)
+            notice = "Résultats exportés."
+        } catch { report(error.localizedDescription) }
+    }
     func revealData() {
         NSWorkspace.shared.activateFileViewerSelecting([FileManager.default.fileExists(atPath: dataURL.path) ? dataURL : dataURL.deletingLastPathComponent()])
     }
