@@ -102,3 +102,7 @@ L’enregistrement local est différé de 0,4 s et effectué hors du fil princip
 Pour le développement, la variable d’environnement `AUDIENCE_LIBRARY` ouvre une autre bibliothèque que celle de l’utilisateur ; en Debug, `AUDIENCE_SNAPSHOT_DIR` enregistre des captures des principaux écrans.
 
 Vérifications effectuées : compilation universelle Xcode, signature locale et 58 tests portant notamment sur les dossiers, étiquettes et couleurs dans les deux sens, la synchronisation incrémentale, le décodage des entités HTML, portant notamment sur la connexion, les mises à jour dans les deux sens, les conflits, les saisies concurrentes, la corbeille, les favoris, la reprise hors ligne, l’isolation des comptes et les réponses HTTP partielles. La synchronisation sur un compte réel reste à confirmer après installation.
+
+## Licence
+
+Code sous [GNU GPL version 3](../LICENSE) ou ultérieure ; icône, textes et documentation sous [CC BY-SA 4.0](../LICENSE-CONTENT.txt). Voir le [README du projet](../README.md#licence).
