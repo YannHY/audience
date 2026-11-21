@@ -7,12 +7,14 @@ import AudienceCore
 struct AudienceApp: App {
     @NSApplicationDelegateAdaptor(AudienceAppDelegate.self) private var appDelegate
     @State private var store = LibraryStore()
+    @State private var localAI = LocalAIStore()
     @AppStorage("appearance") private var appearance = "system"
     private var colorScheme: ColorScheme? { appearance == "system" ? nil : appearance == "dark" ? .dark : .light }
 
     var body: some Scene {
         Window("Audience", id: "library") {
             LibraryView(store: store)
+                .environment(localAI)
                 .onAppear {
                     appDelegate.store = store
                     #if DEBUG
@@ -34,6 +36,7 @@ struct AudienceApp: App {
 
         Settings {
             SettingsView(store: store)
+                .environment(localAI)
                 .preferredColorScheme(colorScheme)
         }
     }
@@ -57,8 +60,11 @@ struct LibraryCommands: Commands {
         }
         CommandGroup(after: .newItem) {
             Divider()
-            Button("Importer une sauvegarde…", action: store.importBackup)
+            Button("Importer…", action: store.importBackup)
                 .keyboardShortcut("i", modifiers: [.command, .shift])
+            Button("Coller du Markdown…") { store.pastingMarkdown = true }
+                .keyboardShortcut("v", modifiers: [.command, .shift])
+                .disabled(store.readOnly)
             Button("Exporter une sauvegarde…") { store.exportBackup() }
                 .keyboardShortcut("e", modifiers: [.command, .shift])
         }

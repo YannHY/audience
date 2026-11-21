@@ -1,6 +1,9 @@
 #if DEBUG
 import AppKit
 import SwiftUI
+#if SWIFT_PACKAGE
+import AudienceCore
+#endif
 
 /// Development aid, absent from Release builds: with AUDIENCE_SNAPSHOT_DIR set, the app walks
 /// through its main screens and saves a PNG of each window, without screen-recording rights.
@@ -41,8 +44,36 @@ import SwiftUI
             store.createFolder(rename: true)
             await pause(1.5)
             snap("6-new-folder", to: output)
+            // Pasting Markdown: the empty sheet, then the questionnaire created from the sample.
+            store.sidebar = .all
+            store.pastingMarkdown = true
+            await pause()
+            snap("9-paste-markdown", to: output)
+            store.pastingMarkdown = false
+            await pause(0.8)
+            _ = store.importPastedMarkdown(MarkdownPasteSheet.example)
+            await pause()
+            snap("10-pasted-quiz", to: output)
+            renderLiveScreens(to: output)
             FileManager.default.createFile(atPath: output.appending(path: "done").path, contents: nil)
         }
+    }
+
+    /// The waiting room and live results, drawn offscreen with sample data (no session is opened).
+    private static func renderLiveScreens(to directory: URL) {
+        func save<V: View>(_ view: V, _ name: String, size: CGSize) {
+            let renderer = ImageRenderer(content: view.frame(width: size.width, height: size.height).background(Color.white))
+            renderer.scale = 1
+            guard let image = renderer.cgImage else { return }
+            try? NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?.write(to: directory.appending(path: "\(name).png"))
+        }
+        if let url = RemoteClient.participantURL(code: "913244") {
+            save(LobbyView(title: "Le vocabulaire du théâtre", code: "913244", url: url, participants: 3, scale: 1.2), "7-lobby", size: CGSize(width: 1440, height: 820))
+        }
+        let question = Question(fields: ["type": .string("multiple"), "question": .string("Que désigne le mot « théâtre » ?"), "correctIndex": .number(1),
+                                         "answers": .array([.string("Un lieu où l’on joue de la musique"), .string("Un endroit d’où l’on voit (des gradins)"), .string("Une salle où l’on récite des poèmes")])])
+        let result: JSONValue = .object(["results": .array([.number(5), .number(14), .number(2)]), "total": .number(21)])
+        save(ResultCard(question: question, index: 0, result: result, compact: true, showCorrect: true, scale: 1.2).padding(30), "8-live-results", size: CGSize(width: 1100, height: 330))
     }
 
     private typealias WindowImage = @convention(c) (CGRect, UInt32, UInt32, UInt32) -> Unmanaged<CGImage>?

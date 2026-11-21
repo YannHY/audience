@@ -4,10 +4,10 @@ import AudienceCore
 #endif
 
 enum DetailMode: String, CaseIterable, Identifiable {
-    case editor, results
+    case editor, results, statistics
     var id: Self { self }
-    var title: String { self == .editor ? "Éditeur" : "Résultats" }
-    var symbol: String { self == .editor ? "square.and.pencil" : "chart.bar" }
+    var title: String { switch self { case .editor: "Éditeur"; case .results: "Résultats"; case .statistics: "Statistiques" } }
+    var symbol: String { switch self { case .editor: "square.and.pencil"; case .results: "chart.bar"; case .statistics: "chart.bar.xaxis" } }
 }
 
 struct LibraryView: View {
@@ -69,6 +69,7 @@ struct LibraryView: View {
             }
         }
         .animation(.smooth, value: store.notice)
+        .sheet(isPresented: $store.pastingMarkdown) { MarkdownPasteSheet(store: store) }
         #if DEBUG
         .onReceive(NotificationCenter.default.publisher(for: DebugSnapshots.present)) { note in
             if let code = note.object as? String { openWindow(id: "presentation", value: code) }
@@ -93,6 +94,8 @@ struct LibraryView: View {
                     } message: { Text("Ses réponses seront aussi supprimées, sur ce Mac et sur le compte synchronisé.") }
                 } else if mode == .results {
                     ResultsView(store: store, quiz: quiz)
+                } else if mode == .statistics {
+                    StatisticsView(store: store, quiz: quiz).id(quiz.code)
                 } else {
                     QuizEditor(store: store, code: quiz.code).id(quiz.code)
                 }
@@ -123,7 +126,7 @@ struct LibraryView: View {
             }
             .pickerStyle(.segmented)
             .labelStyle(.titleOnly)
-            .help("Basculer entre l’éditeur et les résultats")
+            .help("Afficher l’éditeur, les résultats ou les statistiques")
         }
         ToolbarItemGroup(placement: .primaryAction) {
             Button("Présenter", systemImage: "play.fill") { present(quiz) }

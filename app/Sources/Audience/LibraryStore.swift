@@ -89,12 +89,16 @@ final class ArchiveWriter: @unchecked Sendable {
     var selection: Set<String> = []
     var search = ""
     var notice: String?
+    /// Shows the sheet where a questionnaire written in Markdown can be pasted.
+    var pastingMarkdown = false
     var busy = false
     var connected = false
     var accountName = ""
     /// The saved password could not be tried (offline at launch, server unavailable).
     var savedLoginPending = false
     var liveCode: String?
+    /// Waiting room: participants can join, but the first question is not open yet.
+    var liveLobby = false
     var liveIndex = 0
     /// Timer of the question on screen, in this Mac's clock.
     var liveTiming: LiveTiming?
@@ -433,16 +437,63 @@ final class ArchiveWriter: @unchecked Sendable {
 
     // MARK: - Backups
 
+    /// Imports Audience backups (.json), questionnaires in the website's Markdown format (.md)
+    /// and the ZIP archives the website exports (one .md per questionnaire).
     func importBackup() {
-        let panel = NSOpenPanel(); panel.allowedContentTypes = [.json]; panel.allowsMultipleSelection = false
-        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let markdown = UTType("net.daringfireball.markdown") ?? UTType(filenameExtension: "md") ?? .plainText
+        let panel = NSOpenPanel(); panel.allowedContentTypes = [.json, markdown, .zip]; panel.allowsMultipleSelection = true
+        panel.message = "Choisissez une sauvegarde Audience (.json), des questionnaires Markdown (.md) ou une archive ZIP exportée du site."
+        guard panel.runModal() == .OK, !panel.urls.isEmpty else { return }
         do {
-            let incoming = try JSONDecoder().decode(LibraryArchive.self, from: Data(contentsOf: url))
+            var incoming = LibraryArchive()
+            for url in panel.urls {
+                let data = try Data(contentsOf: url)
+                switch url.pathExtension.lowercased() {
+                case "md", "markdown", "txt":
+                    guard let text = String(data: data, encoding: .utf8) else {
+                        throw AudienceError.message("\(url.lastPathComponent) n’est pas encodé en UTF-8.")
+                    }
+                    do { add(try QuizMarkdown.parse(text), to: &incoming) } catch {
+                        throw AudienceError.message("\(url.lastPathComponent) : \(error.localizedDescription)")
+                    }
+                case "zip":
+                    for quiz in try QuizMarkdown.parseArchive(data) { add(quiz, to: &incoming) }
+                default:
+                    let backup = try JSONDecoder().decode(LibraryArchive.self, from: data)
+                    _ = incoming.merge(backup)
+                }
+            }
             var count = 0
             if commit({ count = $0.merge(incoming) }) {
                 notice = "\(count) questionnaire(s) importé(s)."; sidebar = .all; localChange()
             }
         } catch { report(error.localizedDescription) }
+    }
+    /// Creates a questionnaire from pasted Markdown, placed like a new one and selected.
+    /// Returns the reason when the text cannot be read; nothing is created then.
+    func importPastedMarkdown(_ text: String) -> String? {
+        var quiz: Quiz
+        do { quiz = try QuizMarkdown.parse(text) } catch { return error.localizedDescription }
+        switch sidebar {
+        case .folder(let id): quiz.folderID = id
+        case .tag(let tag): quiz.tags = [tag]
+        case .favorites: quiz.isFavorite = true
+        default: break
+        }
+        if sidebar == .trash { sidebar = .all }
+        while archive.quizzes[quiz.code] != nil { quiz["code"] = .string(Quiz().code) }
+        guard commit({ archive in
+            archive.quizzes[quiz.code] = quiz
+            archive.synchronization.owners[quiz.code] = archive.synchronization.activeAccount
+        }) else { return nil }
+        search = ""; selection = [quiz.code]; localChange()
+        notice = "Questionnaire importé : \(quiz.questions.count) question(s)."
+        return nil
+    }
+    private func add(_ quiz: Quiz, to archive: inout LibraryArchive) {
+        var quiz = quiz
+        while archive.quizzes[quiz.code] != nil { quiz["code"] = .string(Quiz().code) }
+        archive.quizzes[quiz.code] = quiz
     }
     func exportBackup(only codes: Set<String>? = nil) {
         let panel = NSSavePanel(); panel.allowedContentTypes = [.json]
@@ -630,10 +681,22 @@ final class ArchiveWriter: @unchecked Sendable {
             guard let latest = archive.quizzes[quiz.code], !latest.isDeleted else { throw AudienceError.message("Ce questionnaire n’est plus disponible.") }
             let start = latest.questions.indices.contains(index) ? index : 0
             let runID = RemoteClient.makeRunID()
-            let response = try await remote.send(latest, index: start, live: true, runID: runID, resetResponses: resetResponses)
-            liveRunID = runID; liveCode = quiz.code; liveIndex = start; liveParticipants = nil
+            // Uploaded but not live: the website shows a waiting message on phones while
+            // counting them as connected, so people can join before the first question opens.
+            let response = try await remote.send(latest, index: start, live: false, runID: runID, resetResponses: resetResponses)
+            liveRunID = runID; liveCode = quiz.code; liveIndex = start; liveParticipants = nil; liveLobby = true
             applyTiming(response)
             if resetResponses { commit { $0.responses.removeValue(forKey: quiz.code) } }
+        }
+    }
+    /// Leaves the waiting room: opens the first question and starts its timer.
+    func beginLive() async {
+        guard let code = liveCode, liveLobby else { return }
+        await perform {
+            guard let latest = archive.quizzes[code], !latest.isDeleted else { throw AudienceError.message("Ce questionnaire n’est plus disponible.") }
+            let response = try await remote.send(latest, index: liveIndex, live: true, runID: liveRunID)
+            liveLobby = false
+            applyTiming(response)
         }
     }
     func stopLive() async {
@@ -645,7 +708,7 @@ final class ArchiveWriter: @unchecked Sendable {
         guard let code = liveCode else { return }
         await perform {
             try await remote.stop(code: code)
-            liveCode = nil; liveRunID = nil; liveTiming = nil; liveParticipants = nil
+            liveCode = nil; liveRunID = nil; liveTiming = nil; liveParticipants = nil; liveLobby = false
         }
         if liveCode == nil { scheduleSync() }
     }

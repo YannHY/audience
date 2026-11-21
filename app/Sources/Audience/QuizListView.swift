@@ -40,7 +40,10 @@ struct QuizListView: View {
                     } actions: {
                         if store.search.isEmpty && section != .trash {
                             Button("Nouveau questionnaire", action: store.create).disabled(store.readOnly)
-                            if section == .all { Button("Importer une sauvegarde…", action: store.importBackup).buttonStyle(.link) }
+                            if section == .all {
+                                Button("Importer un questionnaire…", action: store.importBackup).buttonStyle(.link)
+                                Button("Coller du Markdown…") { store.pastingMarkdown = true }.buttonStyle(.link).disabled(store.readOnly)
+                            }
                         }
                     }
                 }

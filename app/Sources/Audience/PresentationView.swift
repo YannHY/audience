@@ -18,6 +18,7 @@ struct PresentationView: View {
     @Environment(\.dismissWindow) private var dismissWindow
     private var quiz: Quiz? { store.archive.quizzes[code] }
     private var isLive: Bool { store.liveCode == code }
+    private var inLobby: Bool { isLive && store.liveLobby }
 
     var body: some View {
         Group {
@@ -25,6 +26,9 @@ struct PresentationView: View {
                 let question = quiz.questions[index]
                 GeometryReader { geometry in
                     let scale = min(max(geometry.size.width / 1200, 0.85), 1.8)
+                    if inLobby, let url = store.participantURL(code: code) {
+                        LobbyView(title: quiz.title, code: code, url: url, participants: store.liveParticipants, scale: scale)
+                    } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 28 * scale) {
                             header(quiz)
@@ -38,7 +42,7 @@ struct PresentationView: View {
                             }
                             content(question, scale: scale)
                             if showResults {
-                                resultsPanel(question)
+                                resultsPanel(question, scale: scale)
                             }
                             if let liveError {
                                 Label(liveError, systemImage: "exclamationmark.circle").font(.callout).foregroundStyle(.red)
@@ -49,6 +53,7 @@ struct PresentationView: View {
                         .frame(maxWidth: .infinity)
                     }
                     .scrollEdgeEffectStyle(.soft, for: .all)
+                    }
                 }
                 .safeAreaInset(edge: .bottom, spacing: 0) { controls(quiz) }
                 .navigationTitle(quiz.title)
@@ -105,8 +110,10 @@ struct PresentationView: View {
                             .foregroundStyle(.secondary).contentTransition(.numericText())
                     }
                     let answers = responseCount
+                    if !inLobby {
                     Label(answers == 1 ? "1 réponse" : "\(answers) réponses", systemImage: "checkmark.bubble.fill")
                         .foregroundStyle(.secondary).contentTransition(.numericText())
+                    }
                     if let timing = store.liveTiming { CountdownView(timing: timing) }
                 }
                 .animation(.smooth, value: store.liveParticipants)
@@ -161,19 +168,26 @@ struct PresentationView: View {
         }
     }
 
-    @ViewBuilder private func resultsPanel(_ question: Question) -> some View {
+    @ViewBuilder private func resultsPanel(_ question: Question, scale: CGFloat) -> some View {
         let result = currentResult
-        VStack(alignment: .leading, spacing: 12) {
-            Label("Réponses reçues", systemImage: "chart.bar").font(.headline).foregroundStyle(.secondary)
-            if let result {
-                ResultCard(question: question, index: index, result: result, compact: true)
+        VStack(alignment: .leading, spacing: 18 * scale) {
+            HStack {
+                Label("Réponses reçues", systemImage: "chart.bar.fill")
+                Spacer()
+                let count = responseCount
+                Text(count == 1 ? "1 réponse" : "\(count) réponses").monospacedDigit().contentTransition(.numericText())
+            }
+            .font(.system(size: 17 * scale, weight: .semibold)).foregroundStyle(.secondary)
+            .animation(.smooth, value: responseCount)
+            if let result, ResultCard.hasResponses(question: question, result: result) {
+                ResultCard(question: question, index: index, result: result, compact: true, showCorrect: reveal, scale: scale)
             } else {
                 Text(isLive ? "En attente des premières réponses…" : "Aucune réponse enregistrée pour cette question.")
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 18 * scale)).foregroundStyle(.secondary)
             }
         }
-        .padding(22)
-        .glassEffect(.regular, in: .rect(cornerRadius: 22))
+        .padding(26 * scale)
+        .glassEffect(.regular, in: .rect(cornerRadius: 24 * scale))
     }
 
     /// Answers received for the question on screen.
@@ -186,7 +200,7 @@ struct PresentationView: View {
     private func launch(_ quiz: Quiz, resetResponses: Bool) {
         Task {
             await store.startLive(quiz, at: index, resetResponses: resetResponses)
-            if isLive { index = store.liveIndex; showJoin = true }
+            if isLive { index = store.liveIndex; reveal = false }
         }
     }
 
@@ -200,7 +214,51 @@ struct PresentationView: View {
         return .object(fields)
     }
 
-    private func controls(_ quiz: Quiz) -> some View {
+    @ViewBuilder private func controls(_ quiz: Quiz) -> some View {
+        if inLobby { lobbyControls } else { questionControls(quiz) }
+    }
+
+    private var lobbyControls: some View {
+        GlassEffectContainer(spacing: 14) {
+            HStack(spacing: 14) {
+                Button {
+                    Task { await store.beginLive(); if !store.liveLobby { index = store.liveIndex; reveal = false } }
+                } label: {
+                    Label(store.liveIndex == 0 ? "Commencer" : "Commencer à la question \(store.liveIndex + 1)", systemImage: "play.fill")
+                        .padding(.horizontal, 10)
+                }
+                .buttonStyle(.glassProminent).controlSize(.extraLarge)
+                .keyboardShortcut(.defaultAction).disabled(store.busy)
+                .help("Afficher la première question sur les téléphones (Entrée ou espace)").presentationControl()
+
+                HStack(spacing: 10) {
+                    if let url = store.participantURL(code: code) {
+                        Button("Copier le lien", systemImage: "doc.on.doc") {
+                            NSPasteboard.general.clearContents(); NSPasteboard.general.setString(url.absoluteString, forType: .string)
+                        }.presentationControl()
+                    }
+                    Button("Arrêter", systemImage: "stop.fill") { Task { await store.stopLive() } }
+                        .disabled(store.busy).tint(.red).presentationControl()
+                    Button("Plein écran", systemImage: "arrow.up.left.and.arrow.down.right") {
+                        NSApp.keyWindow?.toggleFullScreen(nil)
+                    }
+                    .labelStyle(.iconOnly).keyboardShortcut("f", modifiers: [.command, .control])
+                    .help("Plein écran (⌃⌘F)").presentationControl()
+                }
+                .buttonStyle(.borderless).controlSize(.large)
+                .padding(.horizontal, 14).padding(.vertical, 10)
+                .glassEffect(.regular.interactive(), in: .capsule)
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity)
+        .background {
+            Button("Commencer") { Task { await store.beginLive(); if !store.liveLobby { index = store.liveIndex; reveal = false } } }
+                .keyboardShortcut(.space, modifiers: []).disabled(store.busy).hidden()
+        }
+    }
+
+    private func questionControls(_ quiz: Quiz) -> some View {
         GlassEffectContainer(spacing: 14) {
             HStack(spacing: 14) {
                 HStack(spacing: 6) {
@@ -325,11 +383,84 @@ struct JoinSheet: View {
             }
         }.padding(32).frame(width: 430)
     }
-    private var qrImage: NSImage? {
-        let filter = CIFilter.qrCodeGenerator(); filter.message = Data(url.absoluteString.utf8)
-        guard let output = filter.outputImage?.transformed(by: CGAffineTransform(scaleX: 10, y: 10)),
-              let cg = CIContext().createCGImage(output, from: output.extent) else { return nil }
-        return NSImage(cgImage: cg, size: NSSize(width: 240, height: 240))
+    private var qrImage: NSImage? { qrCode(for: url) }
+}
+
+/// QR code generated on this Mac, with a quiet zone so phones read it from a projector.
+func qrCode(for url: URL) -> NSImage? {
+    let filter = CIFilter.qrCodeGenerator(); filter.message = Data(url.absoluteString.utf8); filter.correctionLevel = "M"
+    guard let output = filter.outputImage?.transformed(by: CGAffineTransform(scaleX: 12, y: 12)),
+          let cg = CIContext().createCGImage(output, from: output.extent) else { return nil }
+    return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
+}
+
+/// Waiting room shown before the first question: how to join, and who already did.
+struct LobbyView: View {
+    let title: String
+    let code: String
+    let url: URL
+    let participants: Int?
+    let scale: CGFloat
+    /// The participant page without the code, for people typing the address by hand.
+    private var entryAddress: String {
+        let host = (url.host ?? "").replacingOccurrences(of: #"^www\."#, with: "", options: .regularExpression)
+        return host + url.path
+    }
+    var body: some View {
+        HStack(alignment: .center, spacing: 64 * scale) {
+            VStack(alignment: .leading, spacing: 30 * scale) {
+                VStack(alignment: .leading, spacing: 10 * scale) {
+                    Text(title).font(.system(size: 22 * scale, weight: .medium)).foregroundStyle(.secondary).lineLimit(2)
+                    Text("Rejoignez le questionnaire").font(.system(size: 54 * scale, weight: .bold))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                VStack(alignment: .leading, spacing: 16 * scale) {
+                    step(1, Text("Scannez le QR code avec votre téléphone"))
+                    step(2, Text("ou ouvrez **\(entryAddress)** et saisissez le code"))
+                }
+                VStack(alignment: .leading, spacing: 2 * scale) {
+                    Text("CODE").font(.system(size: 16 * scale, weight: .semibold)).tracking(2 * scale).foregroundStyle(.secondary)
+                    Text(code).font(.system(size: 88 * scale, weight: .bold, design: .rounded).monospacedDigit())
+                        .tracking(8 * scale).textSelection(.enabled)
+                }
+                participantBadge
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if let image = qrCode(for: url) {
+                Image(nsImage: image).interpolation(.none).resizable().aspectRatio(1, contentMode: .fit)
+                    .frame(width: 360 * scale)
+                    .padding(26 * scale)
+                    .background(.white, in: .rect(cornerRadius: 30 * scale))
+                    .shadow(color: .black.opacity(0.12), radius: 24 * scale, y: 8 * scale)
+                    .accessibilityLabel("QR code pour rejoindre le questionnaire")
+            }
+        }
+        .frame(maxWidth: 1240 * scale)
+        .padding(.horizontal, 60 * scale).padding(.vertical, 40 * scale)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    private func step(_ number: Int, _ text: Text) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 14 * scale) {
+            Text("\(number)").font(.system(size: 17 * scale, weight: .bold).monospacedDigit())
+                .foregroundStyle(.white)
+                .frame(width: 30 * scale, height: 30 * scale)
+                .background(Color.accentColor, in: .circle)
+            text.font(.system(size: 24 * scale))
+        }
+    }
+    private var participantBadge: some View {
+        let count = participants ?? 0
+        return HStack(spacing: 12 * scale) {
+            Circle().fill(count > 0 ? Color.green : Color.secondary.opacity(0.5))
+                .frame(width: 12 * scale, height: 12 * scale)
+                .phaseAnimator([1.0, 0.35]) { dot, opacity in dot.opacity(count > 0 ? 1 : opacity) } animation: { _ in .easeInOut(duration: 0.9) }
+            Text(count == 0 ? "En attente des participants…" : count == 1 ? "1 participant connecté" : "\(count) participants connectés")
+                .contentTransition(.numericText())
+        }
+        .font(.system(size: 22 * scale, weight: .semibold))
+        .padding(.horizontal, 20 * scale).padding(.vertical, 12 * scale)
+        .glassEffect(.regular, in: .capsule)
+        .animation(.smooth, value: count)
     }
 }
 

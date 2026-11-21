@@ -2918,7 +2918,7 @@ document.addEventListener('DOMContentLoaded', function() {
         sections.push(buildQuizSection(
             homeState.foldersSupported ? 'Questionnaires' : 'Autres questionnaires',
             'fa-layer-group',
-            `<div class="saved-quiz-cards saved-quiz-cards-grid">${buildNewQuizCard()}${loose.map(buildOwnedQuizCard).join('')}</div>`,
+            `<div class="saved-quiz-cards saved-quiz-cards-grid">${loose.map(buildOwnedQuizCard).join('')}${buildNewQuizCard()}</div>`,
             loose.length
         ));
 

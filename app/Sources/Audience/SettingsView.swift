@@ -69,8 +69,11 @@ struct SettingsView: View {
                     }
                 }.formStyle(.grouped)
             }
+            Tab("Modèles locaux", systemImage: "internaldrive", value: 2) {
+                LocalModelsView()
+            }
         }
-        .frame(width: 580, height: 470)
+        .frame(width: 640, height: tab == 2 ? 680 : 470)
     }
     private func connect() {
         guard !store.busy, !email.isEmpty, !password.isEmpty else { return }
