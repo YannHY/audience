@@ -92,6 +92,8 @@ final class ArchiveWriter: @unchecked Sendable {
     var busy = false
     var connected = false
     var accountName = ""
+    /// The saved password could not be tried (offline at launch, server unavailable).
+    var savedLoginPending = false
     var liveCode: String?
     var liveIndex = 0
     /// Timer of the question on screen, in this Mac's clock.
@@ -300,7 +302,7 @@ final class ArchiveWriter: @unchecked Sendable {
     var syncStatus: String {
         if syncing { return "Synchronisation en cours…" }
         if syncError != nil { return "Synchronisation à réessayer" }
-        guard connected else { return "Disponible hors ligne" }
+        guard connected else { return savedLoginPending ? "Connexion à réessayer" : "Disponible hors ligne" }
         let pending = visibleQuizzes.contains(where: isPending)
             || archive.synchronization.pendingPurges.values.contains(activeAccount ?? "")
         if pending { return syncDrafts > 0 ? "\(syncDrafts) brouillon(s) sur ce Mac" : "Modifications en attente" }
@@ -509,27 +511,57 @@ final class ArchiveWriter: @unchecked Sendable {
         }
     }
     func connect(email: String, password: String) async {
-        await perform {
-            connected = false
-            accountName = try await remote.connect(address: RemoteClient.siteURL.absoluteString, email: email, password: password)
-            let account = try await remote.accountIdentity()
-            guard commit({ archive in
-                archive.synchronization.activeAccount = account
-                for code in archive.quizzes.keys where archive.synchronization.owners[code] == nil {
-                    archive.synchronization.owners[code] = account
-                }
-            }) else { await remote.disconnect(); return }
-            connected = true
-            sidebar = .all; search = ""; selection = []
-            syncError = nil; lastFullRefresh = nil
+        let email = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        await perform { try await openSession(email: email, password: password) }
+        guard connected else { return }
+        savedLoginPending = false
+        await Task.detached { SavedCredentials.save(email: email, password: password) }.value
+        await synchronize()
+    }
+    /// Signs in with the keychain password, at launch or when a previous attempt failed offline.
+    func connectSaved() async {
+        // A test library (AUDIENCE_LIBRARY) never signs in to the real account by itself.
+        guard !connected, !busy, ProcessInfo.processInfo.environment["AUDIENCE_LIBRARY"] == nil else { return }
+        let email = SavedCredentials.email
+        guard !email.isEmpty, let password = await Task.detached(operation: { SavedCredentials.password(for: email) }).value,
+              !connected, !busy else { return }
+        busy = true
+        do {
+            try await openSession(email: email, password: password)
+            savedLoginPending = false
+        } catch AudienceError.rejectedCredentials(let message) {
+            savedLoginPending = false
+            await Task.detached { SavedCredentials.forgetPassword() }.value
+            report("Connexion automatique refusée : \(message) Reconnectez-vous dans Réglages → Compte.")
+        } catch is CancellationError {
+        } catch {
+            // Offline or server unavailable: the library stays usable and the sign-in is retried later.
+            savedLoginPending = true
         }
+        busy = false
         if connected { await synchronize() }
+    }
+    private func openSession(email: String, password: String) async throws {
+        connected = false
+        accountName = try await remote.connect(address: RemoteClient.siteURL.absoluteString, email: email, password: password)
+        let account = try await remote.accountIdentity()
+        guard commit({ archive in
+            archive.synchronization.activeAccount = account
+            for code in archive.quizzes.keys where archive.synchronization.owners[code] == nil {
+                archive.synchronization.owners[code] = account
+            }
+        }) else { await remote.disconnect(); return }
+        connected = true
+        sidebar = .all; search = ""; selection = []
+        syncError = nil; lastFullRefresh = nil
     }
     func disconnect() async {
         guard !syncing && !busy && liveCode == nil else { return }
         scheduledSync?.cancel()
         await remote.disconnect()
-        connected = false; accountName = ""; syncError = nil
+        connected = false; accountName = ""; syncError = nil; savedLoginPending = false
+        // Signing out is deliberate: the next launch must not sign in again.
+        await Task.detached { SavedCredentials.forgetPassword() }.value
     }
     func synchronize(showErrors: Bool = false) async {
         guard connected, !busy, liveCode == nil, let account = archive.synchronization.activeAccount else { return }

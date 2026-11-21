@@ -37,7 +37,7 @@ Le projet Swift Package permet aussi `swift build` et `swift test`. Pour ajouter
 - **Inspecteur** (bouton à droite de la barre d’outils ou ⌥⌘I) : dossier, couleur, étiquettes, réglages de participation et informations du questionnaire.
 - **Éditeur** : liste des questions à gauche (réorganisation par glisser-déposer, touche Suppr, menu contextuel), choix unique, choix multiples, réponse libre, nuage de mots, évaluation, texte à trous, vidéo YouTube, classement et image à légender. Images intégrées aux sauvegardes, limite de 2 Mo, ajout par glisser-déposer possible.
 - **Présentation** : fenêtre native indépendante, plein écran (⌃⌘F), flèches gauche/droite ou espace, correction (C) et réponses reçues (R). Les éléments d’un classement sont mélangés jusqu’à la correction. Le bouton Participer affiche un QR code généré localement pendant une session en ligne.
-- **Résultats** : graphiques Swift Charts et réponses textuelles, récupérés depuis le site ou une sauvegarde. Les résultats du direct sont actualisés toutes les trois secondes tant que la fenêtre de présentation reste ouverte.
+- **Résultats** : graphiques Swift Charts et réponses textuelles, récupérés depuis le site ou une sauvegarde. **Exporter en CSV** enregistre le même tableau que le bilan final du site (une ligne par question, une colonne par participant). Les résultats du direct sont actualisés toutes les trois secondes tant que la fenêtre de présentation reste ouverte.
 - **Réglages** : apparence système/claire/sombre, sauvegardes et connexion au site.
 
 Raccourcis : ⌘N nouveau questionnaire, ⇧⌘N nouveau dossier (avec la sélection), ⌘D dupliquer, ⌥⌘P présenter, ⌘R synchroniser.
@@ -58,7 +58,9 @@ Les sauvegardes JSON Electron (version 1) sont importables. Un import ajoute les
 
 ## Connexion et participation
 
-Dans **Audience → Réglages → Compte**, connectez-vous avec votre adresse e-mail et votre mot de passe habituels. L’adresse du site Audience est intégrée à l’application. Le mot de passe et les cookies restent en mémoire pendant la session.
+Dans **Audience → Réglages → Compte**, connectez-vous avec votre adresse e-mail et votre mot de passe habituels. L’adresse du site Audience est intégrée à l’application. L’adresse e-mail est retenue dans les préférences et le mot de passe dans le trousseau de session macOS (élément « Audience », service `fr.audience.native.account`) : l’app se reconnecte seule à chaque lancement. Hors ligne au lancement, elle réessaie quand sa fenêtre redevient active ou depuis le bouton de la barre latérale. Un mot de passe refusé par le site est effacé du trousseau ; **Se déconnecter** l’efface aussi. Les cookies de session restent en mémoire.
+
+L’app est signée ad hoc : sa signature change à chaque nouvelle build, et macOS demande alors une fois l’autorisation d’accéder au trousseau. Saisissez le mot de passe de session du Mac et choisissez **Toujours autoriser**.
 
 La bibliothèque est synchronisée automatiquement après la connexion. Les questionnaires du site apparaissent progressivement, avec leurs résultats disponibles. Les modifications locales sont envoyées après deux secondes sans nouvelle saisie ; l’app vérifie aussi le site toutes les trente secondes et quand sa fenêtre redevient active. **Synchroniser maintenant** permet de relancer immédiatement un échange.
 
@@ -80,4 +82,4 @@ L’enregistrement local est différé de 0,4 s et effectué hors du fil princip
 
 Pour le développement, la variable d’environnement `AUDIENCE_LIBRARY` ouvre une autre bibliothèque que celle de l’utilisateur ; en Debug, `AUDIENCE_SNAPSHOT_DIR` enregistre des captures des principaux écrans.
 
-Vérifications effectuées : compilation universelle Xcode, signature locale et 53 tests portant notamment sur les dossiers, étiquettes et couleurs dans les deux sens, la synchronisation incrémentale, le décodage des entités HTML, portant notamment sur la connexion, les mises à jour dans les deux sens, les conflits, les saisies concurrentes, la corbeille, les favoris, la reprise hors ligne, l’isolation des comptes et les réponses HTTP partielles. La synchronisation sur un compte réel reste à confirmer après installation.
+Vérifications effectuées : compilation universelle Xcode, signature locale et 58 tests portant notamment sur les dossiers, étiquettes et couleurs dans les deux sens, la synchronisation incrémentale, le décodage des entités HTML, portant notamment sur la connexion, les mises à jour dans les deux sens, les conflits, les saisies concurrentes, la corbeille, les favoris, la reprise hors ligne, l’isolation des comptes et les réponses HTTP partielles. La synchronisation sur un compte réel reste à confirmer après installation.

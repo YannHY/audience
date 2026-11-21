@@ -37,7 +37,23 @@ public enum JSONValue: Codable, Equatable, Sendable {
         default: false
         }
     }
-    public subscript(_ key: String) -> JSONValue { object[key] ?? .null }
+    /// Reads an array element by its decimal index too, like JavaScript: PHP encodes
+    /// `["0" => 3, "1" => 0]` as `[3, 0]`, so the server's answer counts arrive as an array.
+    public subscript(_ key: String) -> JSONValue {
+        if case .array(let values) = self {
+            guard let index = Int(key), values.indices.contains(index) else { return .null }
+            return values[index]
+        }
+        return object[key] ?? .null
+    }
+    /// Values of an object, or elements of an array.
+    public var values: [JSONValue] {
+        switch self {
+        case .object(let v): Array(v.values)
+        case .array(let v): v
+        default: []
+        }
+    }
 }
 
 public extension String {

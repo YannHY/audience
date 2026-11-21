@@ -131,6 +131,12 @@ struct SidebarView: View {
                     .labelStyle(.iconOnly).buttonStyle(.borderless)
                     .disabled(store.syncing || store.busy || store.liveCode != nil)
                     .help(store.syncError ?? "Synchroniser maintenant")
+                } else if store.savedLoginPending {
+                    Button("Réessayer la connexion", systemImage: "arrow.clockwise") {
+                        Task { await store.connectSaved() }
+                    }
+                    .labelStyle(.iconOnly).buttonStyle(.borderless)
+                    .disabled(store.busy).help("Se reconnecter avec le compte enregistré")
                 } else {
                     Button("Se connecter", systemImage: "person.crop.circle.badge.plus") {
                         UserDefaults.standard.set(1, forKey: "settingsTab"); openSettings()

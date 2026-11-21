@@ -47,7 +47,7 @@ public actor RemoteClient: SyncRemote, OrganizationRemote {
             let login = try await request("login.php", body: body, contentType: "application/x-www-form-urlencoded", json: false)
             // PHP returns HTTP 200 with the login form for invalid credentials.
             // Show its explicit error instead of blaming credentials for every failure.
-            if let error = Self.loginError(in: login.string) { throw AudienceError.message(error) }
+            if let error = Self.loginError(in: login.string) { throw AudienceError.rejectedCredentials(error) }
             let me = try await request("auth_me.php")
             let user = me["user"]
             let key = user["id"].int > 0 ? String(user["id"].int) : email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -99,7 +99,7 @@ public actor RemoteClient: SyncRemote, OrganizationRemote {
                 throw AudienceError.message("\(message) (HTTP \(http.statusCode)).")
             }
             if !json, let message = Self.loginError(in: String(decoding: data, as: UTF8.self)) {
-                throw AudienceError.message(message)
+                throw AudienceError.rejectedCredentials(message)
             }
             throw AudienceError.message("Le site a refusé la requête (HTTP \(http.statusCode)). Réessayez ou vérifiez l’adresse du site.")
         }

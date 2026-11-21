@@ -180,7 +180,7 @@ struct PresentationView: View {
     private var responseCount: Int {
         guard let result = currentResult else { return 0 }
         if result["total"].int > 0 { return result["total"].int }
-        return result["results"].object.values.reduce(0) { $0 + $1.int } + result["openResponses"].array.count
+        return result["results"].values.reduce(0) { $0 + $1.int } + result["openResponses"].array.count
     }
 
     private func launch(_ quiz: Quiz, resetResponses: Bool) {
@@ -317,8 +317,11 @@ struct JoinSheet: View {
             Text(url.absoluteString).font(.callout).foregroundStyle(.secondary).textSelection(.enabled).lineLimit(3)
             HStack {
                 Button("Copier le lien", systemImage: "doc.on.doc") { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(url.absoluteString, forType: .string) }
+                    .presentationControl()
                 ShareLink(item: url) { Label("Partager", systemImage: "square.and.arrow.up") }
+                    .presentationControl()
                 Button("Terminé") { dismiss() }.keyboardShortcut(.defaultAction).buttonStyle(.glassProminent)
+                    .presentationControl()
             }
         }.padding(32).frame(width: 430)
     }

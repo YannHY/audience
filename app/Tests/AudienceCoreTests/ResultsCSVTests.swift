@@ -31,6 +31,19 @@ struct ResultsCSVTests {
         """)
     }
 
+    /// PHP's json_encode turns the counts {"0":0,"1":3} into the list [0,3].
+    @Test func serverCountsEncodedAsArrayAreRead() throws {
+        let counts = decode(#"{"results":[0,3,1]}"#)["results"]
+        #expect(counts["1"].int == 3)
+        #expect(counts["2"].int == 1)
+        #expect(counts["3"] == .null)
+        #expect(counts.values.reduce(0) { $0 + $1.int } == 4)
+        let q = quiz([["type": .string("multiple"), "question": .string("Choix"), "answers": .array([.string("Oui"), .string("Non")])]])
+        let results = decode(#"{"questions":[{"questionIndex":0,"type":"multiple","answers":["Oui","Non"],"results":[2,1]}]}"#)
+        let csv = try #require(ResultsCSV.build(quiz: q, responses: results))
+        #expect(csv.hasPrefix("question,participant_1,participant_2,participant_3\nChoix,Oui,Oui,Non"))
+    }
+
     @Test func withoutParticipantDetailsColumnsAreAnonymous() throws {
         let q = quiz([["type": .string("multiple"), "question": .string("Choix"), "answers": .array([.string("Oui"), .string("Non")])],
                       ["type": .string("rating"), "question": .string("Note"), "maxRating": .number(5)],

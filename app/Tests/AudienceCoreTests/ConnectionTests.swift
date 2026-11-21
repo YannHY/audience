@@ -42,6 +42,18 @@ struct ConnectionTests {
     @Test func invalidCredentialsDisplayTheServerMessage() async {
         await expectFailure(host: "invalid.example", containing: "Identifiants invalides.")
     }
+    @Test func onlyRefusedCredentialsAreReportedAsSuch() async {
+        // The app forgets a saved password only for this error, never for a network or server failure.
+        func isRejection(_ host: String) async -> Bool {
+            do { _ = try await client().connect(address: "https://\(host)/apps/audience/", email: "synthetic@example.org", password: "synthetic") }
+            catch AudienceError.rejectedCredentials { return true }
+            catch {}
+            return false
+        }
+        #expect(await isRejection("invalid.example"))
+        #expect(await !isRejection("limited.example"))
+        #expect(await !isRejection("offline.example"))
+    }
     @Test func rateLimitsAreNotReportedAsInvalidCredentials() async {
         await expectFailure(host: "limited.example", containing: "Trop de tentatives")
     }

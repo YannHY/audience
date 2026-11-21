@@ -213,5 +213,9 @@ public struct LibraryArchive: Codable, Equatable, Sendable {
 
 public enum AudienceError: LocalizedError {
     case message(String)
-    public var errorDescription: String? { switch self { case .message(let message): message } }
+    /// The website refused the e-mail or password, as opposed to a network or server failure.
+    case rejectedCredentials(String)
+    public var errorDescription: String? {
+        switch self { case .message(let message), .rejectedCredentials(let message): message }
+    }
 }

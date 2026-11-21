@@ -40,10 +40,15 @@ struct LibraryView: View {
         }
         .searchable(text: $store.search, placement: .toolbar, prompt: "Titre, code ou étiquette")
         .frame(minWidth: 1000, minHeight: 640)
+        .task { await store.connectSaved() }
         .task { await store.automaticSyncLoop() }
         .onChange(of: scenePhase) {
             switch scenePhase {
-            case .active: Task { await store.synchronize() }
+            case .active:
+                Task {
+                    if store.savedLoginPending { await store.connectSaved() }
+                    await store.synchronize()
+                }
             case .background: store.flush()
             default: break
             }

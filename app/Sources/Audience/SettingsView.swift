@@ -3,7 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @Bindable var store: LibraryStore
     @AppStorage("appearance") private var appearance = "system"
-    @State private var email = ""
+    @State private var email = SavedCredentials.email
     @State private var password = ""
     @AppStorage("settingsTab") private var tab = 0
     var body: some View {
@@ -42,7 +42,7 @@ struct SettingsView: View {
                                 if store.busy { ProgressView().controlSize(.small) }
                             }
                         }
-                        Text("La connexion reste active pendant cette session de l’app. Le mot de passe n’est pas enregistré.")
+                        Text("Le mot de passe est enregistré dans le trousseau de ce Mac : l’app se reconnecte seule à chaque lancement. Se déconnecter l’efface.")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     if store.connected {
