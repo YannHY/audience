@@ -69,7 +69,7 @@ struct LibraryView: View {
             }
         }
         .animation(.smooth, value: store.notice)
-        .sheet(isPresented: $store.pastingMarkdown) { MarkdownPasteSheet(store: store) }
+        .sheet(isPresented: $store.importing) { ImportSheet(store: store) }
         #if DEBUG
         .onReceive(NotificationCenter.default.publisher(for: DebugSnapshots.present)) { note in
             if let code = note.object as? String { openWindow(id: "presentation", value: code) }

@@ -44,16 +44,22 @@ import AudienceCore
             store.createFolder(rename: true)
             await pause(1.5)
             snap("6-new-folder", to: output)
-            // Pasting Markdown: the empty sheet, then the questionnaire created from the sample.
+            // Import: the empty sheet, then the questionnaire created from the sample.
             store.sidebar = .all
-            store.pastingMarkdown = true
+            store.importing = true
             await pause()
-            snap("9-paste-markdown", to: output)
-            store.pastingMarkdown = false
+            snap("9-import", to: output)
+            store.importing = false
             await pause(0.8)
-            _ = store.importPastedMarkdown(MarkdownPasteSheet.example)
+            _ = store.importText(ImportSheet.example)
             await pause()
             snap("10-pasted-quiz", to: output)
+            let file = output.appending(path: "import-test.md")
+            try? ImportSheet.example.replacingOccurrences(of: "Titre du questionnaire", with: "Fichier importé")
+                .write(to: file, atomically: true, encoding: .utf8)
+            if let failure = store.importFiles([file]) { print("import failed:", failure) }
+            await pause()
+            snap("11-imported-file", to: output)
             renderLiveScreens(to: output)
             FileManager.default.createFile(atPath: output.appending(path: "done").path, contents: nil)
         }

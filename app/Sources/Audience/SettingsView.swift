@@ -16,7 +16,7 @@ struct SettingsView: View {
                     Section("Sauvegardes") {
                         Text("Les questionnaires sont enregistrés automatiquement sur ce Mac.").foregroundStyle(.secondary)
                         HStack {
-                            Button("Importer…", action: store.importBackup)
+                            Button("Importer…") { store.importing = true }
                             Button("Tout exporter…") { store.exportBackup() }
                         }
                         Button("Afficher les données dans le Finder", action: store.revealData)

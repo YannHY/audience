@@ -89,8 +89,8 @@ final class ArchiveWriter: @unchecked Sendable {
     var selection: Set<String> = []
     var search = ""
     var notice: String?
-    /// Shows the sheet where a questionnaire written in Markdown can be pasted.
-    var pastingMarkdown = false
+    /// Shows the import sheet: a file chosen in the Finder or dropped, or pasted text.
+    var importing = false
     var busy = false
     var connected = false
     var accountName = ""
@@ -437,16 +437,26 @@ final class ArchiveWriter: @unchecked Sendable {
 
     // MARK: - Backups
 
-    /// Imports Audience backups (.json), questionnaires in the website's Markdown format (.md)
-    /// and the ZIP archives the website exports (one .md per questionnaire).
-    func importBackup() {
-        let markdown = UTType("net.daringfireball.markdown") ?? UTType(filenameExtension: "md") ?? .plainText
-        let panel = NSOpenPanel(); panel.allowedContentTypes = [.json, markdown, .zip]; panel.allowsMultipleSelection = true
+    /// Files the import accepts: Audience backups (.json), questionnaires in the website's
+    /// Markdown format (.md) and the ZIP archives the website exports (one .md per questionnaire).
+    static let importTypes: [UTType] = [.json, UTType("net.daringfireball.markdown") ?? UTType(filenameExtension: "md") ?? .plainText, .zip]
+    static func canImport(_ url: URL) -> Bool { ["json", "md", "markdown", "txt", "zip"].contains(url.pathExtension.lowercased()) }
+
+    /// Opens the Finder panel; nil when cancelled.
+    func chooseImportFiles() -> [URL]? {
+        let panel = NSOpenPanel(); panel.allowedContentTypes = Self.importTypes; panel.allowsMultipleSelection = true
         panel.message = "Choisissez une sauvegarde Audience (.json), des questionnaires Markdown (.md) ou une archive ZIP exportée du site."
-        guard panel.runModal() == .OK, !panel.urls.isEmpty else { return }
+        guard panel.runModal() == .OK, !panel.urls.isEmpty else { return nil }
+        return panel.urls
+    }
+    /// Returns the reason when a file cannot be read; nothing is imported then.
+    func importFiles(_ urls: [URL]) -> String? {
         do {
             var incoming = LibraryArchive()
-            for url in panel.urls {
+            for url in urls {
+                guard Self.canImport(url) else {
+                    throw AudienceError.message("\(url.lastPathComponent) : format non pris en charge (.md, .zip ou .json).")
+                }
                 let data = try Data(contentsOf: url)
                 switch url.pathExtension.lowercased() {
                 case "md", "markdown", "txt":
@@ -459,19 +469,31 @@ final class ArchiveWriter: @unchecked Sendable {
                 case "zip":
                     for quiz in try QuizMarkdown.parseArchive(data) { add(quiz, to: &incoming) }
                 default:
-                    let backup = try JSONDecoder().decode(LibraryArchive.self, from: data)
-                    _ = incoming.merge(backup)
+                    _ = incoming.merge(try JSONDecoder().decode(LibraryArchive.self, from: data))
                 }
             }
             var count = 0
             if commit({ count = $0.merge(incoming) }) {
                 notice = "\(count) questionnaire(s) importé(s)."; sidebar = .all; localChange()
             }
-        } catch { report(error.localizedDescription) }
+            return nil
+        } catch { return error.localizedDescription }
     }
-    /// Creates a questionnaire from pasted Markdown, placed like a new one and selected.
-    /// Returns the reason when the text cannot be read; nothing is created then.
-    func importPastedMarkdown(_ text: String) -> String? {
+    /// Pasted text: an Audience backup (JSON) or a questionnaire in Markdown. A Markdown
+    /// questionnaire is placed like a new one and selected. Returns the reason on failure.
+    func importText(_ text: String) -> String? {
+        if text.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("{") {
+            do {
+                let backup = try JSONDecoder().decode(LibraryArchive.self, from: Data(text.utf8))
+                var count = 0
+                if commit({ count = $0.merge(backup) }) {
+                    notice = "\(count) questionnaire(s) importé(s)."; sidebar = .all; localChange()
+                }
+                return nil
+            } catch AudienceError.message(let message) { return message } catch {
+                return "Ce texte JSON n’est pas une sauvegarde Audience valide."
+            }
+        }
         var quiz: Quiz
         do { quiz = try QuizMarkdown.parse(text) } catch { return error.localizedDescription }
         switch sidebar {

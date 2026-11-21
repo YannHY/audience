@@ -60,10 +60,8 @@ struct LibraryCommands: Commands {
         }
         CommandGroup(after: .newItem) {
             Divider()
-            Button("Importer…", action: store.importBackup)
+            Button("Importer…") { store.importing = true }
                 .keyboardShortcut("i", modifiers: [.command, .shift])
-            Button("Coller du Markdown…") { store.pastingMarkdown = true }
-                .keyboardShortcut("v", modifiers: [.command, .shift])
                 .disabled(store.readOnly)
             Button("Exporter une sauvegarde…") { store.exportBackup() }
                 .keyboardShortcut("e", modifiers: [.command, .shift])
