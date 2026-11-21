@@ -13,7 +13,7 @@ from urllib.parse import unquote, urlparse
 
 APP = Path(__file__).resolve().parents[1]
 SITE = APP.parent
-UPDATES = APP / 'build/updates'
+UPDATES = APP / 'build/travail/updates'
 SPARKLE = '{http://www.andymatuschak.org/xml-namespaces/sparkle}'
 PUBLIC = 'https://www.ralentirtravaux.com/apps/audience/mac/'
 
@@ -32,6 +32,23 @@ def main():
     with (APP / 'Resources/Info.plist').open('rb') as stream:
         info = plistlib.load(stream)
     version, build = info['CFBundleShortVersionString'], info['CFBundleVersion']
+    archive_source = APP / 'build/travail/TestFlight/Audience-iPad.xcarchive'
+    with (APP / 'Resources/Info-iPad.plist').open('rb') as stream:
+        ipad_info = plistlib.load(stream)
+    with (archive_source / 'Info.plist').open('rb') as stream:
+        archived = plistlib.load(stream)['ApplicationProperties']
+    with (archive_source / 'Products/Applications/Audience-iPad.app/Info.plist').open('rb') as stream:
+        bundled_ipad = plistlib.load(stream)
+    for candidate in (ipad_info, archived, bundled_ipad):
+        assert (candidate['CFBundleShortVersionString'], candidate['CFBundleVersion']) == (version, build), 'Version iPad obsolète'
+    assert bundled_ipad['CFBundleIdentifier'] == 'fr.audience.native.ipad', 'Identifiant iPad inattendu'
+    export_source = APP / 'build/travail/TestFlight/Export'
+    ipa_source = export_source / 'Audience.ipa'
+    if ipa_source.is_file():
+        with zipfile.ZipFile(ipa_source) as archive:
+            exported = plistlib.loads(archive.read('Payload/Audience-iPad.app/Info.plist'))
+        assert (exported['CFBundleShortVersionString'], exported['CFBundleVersion']) == (version, build), 'IPA iPad obsolète'
+        assert exported['CFBundleIdentifier'] == 'fr.audience.native.ipad', 'Identifiant IPA inattendu'
     name = f'Audience-{version}-{build}'
     destination = APP / 'build' / f'Publication-{version}-{build}'
     mac = destination / 'mac'
@@ -82,7 +99,6 @@ def main():
 
     ipad = destination / 'iPad-TestFlight'
     ipad.mkdir(parents=True, exist_ok=True)
-    archive_source = APP / 'build/TestFlight/Audience-iPad.xcarchive'
     archive_target = ipad / 'Audience-iPad.xcarchive'
     # iCloud can add FinderInfo to loose bundles and invalidate their signature.
     # Keep the handoff sealed in a ZIP prepared outside iCloud instead.
@@ -92,9 +108,13 @@ def main():
         staged = Path(temporary) / 'Audience-iPad.xcarchive'
         subprocess.run(['ditto', '--norsrc', '--noextattr', str(archive_source), str(staged)], check=True)
         subprocess.run(['xattr', '-cr', str(staged)], check=True)
+        subprocess.run(['codesign', '--verify', '--deep', '--strict', str(staged / 'Products/Applications/Audience-iPad.app')], check=True)
         subprocess.run(['ditto', '-c', '-k', '--keepParent', '--norsrc', '--noextattr',
                         str(staged), str(ipad / 'Audience-iPad.xcarchive.zip')], check=True)
     copy(APP / 'Resources/ExportOptions-TestFlight.plist', ipad / 'ExportOptions-TestFlight.plist')
+    if ipa_source.is_file():
+        for filename in ('Audience.ipa', 'DistributionSummary.plist', 'ExportOptions.plist'):
+            copy(export_source / filename, ipad / 'Export-AppStoreConnect' / filename)
     finalize = ipad / 'Finaliser-export.command'
     finalize.write_text('''#!/bin/zsh
 set -euo pipefail
@@ -109,6 +129,20 @@ xcodebuild -exportArchive -archivePath "$STAGE_DIR/Audience-iPad.xcarchive" \\
 printf '\\nExport terminé. Aucun téléversement ni invitation TestFlight n’a été effectué.\\n'
 ''')
     finalize.chmod(finalize.stat().st_mode | stat.S_IXUSR)
+    # Keep only the current handoff beside the app; never discard an older release.
+    for previous in sorted((APP / 'build').glob('Publication-*')):
+        if previous.is_dir() and previous != destination:
+            archived = APP / 'build/archives' / previous.name
+            if archived.exists():
+                raise FileExistsError(f'Archive déjà présente : {archived}')
+            archived.parent.mkdir(parents=True, exist_ok=True)
+            previous.rename(archived)
+    # Rebuilding the source ZIP must also refresh the handoff's integrity manifest.
+    checksums = destination / 'SHA256SUMS.txt'
+    files = sorted(path for path in destination.rglob('*')
+                   if path.is_file() and path != checksums
+                   and not any(part.startswith('.') for part in path.relative_to(destination).parts))
+    checksums.write_text(''.join(f'{digest(path)}  {path.relative_to(destination).as_posix()}\n' for path in files))
     print(destination)
 
 

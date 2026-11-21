@@ -28,7 +28,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="styles.css?v=20261121y">
-    <link rel="stylesheet" href="app.css?v=20261121e">
+    <link rel="stylesheet" href="app.css?v=20261121f">
 </head>
 <body class="page-mac">
     <div id="accountBar" class="account-bar"></div>
@@ -37,9 +37,12 @@
         <!-- Ouverture -->
         <section class="mac-hero">
             <div class="mac-wrap">
-                <img class="mac-hero-icon" src="img/app/icone.png" alt="" width="128" height="128">
+                <picture>
+                    <source srcset="img/app/icone-sombre.png" media="(prefers-color-scheme: dark)" data-dark-source>
+                    <img class="mac-hero-icon" src="img/app/icone.png" alt="" width="128" height="128">
+                </picture>
                 <p class="mac-eyebrow">Audience pour Mac et iPad</p>
-                <h1 class="mac-hero-title">Vos questions.<br><span class="mac-gradient">En direct.</span></h1>
+                <h1 class="mac-hero-title">Vos questions<br><span class="mac-gradient">En direct</span></h1>
                 <p class="mac-lede">Préparez vos questionnaires, projetez-les en plein écran et voyez les réponses de la salle arriver en temps réel. Deux vraies applications, rapides, élégantes et utilisables hors ligne.</p>
                 <div class="mac-cta">
                     <a class="mac-button" href="mac/Audience-macOS.zip" download>
@@ -51,8 +54,14 @@
                 <p class="mac-note">Gratuit et libre · macOS 26 et iPadOS 26 ou ultérieur</p>
             </div>
             <div class="mac-hero-shot mac-reveal">
-                <img class="mac-shot" src="img/app/editeur.webp" width="2200" height="1536" alt="La fenêtre d’Audience sur Mac : dossiers colorés à gauche, liste des questionnaires, puis l’éditeur d’une question à choix unique.">
-                <img class="mac-ipad mac-ipad-hero" src="img/app/ipad-editeur.webp" width="1200" height="1702" alt="Audience sur iPad : la liste des questionnaires rangés par dossiers et étiquettes, et l’éditeur d’une question illustrée.">
+                <picture>
+                    <source srcset="img/app/editeur-sombre.webp" media="(prefers-color-scheme: dark)" data-dark-source>
+                    <img class="mac-shot" src="img/app/editeur.webp" width="2200" height="1536" alt="La fenêtre d’Audience sur Mac : dossiers colorés à gauche, liste des questionnaires, puis l’éditeur d’une question à choix unique.">
+                </picture>
+                <picture>
+                    <source srcset="img/app/ipad-editeur-sombre.webp" media="(prefers-color-scheme: dark)" data-dark-source>
+                    <img class="mac-ipad mac-ipad-hero" src="img/app/ipad-editeur.webp" width="1200" height="1702" alt="Audience sur iPad : la liste des questionnaires rangés par dossiers et étiquettes, et l’éditeur d’une question illustrée.">
+                </picture>
 
             </div>
         </section>
@@ -96,7 +105,10 @@
                     <p class="mac-lede">Dossiers colorés, étiquettes, favoris et recherche instantanée : retrouvez n’importe quel questionnaire par son titre, son code ou son étiquette. Glissez, déposez, c’est rangé.</p>
                 </div>
                 <div class="mac-reveal">
-                    <img class="mac-shot" src="img/app/inspecteur.webp" width="2200" height="1535" loading="lazy" alt="Audience sur Mac : le dossier Théâtre, une question illustrée sur Molière et l’inspecteur avec dossier, couleur, étiquettes et réglages de participation.">
+                    <picture>
+                        <source srcset="img/app/inspecteur-sombre.webp" media="(prefers-color-scheme: dark)" data-dark-source>
+                        <img class="mac-shot" src="img/app/inspecteur.webp" width="2200" height="1535" loading="lazy" alt="Audience sur Mac : le dossier Théâtre, une question illustrée sur Molière et l’inspecteur avec dossier, couleur, étiquettes et réglages de participation.">
+                    </picture>
                 </div>
                 <div class="mac-stats mac-reveal">
                     <div class="mac-stat"><strong>9</strong><span>types de questions</span></div>
@@ -116,15 +128,24 @@
                     <p class="mac-lede">Lancez le direct : un QR code s’affiche en grand, les téléphones patientent, puis tout le monde commence en même temps. Au clavier sur Mac, au doigt sur iPad, qui reste éveillé jusqu’à la fin.</p>
                 </div>
                 <div class="mac-reveal">
-                    <img class="mac-shot" src="img/app/presentation.webp" width="2000" height="963" loading="lazy" alt="Une question présentée en plein écran, avec ses trois réponses et les commandes Correction, Résultats et Lancer en direct.">
+                    <picture>
+                        <source srcset="img/app/presentation-sombre.webp" media="(prefers-color-scheme: dark)" data-dark-source>
+                        <img class="mac-shot" src="img/app/presentation.webp" width="2000" height="963" loading="lazy" alt="Une question présentée en plein écran, avec ses trois réponses et les commandes Correction, Résultats et Lancer en direct.">
+                    </picture>
                 </div>
                 <div class="mac-duo">
                     <figure class="mac-reveal">
-                        <img class="mac-shot mac-shot-flat" src="img/app/salle-attente.webp" width="1440" height="820" loading="lazy" alt="La salle d’attente : QR code, adresse du site et code du questionnaire, avec le nombre de participants connectés.">
+                        <picture>
+                            <source srcset="img/app/salle-attente-sombre.webp" media="(prefers-color-scheme: dark)" data-dark-source>
+                            <img class="mac-shot mac-shot-flat" src="img/app/salle-attente.webp" width="1440" height="820" loading="lazy" alt="La salle d’attente : QR code, adresse du site et code du questionnaire, avec le nombre de participants connectés.">
+                        </picture>
                         <figcaption class="mac-caption">Salle d’attente : QR code, code en grand, participants comptés en direct.</figcaption>
                     </figure>
                     <figure class="mac-reveal">
-                        <img class="mac-shot mac-shot-flat" src="img/app/resultats.webp" width="1100" height="330" loading="lazy" alt="Résultats d’une question : barres par réponse, nombre de votes et pourcentages, bonne réponse en vert.">
+                        <picture>
+                            <source srcset="img/app/resultats-sombre.webp" media="(prefers-color-scheme: dark)" data-dark-source>
+                            <img class="mac-shot mac-shot-flat" src="img/app/resultats.webp" width="1100" height="330" loading="lazy" alt="Résultats d’une question : barres par réponse, nombre de votes et pourcentages, bonne réponse en vert.">
+                        </picture>
                         <figcaption class="mac-caption">Les votes s’affichent au fil de l’eau, la bonne réponse en vert.</figcaption>
                     </figure>
                 </div>
@@ -172,7 +193,10 @@
         <!-- Clôture -->
         <section class="mac-section mac-closing">
             <div class="mac-wrap mac-reveal">
-                <img class="mac-hero-icon" src="img/app/icone.png" alt="" width="96" height="96" loading="lazy">
+                <picture>
+                    <source srcset="img/app/icone-sombre.png" media="(prefers-color-scheme: dark)" data-dark-source>
+                    <img class="mac-hero-icon" src="img/app/icone.png" alt="" width="96" height="96" loading="lazy">
+                </picture>
                 <h2 class="mac-title">Essayez Audience.</h2>
                 <p class="mac-lede">Gratuite, libre et sans publicité. Le code source est ouvert à tous.</p>
                 <div class="mac-cta">
@@ -197,6 +221,21 @@
     <script src="site-footer.js?v=20261121b"></script>
     <script src="theme.js"></script>
     <script>
+        // Dark screenshots and icon: the <source> follows the system, and this keeps them
+        // in step with the theme chosen on the site (theme-dark / theme-light on <html>).
+        (function() {
+            const root = document.documentElement;
+            const sources = document.querySelectorAll('source[data-dark-source]');
+            function syncSources() {
+                const media = root.classList.contains('theme-dark') ? 'all'
+                    : root.classList.contains('theme-light') ? 'not all'
+                    : '(prefers-color-scheme: dark)';
+                sources.forEach(function(source) { source.media = media; });
+            }
+            syncSources();
+            new MutationObserver(syncSources).observe(root, { attributes: true, attributeFilter: ['class'] });
+        })();
+
         const yearEl = document.getElementById('current-year');
         if (yearEl) yearEl.textContent = new Date().getFullYear();
 

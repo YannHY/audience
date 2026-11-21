@@ -12,6 +12,9 @@ struct QuizEditor: View {
     @State private var showQuestions = false
     #if os(iOS)
     @State private var questionEditMode = EditMode.inactive
+    @ScaledMetric(relativeTo: .body) private var navigatorWidth: CGFloat = 210
+    @ScaledMetric(relativeTo: .body) private var minimumFormWidth: CGFloat = 400
+    @ScaledMetric(relativeTo: .body) private var questionButtonSize: CGFloat = 44
     #endif
     private var quiz: Quiz { store.archive.quizzes[code] ?? Quiz(code: code) }
     private var index: Int? {
@@ -27,25 +30,30 @@ struct QuizEditor: View {
     var body: some View {
         #if os(iOS)
         GeometryReader { geometry in
-            if geometry.size.width >= 820 {
-                HStack(spacing: 0) {
-                    navigator.frame(width: 250)
-                    Divider()
-                    editorForm
+            VStack(spacing: 0) {
+                if store.liveCode == code {
+                    Label("Session en direct · Édition suspendue", systemImage: "dot.radiowaves.left.and.right")
+                        .font(.callout).padding(12)
                 }
-            } else {
-                VStack(spacing: 0) {
-                    if store.liveCode == code {
-                        Label("Session en direct · Édition suspendue", systemImage: "dot.radiowaves.left.and.right")
-                            .font(.callout).padding(12)
+                if geometry.size.width >= navigatorWidth + minimumFormWidth {
+                    HStack(spacing: 0) {
+                        VStack(spacing: 0) {
+                            HStack {
+                                Text("Questions").font(.headline)
+                                Spacer(minLength: 4)
+                                EditButton().font(.callout).disabled(locked)
+                            }
+                            .padding(.horizontal, 12).frame(minHeight: 44)
+                            navigator
+                        }
+                        .environment(\.editMode, $questionEditMode)
+                        .frame(width: navigatorWidth)
+                        Divider()
+                        editorForm
                     }
-                    HStack {
-                        Button("Questions", systemImage: "list.bullet") { showQuestions = true }
-                        Spacer()
-                        Text(index.map { "Question \($0 + 1) / \(quiz.questions.count)" } ?? "Aucune question")
-                            .font(.callout).foregroundStyle(.secondary)
-                        addMenu.labelStyle(.iconOnly)
-                    }.padding(.horizontal).frame(minHeight: 48).disabled(locked)
+                } else {
+                    compactNavigator
+                    Divider()
                     editorForm
                 }
             }
@@ -87,6 +95,51 @@ struct QuizEditor: View {
         } message: { Text("Les réponses déjà recueillies pour cette question resteront sur le site.") }
         #endif
     }
+
+    #if os(iOS)
+    private var compactNavigator: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(index.map { "Question \($0 + 1) sur \(quiz.questions.count)" } ?? "Aucune question")
+                    .font(.callout).foregroundStyle(.secondary)
+                Spacer()
+                Button("Organiser les questions", systemImage: "list.bullet") { showQuestions = true }
+                    .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
+                addMenu.labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
+            }
+            .padding(.horizontal, 16)
+            if !quiz.questions.isEmpty {
+                ScrollViewReader { proxy in
+                    ScrollView(.horizontal) {
+                        HStack(spacing: 8) {
+                            ForEach(Array(quiz.questions.enumerated()), id: \.offset) { i, question in
+                                Button { selected = i } label: {
+                                    Text("\(i + 1)")
+                                        .font(.body.monospacedDigit().weight(selected == i ? .semibold : .regular))
+                                        .frame(minWidth: questionButtonSize, minHeight: questionButtonSize)
+                                        .background(selected == i ? Color.accentColor : Color.secondary.opacity(0.12), in: .rect(cornerRadius: 10))
+                                        .foregroundStyle(selected == i ? Color.white : Color.primary)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("Question \(i + 1), \(question.text.isEmpty ? "Nouvelle question" : question.text.plainText)")
+                                .accessibilityValue(question.validationMessage == nil ? "" : "Question incomplète")
+                                .accessibilityAddTraits(selected == i ? [.isSelected] : [])
+                                .id(i)
+                            }
+                        }
+                        .padding(.horizontal, 16).padding(.bottom, 8)
+                    }
+                    .frame(height: questionButtonSize + 8)
+                    .scrollIndicators(.hidden)
+                    .onAppear { if let index { proxy.scrollTo(index) } }
+                    .onChange(of: selected) { if let index { proxy.scrollTo(index) } }
+                    .onChange(of: quiz.questions.count) { if let index { proxy.scrollTo(index) } }
+                }
+            }
+        }
+        .disabled(locked)
+    }
+    #endif
 
     private var editorForm: some View {
         Form {
@@ -150,6 +203,9 @@ struct QuizEditor: View {
                 if let moved, source.count == 1 { selected = moved < destination ? destination - 1 : destination }
             }
         }
+        #if os(iOS)
+        .listStyle(.plain)
+        #endif
         #if os(macOS)
         .onDeleteCommand { if let index, !locked { deleteIndex = index } }
         #endif
@@ -177,7 +233,13 @@ struct QuizEditor: View {
             ForEach(QuestionKind.allCases) { kind in
                 Button(kind.title, systemImage: kind.symbol) { add(kind) }
             }
-        } label: { Label("Ajouter une question", systemImage: "plus") }
+        } label: {
+            #if os(iOS)
+            Label("Ajouter", systemImage: "plus").accessibilityLabel("Ajouter une question")
+            #else
+            Label("Ajouter une question", systemImage: "plus")
+            #endif
+        }
     }
     private func add(_ kind: QuestionKind) {
         let insertion = index.map { $0 + 1 } ?? quiz.questions.count

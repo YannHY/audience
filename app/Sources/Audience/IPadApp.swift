@@ -22,6 +22,8 @@ struct IPadLibraryView: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
     @AppStorage("librarySort") private var sort: QuizSort = .modified
     @State private var column: NavigationSplitViewColumn = .content
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    @State private var expandedColumnVisibility: NavigationSplitViewVisibility = .all
     @State private var mode = 0
     @State private var showSettings = false
     @State private var showInspector = false
@@ -33,7 +35,7 @@ struct IPadLibraryView: View {
     }
 
     var body: some View {
-        NavigationSplitView(preferredCompactColumn: $column) {
+        NavigationSplitView(columnVisibility: $columnVisibility, preferredCompactColumn: $column) {
             IPadSidebar(store: store)
         } content: {
             quizList
@@ -129,6 +131,11 @@ struct IPadLibraryView: View {
             }
         }
         .toolbar {
+            if sizeClass == .regular, store.selectedQuiz != nil {
+                ToolbarItem(placement: .primaryAction) {
+                    libraryToggle
+                }
+            }
             ToolbarItem(placement: .primaryAction) {
                 Menu("Trier", systemImage: "arrow.up.arrow.down") {
                     Picker("Trier par", selection: $sort) { ForEach(QuizSort.allCases) { Text($0.title).tag($0) } }
@@ -195,6 +202,21 @@ struct IPadLibraryView: View {
         }
     }
 
+    private var libraryToggle: some View {
+        Button(columnVisibility == .detailOnly ? "Afficher les questionnaires" : "Masquer les questionnaires", systemImage: "sidebar.left") {
+            withAnimation {
+                if columnVisibility == .detailOnly {
+                    columnVisibility = expandedColumnVisibility
+                } else {
+                    expandedColumnVisibility = columnVisibility
+                    columnVisibility = .detailOnly
+                }
+            }
+        }
+        .help(columnVisibility == .detailOnly ? "Afficher les questionnaires" : "Masquer les questionnaires")
+        .keyboardShortcut("l", modifiers: [.command, .shift])
+    }
+
     #if DEBUG
     /// Isolated simulator fixtures, using a separate library supplied by the build scripts.
     private func preparePreview(_ screen: String) {
@@ -237,6 +259,31 @@ struct IPadSidebar: View {
     @State private var emptyTrash = false
 
     var body: some View {
+        VStack(spacing: 0) {
+            sidebarList
+                .frame(maxHeight: .infinity)
+            Divider()
+            syncFooter
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .ignoresSafeArea(.container, edges: .bottom)
+        .navigationTitle("Audience")
+        .navigationSplitViewColumnWidth(min: 190, ideal: 220, max: 300)
+        .alert("Nom du dossier", isPresented: Binding(get: { folderToRename != nil }, set: { if !$0 { folderToRename = nil } })) {
+            TextField("Nom", text: $name)
+            Button("Enregistrer") { if let id = folderToRename { store.renameFolder(id, to: name) }; folderToRename = nil }
+            Button("Annuler", role: .cancel) { folderToRename = nil }
+        }
+        .confirmationDialog("Supprimer ce dossier ? Les questionnaires seront conservés.", isPresented: Binding(
+            get: { folderToDelete != nil }, set: { if !$0 { folderToDelete = nil } }), titleVisibility: .visible) {
+                Button("Supprimer le dossier", role: .destructive) { if let id = folderToDelete { store.deleteFolder(id) }; folderToDelete = nil }
+            }
+        .confirmationDialog("Vider la corbeille et supprimer définitivement ses réponses ?", isPresented: $emptyTrash, titleVisibility: .visible) {
+            Button("Vider la corbeille", role: .destructive) { store.emptyTrash() }
+        }
+    }
+
+    private var sidebarList: some View {
         List(selection: $store.sidebar) {
             row(.all)
             row(.favorites)
@@ -269,34 +316,37 @@ struct IPadSidebar: View {
                 }
             }
         }
-        .navigationTitle("Audience")
-        .navigationSplitViewColumnWidth(min: 190, ideal: 220, max: 300)
-        .safeAreaInset(edge: .bottom) {
-            VStack(alignment: .leading, spacing: 6) {
-                Label(store.connected ? store.accountName : "Sur cet iPad", systemImage: store.connected ? "checkmark.icloud" : "internaldrive")
-                    .font(.callout).lineLimit(1)
-                Text(store.syncStatus).font(.caption).foregroundStyle(.secondary)
-                if store.connected {
-                    Button("Synchroniser", systemImage: "arrow.triangle.2.circlepath") { Task { await store.synchronize(showErrors: true) } }
-                        .disabled(store.syncing || store.busy || store.liveCode != nil)
-                }
-            }.frame(maxWidth: .infinity, alignment: .leading).padding().background(.bar)
-        }
-        .alert("Nom du dossier", isPresented: Binding(get: { folderToRename != nil }, set: { if !$0 { folderToRename = nil } })) {
-            TextField("Nom", text: $name)
-            Button("Enregistrer") { if let id = folderToRename { store.renameFolder(id, to: name) }; folderToRename = nil }
-            Button("Annuler", role: .cancel) { folderToRename = nil }
-        }
-        .confirmationDialog("Supprimer ce dossier ? Les questionnaires seront conservés.", isPresented: Binding(
-            get: { folderToDelete != nil }, set: { if !$0 { folderToDelete = nil } }), titleVisibility: .visible) {
-                Button("Supprimer le dossier", role: .destructive) { if let id = folderToDelete { store.deleteFolder(id) }; folderToDelete = nil }
-            }
-        .confirmationDialog("Vider la corbeille et supprimer définitivement ses réponses ?", isPresented: $emptyTrash, titleVisibility: .visible) {
-            Button("Vider la corbeille", role: .destructive) { store.emptyTrash() }
-        }
     }
     private func row(_ item: SidebarItem) -> some View {
         NavigationLink(value: item) { Label(store.title(of: item), systemImage: item.symbol).badge(store.quizzes(in: item).count) }
+    }
+
+    private var syncFooter: some View {
+        HStack(spacing: 8) {
+            Image(systemName: store.connected ? (store.syncError == nil ? "checkmark.icloud" : "exclamationmark.icloud") : "internaldrive")
+                .foregroundStyle(store.syncError == nil ? Color.secondary : Color.orange)
+                .symbolEffect(.pulse, isActive: store.syncing)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(store.connected ? store.accountName : "Sur cet iPad")
+                    .font(.callout).lineLimit(1)
+                Text(store.syncStatus).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+            if store.connected {
+                Button("Synchroniser", systemImage: "arrow.triangle.2.circlepath") {
+                    Task { await store.synchronize(showErrors: true) }
+                }
+                .labelStyle(.iconOnly).buttonStyle(.borderless)
+                .frame(minWidth: 44, minHeight: 44)
+                .disabled(store.syncing || store.busy || store.liveCode != nil)
+                .help(store.syncError ?? "Synchroniser maintenant")
+            }
+        }
+        .padding(.horizontal, 12).padding(.vertical, 6)
+        .fixedSize(horizontal: false, vertical: true)
+        .background(.bar, ignoresSafeAreaEdges: [])
     }
 }
 #endif

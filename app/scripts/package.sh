@@ -36,9 +36,9 @@ ditto -c -k --keepParent --norsrc --noextattr "$STAGE_DIR/Audience.app" "$STAGE_
 if [[ -n "$NOTARY_PROFILE" ]]; then
   xcrun notarytool submit "$STAGE_DIR/Audience-macOS.zip" \
     --keychain-profile "$NOTARY_PROFILE" --wait --output-format json \
-    > "$APP_DIR/build/Audience-notarization.json"
-  if [[ "$(plutil -extract status raw -o - "$APP_DIR/build/Audience-notarization.json")" != "Accepted" ]]; then
-    print -u2 "Notarisation refusée : consultez $APP_DIR/build/Audience-notarization.json et le journal notarytool."
+    > "$APP_DIR/build/travail/Audience-notarization.json"
+  if [[ "$(plutil -extract status raw -o - "$APP_DIR/build/travail/Audience-notarization.json")" != "Accepted" ]]; then
+    print -u2 "Notarisation refusée : consultez $APP_DIR/build/travail/Audience-notarization.json et le journal notarytool."
     exit 1
   fi
   xcrun stapler staple "$STAGE_DIR/Audience.app"
@@ -50,11 +50,11 @@ if [[ -n "$NOTARY_PROFILE" ]]; then
 fi
 # The archive is the distributable artifact; iCloud may immediately restore
 # FinderInfo on the convenience copy below, even after xattr clears it.
-mv -f "$STAGE_DIR/Audience-macOS.zip" "$APP_DIR/build/Audience-macOS.zip"
+mv -f "$STAGE_DIR/Audience-macOS.zip" "$APP_DIR/build/travail/Audience-macOS.zip"
 ditto --norsrc --noextattr "$STAGE_DIR/Audience.app" "$APP_DIR/build/Audience.app"
 xattr -cr "$APP_DIR/build/Audience.app"
 if ! codesign --verify --deep --strict --all-architectures "$APP_DIR/build/Audience.app"; then
   print -u2 'La copie .app du projet a des attributs iCloud : décompressez le ZIP hors iCloud pour utiliser la version vérifiée.'
 fi
 codesign --display --verbose=2 "$STAGE_DIR/Audience.app"
-printf '\nArchive : %s\n' "$APP_DIR/build/Audience-macOS.zip"
+printf '\nArchive : %s\n' "$APP_DIR/build/travail/Audience-macOS.zip"

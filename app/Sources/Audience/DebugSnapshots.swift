@@ -51,6 +51,20 @@ import AudienceCore
                 snap("showcase", to: output)
                 return
             }
+            // AUDIENCE_SNAPSHOT_EDITOR=<code>: that questionnaire selected in the full list, as the editor.
+            if let code = ProcessInfo.processInfo.environment["AUDIENCE_SNAPSHOT_EDITOR"], store.archive.quizzes[code] != nil {
+                store.sidebar = .all
+                await pause()
+                store.selection = [code]
+                await pause(2)
+                snap("editor", to: output)
+                return
+            }
+            // AUDIENCE_SNAPSHOT_LIVE: only the waiting room and live results, in the current appearance.
+            if ProcessInfo.processInfo.environment["AUDIENCE_SNAPSHOT_LIVE"] != nil {
+                await renderLiveScreens(to: output)
+                return
+            }
             snap("1-library", to: output)
             if let folder = store.visibleFolders.first {
                 store.sidebar = .folder(folder.id)
@@ -95,21 +109,39 @@ import AudienceCore
             if let failure = store.importFiles([file]) { print("import failed:", failure) }
             await pause()
             snap("11-imported-file", to: output)
-            renderLiveScreens(to: output)
+            await renderLiveScreens(to: output)
             FileManager.default.createFile(atPath: output.appending(path: "done").path, contents: nil)
         }
     }
 
     /// The waiting room and live results, drawn offscreen with sample data (no session is opened).
-    private static func renderLiveScreens(to directory: URL) {
+    private static func renderLiveScreens(to directory: URL) async {
+        // AUDIENCE_SNAPSHOT_DARK: the same screens in dark mode, on the window background of the app.
+        let dark = ProcessInfo.processInfo.environment["AUDIENCE_SNAPSHOT_DARK"] != nil
         func save<V: View>(_ view: V, _ name: String, size: CGSize) {
-            let renderer = ImageRenderer(content: view.frame(width: size.width, height: size.height).background(Color.white))
+            let renderer = ImageRenderer(content: view.frame(width: size.width, height: size.height)
+                .background(dark ? Color(red: 32 / 255, green: 35 / 255, blue: 37 / 255) : Color.white)
+                .environment(\.colorScheme, dark ? .dark : .light))
             renderer.scale = 1
-            guard let image = renderer.cgImage else { return }
+            var rendered: CGImage?
+            NSAppearance(named: dark ? .darkAqua : .aqua)?.performAsCurrentDrawingAppearance { rendered = renderer.cgImage }
+            guard let image = rendered else { return }
             try? NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?.write(to: directory.appending(path: "\(name).png"))
         }
+        // The lobby scrolls, which ImageRenderer leaves blank: it is drawn in a borderless window instead.
         if let url = RemoteClient.participantURL(code: "913244") {
-            save(LobbyView(title: "Le vocabulaire du théâtre", code: "913244", url: url, participants: 3, scale: 1.2), "7-lobby", size: CGSize(width: 1440, height: 820))
+            let size = CGSize(width: 1600, height: 911)
+            let window = NSWindow(contentRect: CGRect(origin: CGPoint(x: 40, y: 40), size: size), styleMask: .borderless, backing: .buffered, defer: false)
+            window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
+            window.contentView = NSHostingView(rootView: LobbyView(title: "Le vocabulaire du théâtre", code: "913244", url: url, participants: 3, scale: 1.0)
+                .frame(width: size.width, height: size.height)
+                .background(dark ? Color(red: 32 / 255, green: 35 / 255, blue: 37 / 255) : Color.white))
+            window.orderFrontRegardless()
+            try? await Task.sleep(for: .seconds(1.5))
+            if let image = windowImage?(.null, 8, UInt32(window.windowNumber), 1)?.takeRetainedValue() {
+                try? NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?.write(to: directory.appending(path: "7-lobby.png"))
+            }
+            window.orderOut(nil)
         }
         let question = Question(fields: ["type": .string("multiple"), "question": .string("Que désigne le mot « théâtre » ?"), "correctIndex": .number(1),
                                          "answers": .array([.string("Un lieu où l’on joue de la musique"), .string("Un endroit d’où l’on voit (des gradins)"), .string("Une salle où l’on récite des poèmes")])])

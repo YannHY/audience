@@ -4,13 +4,24 @@ Application native SwiftUI pour **macOS 26 ou ultérieur**, sans Electron, WebVi
 
 ## Ouvrir l’application
 
-L’archive prête à utiliser est `build/Audience-macOS.zip` : décompressez-la puis ouvrez **Audience.app**. Une copie est également disponible dans `build/Audience.app` :
+L’archive prête à utiliser est `build/Publication-1.3.2-9/mac/Audience-macOS.zip` : décompressez-la puis ouvrez **Audience.app**. Une copie est également disponible dans `build/Audience.app` :
 
 ```sh
 open build/Audience.app
 ```
 
 Le binaire est universel : Apple Silicon et Intel. Par défaut, les scripts appliquent une signature locale ad hoc. Pour produire une version signée avec le compte développeur Apple et notarisée, utilisez les variables ci-dessous.
+
+## Organisation des fichiers
+
+Le dossier `build` garde quatre entrées visibles :
+
+- `Publication-1.3.2-9/` : les fichiers de la version actuelle à publier, avec les instructions.
+- `Audience.app` : l’application Mac à ouvrir.
+- `archives/` : les dossiers de publication des anciennes versions.
+- `travail/` : les fichiers techniques de compilation, les exports intermédiaires, l’historique Sparkle et les captures de vérification.
+
+La préparation d’une nouvelle version range automatiquement les précédents dossiers `Publication-*` dans `archives/`. Conserver `build/travail/updates/` : son historique sert à produire les mises à jour Mac.
 
 ## Développer et compiler
 
@@ -23,7 +34,7 @@ Depuis le dossier `app` :
 ./scripts/test.sh
 ```
 
-La compilation produit `build/Audience.app` et `build/Audience-macOS.zip`. La signature de l’application contenue dans le ZIP est vérifiée avant sa création, hors du dossier iCloud. Pour une compilation dans un environnement qui interdit le sandbox imbriqué des macros Swift :
+La compilation produit `build/Audience.app` et `build/travail/Audience-macOS.zip`. La signature de l’application contenue dans le ZIP est vérifiée avant sa création, hors du dossier iCloud. Pour une compilation dans un environnement qui interdit le sandbox imbriqué des macros Swift :
 
 ```sh
 ./scripts/build.sh OTHER_SWIFT_FLAGS=-disable-sandbox
@@ -35,7 +46,7 @@ Le projet Swift Package permet aussi `swift build` et `swift test`. Pour ajouter
 
 Le schéma **Audience-iPad** du même projet Xcode produit une application native pour **iPadOS 26 ou ultérieur**. La bibliothèque, l’éditeur, les résultats, les statistiques et la synchronisation utilisent le même code et les mêmes formats que sur Mac.
 
-- Navigation adaptative en portrait, paysage et fenêtre partagée ; sur une fenêtre étroite, le bouton **Questions** ouvre la liste des questions.
+- Navigation adaptative en portrait, paysage et fenêtre partagée ; la liste des questions reste visible à côté de l’éditeur dès que la largeur le permet. Dans une fenêtre étroite, un bandeau numéroté permet de passer directement d’une question à l’autre ; **Organiser les questions** ouvre la liste pour les réordonner. La commande de repli se trouve dans la barre d’outils de la colonne des questionnaires (⇧⌘L avec un clavier). Une fois cette colonne masquée, un seul bouton dans l’éditeur permet de la réafficher. Le compte et l’état de synchronisation restent fixés tout en bas de la barre latérale, en dehors de la liste défilante.
 - Import Markdown, JSON et ZIP depuis **Fichiers**, collage de texte et images intégrées ; export des sauvegardes JSON et des résultats CSV vers Fichiers.
 - Présentation en plein écran, correction, réponses reçues, QR code, salle d’attente et commandes tactiles du direct. L’iPad reste éveillé tant que la présentation est ouverte. Une connexion au compte Audience est nécessaire pour la participation en ligne.
 - Compte et apparence dans **Réglages** ; mot de passe dans le trousseau iPadOS. Les bibliothèques Mac et iPad sont locales et distinctes : le compte Audience les synchronise via le site. Les synthèses Ollama restent réservées au Mac.
@@ -51,21 +62,23 @@ Depuis le dossier `app` :
 ./scripts/build-ipad.sh export
 ```
 
-Le premier script produit `build/iPad/Simulator/Audience-iPad.app`. Le mode `archive` prépare `build/iPad/Audience-iPad.xcarchive`. Le mode `export` utilise cette archive pour produire `build/iPad/Export/Audience.ipa`, signé avec le certificat Apple Development existant de Yann Houry et installable sur les appareils enregistrés dans son profil. Ce fichier de développement n’est pas une distribution TestFlight ou App Store. Pour vérifier la compilation destinée aux appareils sans signer, ajoutez `CODE_SIGNING_ALLOWED=NO` au mode `device` ; ce résultat n’est pas directement installable.
+Le premier script produit `build/travail/iPad/Simulator/Audience-iPad.app`. Le mode `archive` prépare `build/travail/iPad/Audience-iPad.xcarchive`. Le mode `export` utilise cette archive pour produire `build/travail/iPad/Export/Audience.ipa`, signé avec le certificat Apple Development existant de Yann Houry et installable sur les appareils enregistrés dans son profil. Ce fichier de développement n’est pas une distribution TestFlight ou App Store. Pour vérifier la compilation destinée aux appareils sans signer, ajoutez `CODE_SIGNING_ALLOWED=NO` au mode `device` ; ce résultat n’est pas directement installable.
 
-Vérifications : compilation simulateur et appareil iOS, compilation Mac et 82 tests du noyau partagés réussis ; captures de l’éditeur, des résultats, de l’import et de la présentation inspectées sur simulateur iPad 11 pouces. L’archive a ensuite été signée avec l’équipe `D73WW234K6`, sa signature vérifiée et l’IPA de développement exporté avec succès. La connexion au site avec un compte réel et l’installation sur un appareil restent à vérifier.
+Vérifications : compilation simulateur et appareil iOS, compilation Mac et 87 tests du noyau partagés réussis ; captures de l’éditeur, des résultats, de l’import et de la présentation inspectées sur simulateur iPad 11 pouces. L’archive a ensuite été signée avec l’équipe `D73WW234K6`, sa signature vérifiée et l’IPA de développement exporté avec succès. La connexion au site avec un compte réel et l’installation sur un appareil restent à vérifier.
 
 Les données sont enregistrées dans `Library/Application Support/AudienceNative/library.json` du conteneur privé de l’app. Les fichiers importés utilisent les autorisations temporaires de Fichiers. En Debug uniquement, `AUDIENCE_IPAD_PREVIEW` (`editor`, `results`, `statistics`, `presentation`, `settings`, `import`, `inspector`) ouvre un écran avec des données d’exemple si `AUDIENCE_LIBRARY` pointe vers une bibliothèque de test distincte.
 
 ## Préparer une publication Mac et TestFlight
 
-La version de publication courante est **1.3.1 (build 8)** sur Mac et iPad. Après compilation Mac signée/notarisée, génération du flux avec `scripts/publish-update.sh` et création de l’archive iPad, exécuter :
+La version de publication courante est **1.3.2 (build 9)** sur Mac et iPad. Après compilation Mac signée/notarisée, génération du flux avec `scripts/publish-update.sh` et création de l’archive iPad, exécuter :
 
 ```sh
 python3 scripts/prepare-publication.py
 ```
 
-Le dossier `build/Publication-1.3.1-8/mac/` contient uniquement les fichiers de téléchargement et de mise à jour Mac : téléchargement courant, archives versionnées, correctifs Sparkle, notes de version, flux et sources natives correspondantes. Déposer ce dossier `mac` dans `/apps/audience/` sur le serveur et publier `appcast.xml` en dernier. Les pages, feuilles de style, scripts et images du site existant ne sont pas recopiés dans le dossier de publication.
+La préparation vérifie que les versions Mac et iPad correspondent et contrôle la signature de l’archive iPad avant de la compresser. Si l’export `build/travail/TestFlight/Export/Audience.ipa` est présent, sa version est également vérifiée avant son ajout au dossier de publication.
+
+Le dossier `build/Publication-1.3.2-9/mac/` contient uniquement les fichiers de téléchargement et de mise à jour Mac : téléchargement courant, archives versionnées, correctifs Sparkle, notes de version, flux et sources natives correspondantes. Déposer ce dossier `mac` dans `/apps/audience/` sur le serveur et publier `appcast.xml` en dernier. Les pages, feuilles de style, scripts et images du site existant ne sont pas recopiés dans le dossier de publication.
 
 Pour préparer l’iPad avec une configuration App Store Connect distincte de celle des appareils de développement :
 
@@ -74,9 +87,9 @@ Pour préparer l’iPad avec une configuration App Store Connect distincte de ce
 ./scripts/build-ipad.sh testflight-export -allowProvisioningUpdates
 ```
 
-L’archive originale se trouve dans `build/TestFlight/Audience-iPad.xcarchive`. L’export utilise `Resources/ExportOptions-TestFlight.plist`, la méthode `app-store-connect` et la destination `export` : **aucun envoi à Apple n’est effectué**. Un compte Apple développeur connecté à Xcode et un profil App Store correspondant sont nécessaires à la signature de distribution.
+L’archive originale se trouve dans `build/travail/TestFlight/Audience-iPad.xcarchive`. L’export utilise `Resources/ExportOptions-TestFlight.plist`, la méthode `app-store-connect` et la destination `export` : **aucun envoi à Apple n’est effectué**. Un compte Apple développeur connecté à Xcode et un profil App Store correspondant sont nécessaires à la signature de distribution.
 
-Le dossier `build/Publication-1.3.1-8/iPad-TestFlight/` fournit l’archive compressée pour préserver sa signature lors des copies iCloud, la configuration d’export, un script pour finaliser l’export et les textes pour la fiche bêta. Ne pas déposer ce dossier sur le serveur web. Après envoi à App Store Connect, le build doit être traité par Apple avant d’être sélectionné dans TestFlight.
+Le dossier `build/Publication-1.3.2-9/iPad-TestFlight/` fournit l’archive compressée pour préserver sa signature lors des copies iCloud, l’IPA de distribution dans `Export-AppStoreConnect/`, la configuration d’export, un script de réexport et les textes pour la fiche bêta. L’IPA 1.3.2 (9) a été exporté localement depuis Xcode Organizer avec le certificat Cloud Managed Apple Distribution et le profil App Store de l’équipe `D73WW234K6`. Ne pas déposer ce dossier sur le serveur web. Après envoi à App Store Connect, le build doit être traité par Apple avant d’être sélectionné dans TestFlight.
 
 ## Signature Apple Developer
 
@@ -91,7 +104,7 @@ NOTARY_PROFILE=scenarisation-notary ./scripts/package.sh
 
 Pour recompiler également, remplacez `./scripts/package.sh` par `./scripts/build.sh`. Pour signer sans notarisation, omettez `NOTARY_PROFILE`.
 
-Le script signe avec le runtime renforcé et un horodatage Apple, vérifie la signature des deux architectures, soumet l’archive à Apple si demandé, puis agrafe et vérifie le ticket de notarisation. Il produit `build/Audience.app` et `build/Audience-macOS.zip`. Le résultat de notarisation est conservé dans `build/Audience-notarization.json` ; un refus interrompt la préparation. Pour distribuer ou installer l’app depuis ce projet iCloud, utilisez le ZIP et décompressez-le hors iCloud (par exemple dans Téléchargements), puis déplacez l’app dans Applications. Le script signale si les attributs ajoutés par iCloud empêchent de valider la copie `.app` du projet ; le ZIP contient la version vérifiée hors iCloud.
+Le script signe avec le runtime renforcé et un horodatage Apple, vérifie la signature des deux architectures, soumet l’archive à Apple si demandé, puis agrafe et vérifie le ticket de notarisation. Il produit `build/Audience.app` et `build/travail/Audience-macOS.zip`. Le résultat de notarisation est conservé dans `build/travail/Audience-notarization.json` ; un refus interrompt la préparation. Pour distribuer ou installer l’app depuis ce projet iCloud, utilisez le ZIP et décompressez-le hors iCloud (par exemple dans Téléchargements), puis déplacez l’app dans Applications. Le script signale si les attributs ajoutés par iCloud empêchent de valider la copie `.app` du projet ; le ZIP contient la version vérifiée hors iCloud.
 
 Références : [certificats Developer ID](https://developer.apple.com/help/account/certificates/create-developer-id-certificates), [notarisation macOS](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution).
 
@@ -111,19 +124,19 @@ Pour préparer chaque version, depuis `app` :
    NOTARY_PROFILE=scenarisation-notary ./scripts/build.sh
    ```
 
-3. Exécuter `./scripts/publish-update.sh`. Le script vérifie la signature, la notarisation et la correspondance de la clé, puis prépare une archive nommée avec la version et le numéro de build ainsi qu’`appcast.xml` dans `build/updates/`. Il refuse de remplacer une archive de même version par un contenu différent. Des notes de version HTML facultatives peuvent être ajoutées dans ce dossier, sous le même nom que le ZIP, puis le script relancé.
-4. Déposer les archives et les éventuelles notes de version sur le serveur dans `apps/audience/mac/`, puis **le flux `appcast.xml` en dernier**. Conserver le dossier `build/updates/` entre les versions pour préserver l’historique du flux ; ne pas téléverser `old_updates/`. Le script prépare les fichiers localement et ne publie rien sur le serveur. Lors de la première signature, macOS peut demander d’autoriser `generate_appcast` à accéder à la clé dans le trousseau.
+3. Exécuter `./scripts/publish-update.sh`. Le script vérifie la signature, la notarisation et la correspondance de la clé, puis prépare une archive nommée avec la version et le numéro de build ainsi qu’`appcast.xml` dans `build/travail/updates/`. Il refuse de remplacer une archive de même version par un contenu différent. Des notes de version HTML facultatives peuvent être ajoutées dans ce dossier, sous le même nom que le ZIP, puis le script relancé.
+4. Déposer les archives et les éventuelles notes de version sur le serveur dans `apps/audience/mac/`, puis **le flux `appcast.xml` en dernier**. Conserver le dossier `build/travail/updates/` entre les versions pour préserver l’historique du flux ; ne pas téléverser `old_updates/`. Le script prépare les fichiers localement et ne publie rien sur le serveur. Lors de la première signature, macOS peut demander d’autoriser `generate_appcast` à accéder à la clé dans le trousseau.
 
 La version 1.3.0 (build 7) introduit ce mécanisme. Les versions antérieures doivent être remplacées une première fois manuellement. Le flux doit être publié avec cette première version avant sa distribution.
 
-Pour sauvegarder la clé privée dans un emplacement sécurisé hors du dépôt, utiliser une fois `build/DerivedData/SourcePackages/artifacts/sparkle/Sparkle/bin/generate_keys --account audience-mac -x /chemin/securise/audience-sparkle.key`. Une clé perdue empêcherait de signer les prochaines archives pour les installations existantes.
+Pour sauvegarder la clé privée dans un emplacement sécurisé hors du dépôt, utiliser une fois `build/travail/DerivedData/SourcePackages/artifacts/sparkle/Sparkle/bin/generate_keys --account audience-mac -x /chemin/securise/audience-sparkle.key`. Une clé perdue empêcherait de signer les prochaines archives pour les installations existantes.
 
 ## Utilisation
 
 - **Bibliothèque** : dossiers colorés, étiquettes, couleurs de questionnaire, favoris, tri, recherche (titre, code ou étiquette), sélection multiple, duplication, corbeille et vidage de la corbeille. Glissez un questionnaire sur un dossier, une étiquette, les Favoris ou la Corbeille dans la barre latérale.
 - **Inspecteur** (bouton à droite de la barre d’outils ou ⌥⌘I) : dossier, couleur, étiquettes, réglages de participation et informations du questionnaire.
 - **Éditeur** : liste des questions à gauche (réorganisation par glisser-déposer, touche Suppr, menu contextuel), choix unique, choix multiples, réponse libre, nuage de mots, évaluation, texte à trous, vidéo YouTube, classement et image à légender. Images intégrées aux sauvegardes, limite de 2 Mo, ajout par glisser-déposer possible.
-- **Présentation** : fenêtre native indépendante, plein écran (⌃⌘F), flèches gauche/droite ou espace, correction (C) et réponses reçues (R). Les éléments d’un classement sont mélangés jusqu’à la correction. **Lancer en direct** ouvre d’abord une salle d’attente : QR code généré localement, adresse et code en grand, nombre de participants connectés. Les téléphones affichent « Merci de patienter » jusqu’à **Commencer** (Entrée ou espace), qui ouvre la première question et son minuteur. Pendant la session, le bouton Participer réaffiche le QR code.
+- **Présentation** : fenêtre native indépendante, plein écran (⌃⌘F), flèches gauche/droite ou espace, correction (C) et réponses reçues (R). Les éléments d’un classement sont mélangés jusqu’à la correction. **Présenter** affiche d’abord la salle d’attente sur Mac et iPad : QR code généré localement, adresse et code en grand. **Lancer en direct** prépare la participation en ligne sans afficher de question et ajoute le nombre de participants connectés. Sans direct, **Commencer** ouvre la première question en aperçu. Les téléphones affichent « Merci de patienter » jusqu’à **Commencer** (Entrée ou espace), qui ouvre la première question et son minuteur. Pendant la session, le bouton Participer réaffiche le QR code.
 - **Résultats** : barres par réponse (lettre, nombre, pourcentage, bonne réponse en vert) et réponses textuelles, récupérés depuis le site ou une sauvegarde. **Exporter en CSV** enregistre le même tableau que le bilan final du site (une ligne par question, une colonne par participant). Les résultats du direct sont actualisés toutes les trois secondes tant que la fenêtre de présentation reste ouverte.
 - **Statistiques** : nombre de soumissions, réponses justes/fausses, taux de réussite sur les réponses évaluées et réponses les plus fréquentes par question. La correction des choix multiples exige toutes les bonnes réponses sans choix supplémentaire. Les réponses libres, sondages et données insuffisantes restent non évalués. Les anciens totaux par choix ne permettent pas toujours de retrouver le nombre de soumissions.
 - **Synthèse locale** : résumé, difficultés observées et pistes de reprise avec Ollama sur ce Mac. Ouvrez **Modèles…** dans Statistiques ou **Réglages → Modèles locaux** pour détecter les modèles installés et télécharger Qwen, Gemma, DeepSeek ou un autre modèle local, avec progression et annulation. Installez et ouvrez [Ollama](https://ollama.com/download/mac) au préalable. Le téléchargement nécessite Internet ; les synthèses fonctionnent ensuite hors ligne, sans clé API ni transmission des noms et identifiants des participants. Les données agrégées sont limitées à environ 24 000 caractères, 60 questions et 8 réponses fréquentes par question. Les synthèses sont conservées pendant la session de l’app, copiables et invalidées quand les résultats changent ; leurs interprétations restent à vérifier.

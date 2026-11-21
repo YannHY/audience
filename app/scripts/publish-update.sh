@@ -2,11 +2,11 @@
 # Prépare les fichiers à déposer sur le site ; aucun téléversement n’est effectué.
 set -euo pipefail
 APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-ARCHIVE="${1:-$APP_DIR/build/Audience-macOS.zip}"
+ARCHIVE="${1:-$APP_DIR/build/travail/Audience-macOS.zip}"
 PREFIX='https://www.ralentirtravaux.com/apps/audience/mac/'
 ACCOUNT='audience-mac'
-UPDATES="$APP_DIR/build/updates"
-SPARKLE_BIN="${SPARKLE_BIN:-$APP_DIR/build/DerivedData/SourcePackages/artifacts/sparkle/Sparkle/bin}"
+UPDATES="$APP_DIR/build/travail/updates"
+SPARKLE_BIN="${SPARKLE_BIN:-$APP_DIR/build/travail/DerivedData/SourcePackages/artifacts/sparkle/Sparkle/bin}"
 if [[ ! -x "$SPARKLE_BIN/generate_appcast" || ! -f "$ARCHIVE" ]]; then
   print -u2 'Archive ou outils Sparkle absents : lancez scripts/build.sh au préalable (ou définissez SPARKLE_BIN).'
   exit 1

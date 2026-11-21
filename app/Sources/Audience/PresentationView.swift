@@ -8,6 +8,7 @@ struct PresentationView: View {
     @Bindable var store: LibraryStore
     let code: String
     @State private var index = 0
+    @State private var previewStarted = false
     @State private var reveal = false
     @State private var showResults = false
     @State private var showJoin = false
@@ -24,7 +25,8 @@ struct PresentationView: View {
     #endif
     private var quiz: Quiz? { store.archive.quizzes[code] }
     private var isLive: Bool { store.liveCode == code }
-    private var inLobby: Bool { isLive && store.liveLobby }
+    // Opening a presentation always shows how to join, even before a live session is prepared.
+    private var inLobby: Bool { isLive ? store.liveLobby : !previewStarted }
 
     var body: some View {
         Group {
@@ -33,7 +35,7 @@ struct PresentationView: View {
                 GeometryReader { geometry in
                     let scale = min(max(geometry.size.width / 1200, 0.6), 1.8)
                     if inLobby, let url = store.participantURL(code: code) {
-                        LobbyView(title: quiz.title, code: code, url: url, participants: store.liveParticipants, scale: scale)
+                        LobbyView(title: quiz.title, code: code, url: url, participants: store.liveParticipants, scale: scale, participationActive: isLive)
                     } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 28 * scale) {
@@ -245,6 +247,28 @@ struct PresentationView: View {
         }
     }
 
+    private func beginPresentation() {
+        if isLive {
+            Task {
+                await store.beginLive()
+                if !store.liveLobby { index = store.liveIndex; reveal = false }
+            }
+        } else {
+            index = 0
+            reveal = false
+            showResults = false
+            previewStarted = true
+        }
+    }
+
+    private var launchLiveButton: some View {
+        Button("Lancer en direct", systemImage: "dot.radiowaves.left.and.right") {
+            if store.connected { confirmLive = true } else { openAccountSettings() }
+        }
+        .disabled(store.busy || store.liveCode != nil)
+        .help(store.liveCode != nil ? "Une autre session est déjà en direct." : store.connected ? "Recueillir les réponses des participants" : "Connectez-vous pour lancer une session en direct")
+    }
+
     private var currentResult: JSONValue? {
         guard let source = store.archive.responses[code] else { return nil }
         if case .array(let rows) = source["questions"] {
@@ -267,15 +291,13 @@ struct PresentationView: View {
     private var lobbyControls: some View {
         GlassEffectContainer(spacing: 14) {
             HStack(spacing: 14) {
-                Button {
-                    Task { await store.beginLive(); if !store.liveLobby { index = store.liveIndex; reveal = false } }
-                } label: {
-                    Label(store.liveIndex == 0 ? "Commencer" : "Commencer à la question \(store.liveIndex + 1)", systemImage: "play.fill")
+                Button(action: beginPresentation) {
+                    Label(!isLive || store.liveIndex == 0 ? "Commencer" : "Commencer à la question \(store.liveIndex + 1)", systemImage: "play.fill")
                         .padding(.horizontal, 10)
                 }
                 .buttonStyle(.glassProminent).controlSize(.extraLarge)
                 .keyboardShortcut(.defaultAction).disabled(store.busy)
-                .help("Afficher la première question sur les téléphones (Entrée ou espace)").presentationControl()
+                .help(isLive ? "Afficher la première question sur les téléphones (Entrée ou espace)" : "Afficher la première question en aperçu (Entrée ou espace)").presentationControl()
 
                 HStack(spacing: 10) {
                     if let url = store.participantURL(code: code) {
@@ -283,8 +305,12 @@ struct PresentationView: View {
                             PlatformClipboard.copy(url.absoluteString)
                         }.presentationControl()
                     }
-                    Button("Arrêter", systemImage: "stop.fill") { Task { await store.stopLive() } }
-                        .disabled(store.busy).tint(.red).presentationControl()
+                    if isLive {
+                        Button("Arrêter", systemImage: "stop.fill") { Task { await store.stopLive() } }
+                            .disabled(store.busy).tint(.red).presentationControl()
+                    } else {
+                        launchLiveButton.presentationControl()
+                    }
                     Button("Plein écran", systemImage: "arrow.up.left.and.arrow.down.right") {
                         NSApp.keyWindow?.toggleFullScreen(nil)
                     }
@@ -299,7 +325,7 @@ struct PresentationView: View {
         .padding(20)
         .frame(maxWidth: .infinity)
         .background {
-            Button("Commencer") { Task { await store.beginLive(); if !store.liveLobby { index = store.liveIndex; reveal = false } } }
+            Button("Commencer", action: beginPresentation)
                 .keyboardShortcut(.space, modifiers: []).disabled(store.busy).hidden()
         }
     }
@@ -340,12 +366,7 @@ struct PresentationView: View {
                         Button("Arrêter", systemImage: "stop.fill") { Task { await store.stopLive() } }
                             .disabled(store.busy).tint(.red).presentationControl()
                     } else {
-                        Button("Lancer en direct", systemImage: "dot.radiowaves.left.and.right") {
-                            if store.connected { confirmLive = true } else { openAccountSettings() }
-                        }
-                        .disabled(store.busy || store.liveCode != nil)
-                        .presentationControl()
-                        .help(store.liveCode != nil ? "Une autre session est déjà en direct." : store.connected ? "Recueillir les réponses des participants" : "Connectez-vous pour lancer une session en direct")
+                        launchLiveButton.presentationControl()
                     }
                     Button("Plein écran", systemImage: "arrow.up.left.and.arrow.down.right") {
                         NSApp.keyWindow?.toggleFullScreen(nil)
@@ -385,10 +406,17 @@ struct PresentationView: View {
         VStack(spacing: 12) {
             if inLobby {
                 HStack {
-                    Button("Commencer", systemImage: "play.fill") {
-                        Task { await store.beginLive(); if !store.liveLobby { index = store.liveIndex; reveal = false } }
-                    }.buttonStyle(.glassProminent)
-                    Button("Arrêter", systemImage: "stop.fill") { Task { await store.stopLive() } }.tint(.red)
+                    Button("Commencer", systemImage: "play.fill", action: beginPresentation)
+                        .buttonStyle(.glassProminent).keyboardShortcut(.defaultAction)
+                    if isLive {
+                        Button("Arrêter", systemImage: "stop.fill") { Task { await store.stopLive() } }.tint(.red)
+                    } else {
+                        launchLiveButton
+                    }
+                    if let url = store.participantURL(code: code) {
+                        Button("Copier le lien", systemImage: "doc.on.doc") { PlatformClipboard.copy(url.absoluteString) }
+                            .labelStyle(.iconOnly)
+                    }
                 }
             } else {
                 HStack(spacing: 24) {
@@ -404,9 +432,7 @@ struct PresentationView: View {
                             Button("Relancer le minuteur", systemImage: "timer") { Task { await store.restartQuestion() } }
                             Button("Arrêter", systemImage: "stop.fill", role: .destructive) { Task { await store.stopLive() } }
                         } else {
-                            Button("Lancer en direct", systemImage: "dot.radiowaves.left.and.right") {
-                                if store.connected { confirmLive = true } else { showSettings = true }
-                            }.disabled(store.liveCode != nil)
+                            launchLiveButton
                         }
                     }.frame(minWidth: 44, minHeight: 44)
                 }
@@ -499,18 +525,19 @@ struct LobbyView: View {
     let url: URL
     let participants: Int?
     let scale: CGFloat
+    var participationActive = true
     /// The participant page without the code, for people typing the address by hand.
     private var entryAddress: String {
         let host = (url.host ?? "").replacingOccurrences(of: #"^www\."#, with: "", options: .regularExpression)
         return host + url.path
     }
     var body: some View {
-        ScrollView {
-        ViewThatFits(in: .horizontal) {
-            lobbyLayout(horizontal: true)
-            lobbyLayout(horizontal: false)
-        }
-        .frame(maxWidth: .infinity, minHeight: 0)
+        GeometryReader { geometry in
+            ScrollView {
+                // Choose from the available width: the long joining address must wrap,
+                // rather than pushing the QR code below the fold in a wide window.
+                lobbyLayout(horizontal: geometry.size.width >= 850)
+            }
         }
     }
     private func lobbyLayout(horizontal: Bool) -> some View {
@@ -531,7 +558,7 @@ struct LobbyView: View {
                     Text(code).font(.system(size: 88 * scale, weight: .bold, design: .rounded).monospacedDigit())
                         .tracking(8 * scale).textSelection(.enabled)
                 }
-                participantBadge
+                if participationActive { participantBadge }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             if let image = qrCode(for: url) {
