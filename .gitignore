@@ -4,3 +4,4 @@ config.local.php
 .claude/settings.local.json
 app/build/
 app/.build/
+output/
