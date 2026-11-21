@@ -93,6 +93,8 @@ final class ArchiveWriter: @unchecked Sendable {
     var importing = false
     var busy = false
     var connected = false
+    /// The signed-in account must accept the website's terms of use before synchronizing.
+    var termsPending = false
     var accountName = ""
     /// The saved password could not be tried (offline at launch, server unavailable).
     var savedLoginPending = false
@@ -625,19 +627,28 @@ final class ArchiveWriter: @unchecked Sendable {
             }
         }) else { await remote.disconnect(); return }
         connected = true
+        termsPending = await remote.needsTermsAcceptance()
         sidebar = .all; search = ""; selection = []
         syncError = nil; lastFullRefresh = nil
+    }
+    /// Records the acceptance on the website, then starts the synchronization it was holding.
+    func acceptTerms() async {
+        await perform {
+            try await remote.acceptTerms()
+            termsPending = false
+        }
+        if !termsPending { await synchronize() }
     }
     func disconnect() async {
         guard !syncing && !busy && liveCode == nil else { return }
         scheduledSync?.cancel()
         await remote.disconnect()
-        connected = false; accountName = ""; syncError = nil; savedLoginPending = false
+        connected = false; accountName = ""; syncError = nil; savedLoginPending = false; termsPending = false
         // Signing out is deliberate: the next launch must not sign in again.
         await Task.detached { SavedCredentials.forgetPassword() }.value
     }
     func synchronize(showErrors: Bool = false) async {
-        guard connected, !busy, liveCode == nil, let account = archive.synchronization.activeAccount else { return }
+        guard connected, !termsPending, !busy, liveCode == nil, let account = archive.synchronization.activeAccount else { return }
         if syncing { retryAfterSync = true; return }
         syncing = true
         let revision = editRevision

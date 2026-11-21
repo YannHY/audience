@@ -70,6 +70,7 @@ struct LibraryView: View {
         }
         .animation(.smooth, value: store.notice)
         .sheet(isPresented: $store.importing) { ImportSheet(store: store) }
+        .sheet(isPresented: Binding(get: { store.termsPending }, set: { _ in })) { TermsSheet(store: store) }
         #if DEBUG
         .onReceive(NotificationCenter.default.publisher(for: DebugSnapshots.present)) { note in
             if let code = note.object as? String { openWindow(id: "presentation", value: code) }

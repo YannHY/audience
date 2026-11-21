@@ -39,6 +39,18 @@ struct ConnectionTests {
         #expect(name == "Test enseignant")
         await client.disconnect()
     }
+    @Test func termsOfUseAreAskedOnlyWhenTheAccountHasNotAcceptedThem() async throws {
+        let older = client()
+        _ = try await older.connect(address: "https://legacy.example/apps/audience/", email: "synthetic@example.org", password: "synthetic")
+        #expect(await !older.needsTermsAcceptance()) // A site without the field asks nothing.
+        let client = client()
+        _ = try await client.connect(address: "https://terms.example/apps/audience/", email: "synthetic@example.org", password: "synthetic")
+        #expect(await client.needsTermsAcceptance())
+        try await client.acceptTerms()
+        #expect(await !client.needsTermsAcceptance())
+        await client.disconnect()
+        #expect(await !client.needsTermsAcceptance())
+    }
     @Test func invalidCredentialsDisplayTheServerMessage() async {
         await expectFailure(host: "invalid.example", containing: "Identifiants invalides.")
     }
@@ -100,8 +112,13 @@ private final class ConnectionProtocol: URLProtocol, @unchecked Sendable {
             }
             if host == "invalid.example" { body = #"<div class="error">Identifiants invalides.</div>"# }
             if host == "limited.example" { status = 429 }
+        } else if url.lastPathComponent == "accept_terms.php" {
+            #expect(request.httpMethod == "POST")
+            #expect(request.value(forHTTPHeaderField: "Origin") == "https://\(host)")
+            body = #"{"success":true}"#
         } else if url.lastPathComponent == "auth_me.php" {
             if host == "outdated.example" { status = 404; body = "Not Found" }
+            else if host == "terms.example" { body = #"{"success":true,"user":{"id":3,"username":"Nouveau","termsAccepted":false}}"# }
             else { body = #"{"success":true,"user":{"username":"Test enseignant"}}"# }
         }
         guard let response = HTTPURLResponse(url: url, statusCode: status, httpVersion: "HTTP/1.1", headerFields: ["Content-Type": "text/html; charset=utf-8"]) else { return }

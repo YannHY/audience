@@ -14,6 +14,7 @@ public actor RemoteClient: SyncRemote, OrganizationRemote {
     private var session: URLSession?
     private var identity: String?
     private var folders: [RemoteFolder]?
+    private var termsAccepted = true
     private let configurationFactory: @Sendable () -> URLSessionConfiguration
 
     public init() { configurationFactory = Self.sessionConfiguration }
@@ -50,6 +51,8 @@ public actor RemoteClient: SyncRemote, OrganizationRemote {
             if let error = Self.loginError(in: login.string) { throw AudienceError.rejectedCredentials(error) }
             let me = try await request("auth_me.php")
             let user = me["user"]
+            // Older sites do not send the field: only an explicit false asks for acceptance.
+            termsAccepted = user["termsAccepted"] != .bool(false)
             let key = user["id"].int > 0 ? String(user["id"].int) : email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             identity = SHA256.hash(data: Data("\(url.absoluteString)|\(key)".utf8)).map { String(format: "%02x", $0) }.joined()
             return me["user"]["username"].string
@@ -61,7 +64,14 @@ public actor RemoteClient: SyncRemote, OrganizationRemote {
     public func accountIdentity() throws -> String {
         guard let identity else { throw AudienceError.message("Connectez-vous à votre compte Audience.") }; return identity
     }
-    public func disconnect() { session?.invalidateAndCancel(); session = nil; base = nil; identity = nil; folders = nil }
+    public func disconnect() { session?.invalidateAndCancel(); session = nil; base = nil; identity = nil; folders = nil; termsAccepted = true }
+    /// True when the signed-in account has not yet accepted the website's terms of use.
+    public func needsTermsAcceptance() -> Bool { identity != nil && !termsAccepted }
+    /// Records the acceptance of the terms of use for the account (accept_terms.php).
+    public func acceptTerms() async throws {
+        _ = try await request("accept_terms.php", body: Data("{}".utf8))
+        termsAccepted = true
+    }
     /// Folders returned with the last inventory, or `nil` if the website does not support them.
     public func remoteFolders() -> [RemoteFolder]? { folders }
 

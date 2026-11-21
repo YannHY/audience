@@ -10,12 +10,23 @@ if (!$user) {
     exit;
 }
 
+// Acceptance of the terms of use, asked once per account (see accept_terms.php).
+$termsAccepted = true;
+try {
+    $stmt = app_db()->prepare("SELECT terms_accepted_at FROM users WHERE id = ? LIMIT 1");
+    $stmt->execute([(int)$user['id']]);
+    $termsAccepted = !empty($stmt->fetchColumn());
+} catch (Throwable $e) {
+    // If the column cannot be read, do not block the user.
+}
+
 echo json_encode([
     "success" => true,
     "user" => [
         "id" => (int)$user['id'],
         "username" => (string)($user['username'] ?? ''),
         "email" => (string)$user['email'],
-        "role" => (string)$user['role']
+        "role" => (string)$user['role'],
+        "termsAccepted" => $termsAccepted
     ]
 ]);

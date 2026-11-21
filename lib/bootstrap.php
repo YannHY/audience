@@ -362,7 +362,8 @@ function ensure_app_tables(PDO $db): void {
     $userColumns = [
         "ALTER TABLE users ADD COLUMN username VARCHAR(80) NULL",
         "ALTER TABLE users ADD UNIQUE INDEX idx_users_username (username)",
-        "ALTER TABLE users ADD COLUMN last_login_at DATETIME NULL"
+        "ALTER TABLE users ADD COLUMN last_login_at DATETIME NULL",
+        "ALTER TABLE users ADD COLUMN terms_accepted_at DATETIME NULL"
     ];
     foreach ($userColumns as $sql) {
         try {

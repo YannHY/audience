@@ -5681,7 +5681,7 @@ body.page-setup-admin .error { margin-top: 10px; padding: 10px; background: #fee
 }
 
 .footer .license a {
-    color: inherit !important;
+    color: #6366f1 !important;
     font-weight: 400 !important;
 }
 
@@ -9775,4 +9775,101 @@ body.page-admin .wrap {
 
 .saved-quiz-new-folder {
     min-height: 150px;
+}
+
+/* Terms of use, accepted once per account (site-nav.js) */
+.terms-dialog {
+    width: min(560px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
+    margin: auto;
+    padding: 0;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 18px;
+    background: var(--surface);
+    color: var(--gray-800);
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.26);
+}
+
+.terms-dialog::backdrop {
+    background: rgba(15, 23, 42, 0.45);
+}
+
+.terms-dialog-panel {
+    display: grid;
+    gap: 12px;
+    padding: 24px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.terms-dialog-panel h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    color: var(--primary);
+}
+
+.terms-dialog-panel p,
+.terms-dialog-panel ul {
+    margin: 0;
+}
+
+.terms-dialog-panel ul {
+    padding-left: 1.2em;
+    display: grid;
+    gap: 4px;
+}
+
+.terms-dialog-panel a {
+    color: var(--primary);
+}
+
+.terms-dialog-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: var(--gray-50);
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.terms-dialog-check input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary);
+}
+
+.terms-dialog-error {
+    color: var(--error);
+}
+
+.terms-dialog-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 4px;
+}
+
+.terms-dialog-panel .terms-dialog-secondary {
+    color: var(--gray-500);
+    font-size: 0.9rem;
+}
+
+.terms-dialog-accept {
+    padding: 10px 22px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--primary);
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.terms-dialog-accept:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
 }

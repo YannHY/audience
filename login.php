@@ -100,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer">
-    <link rel="stylesheet" href="styles.css?v=20261121s">
+    <link rel="stylesheet" href="styles.css?v=20261121u">
 </head>
 <body class="page-login">
     <button type="button" id="themeToggle" class="theme-toggle" aria-label="Activer le mode sombre" title="Activer le mode sombre"><i class="fa-solid fa-moon" aria-hidden="true"></i></button>
@@ -139,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <div class="beta-notice">
                 <p class="beta-notice-title"><i class="fa-solid fa-bug" aria-hidden="true"></i> Le site est actuellement en version bêta.</p>
-                <p>Vous pouvez faire une demande pour l'essayer via la page <a href="contact.html">Contact</a>.</p>
+                <p>Vous pouvez faire une demande pour l'essayer via la page <a href="contact.html">Contact</a> | <a href="https://github.com/YannHY/audience" target="_blank" rel="noopener noreferrer">Code source</a>.</p>
             </div>
         </div>
 
@@ -153,7 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <a href="conditions-utilisation.html">Conditions d'utilisation</a> | <a href="aide.html">Aide</a> | <a href="contact.html">Contact</a>
                 </p>
                 <div class="license">
-                    <p><i class="fa-regular fa-copyright" aria-hidden="true"></i> Tous droits réservés</p>
+                    <p><i class="fa-brands fa-creative-commons" aria-hidden="true"></i> Logiciel libre : code sous <a href="https://www.gnu.org/licenses/gpl-3.0.fr.html" target="_blank" rel="noopener noreferrer">GPL v3</a>, contenus sous <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.fr" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a></p>
                 </div>
                 <p class="year"><span id="current-year"></span></p>
             </div>

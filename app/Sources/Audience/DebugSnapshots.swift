@@ -16,6 +16,30 @@ import AudienceCore
         Task { @MainActor in
             func pause(_ seconds: Double = 1.2) async { try? await Task.sleep(for: .seconds(seconds)) }
             await pause(2)
+            // AUDIENCE_SNAPSHOT_TERMS: only the terms-of-use sheet, as for a new account.
+            if ProcessInfo.processInfo.environment["AUDIENCE_SNAPSHOT_TERMS"] != nil {
+                store.termsPending = true
+                await pause()
+                snap("terms", to: output)
+                return
+            }
+            // AUDIENCE_SNAPSHOT_SIDEBAR: a displayed row gains a folder and tags; it must grow.
+            if ProcessInfo.processInfo.environment["AUDIENCE_SNAPSHOT_SIDEBAR"] != nil {
+                for title in ["Le passé simple", "Les caractéristiques du conte et de la fable", "Molière"] {
+                    _ = store.importText(ImportSheet.example.replacingOccurrences(of: "Titre du questionnaire", with: title))
+                }
+                store.sidebar = .all
+                await pause()
+                guard let quiz = store.listedQuizzes(sort: .modified).first(where: { $0.title == "Le passé simple" }) else { return }
+                store.selection = [quiz.code]
+                await pause()
+                snap("sidebar-before", to: output)
+                store.createFolder(with: [quiz.code], rename: false)
+                for tag in ["conjugaison", "grammaire", "révisions"] { store.addTag(tag, to: [quiz.code]) }
+                await pause()
+                snap("sidebar-after", to: output)
+                return
+            }
             snap("1-library", to: output)
             if let folder = store.visibleFolders.first {
                 store.sidebar = .folder(folder.id)
