@@ -1,4 +1,4 @@
-/* ===== Page de présentation de l’application macOS ===== */
+/* ===== Page de présentation des applications Mac et iPad ===== */
 .page-mac {
     --mac-ink: #1d1d1f;
     --mac-ink-soft: #6e6e73;
@@ -31,9 +31,9 @@
 
 .page-mac > .account-bar,
 .page-mac > .footer {
-    width: auto;
-    margin-left: 20px;
-    margin-right: 20px;
+    width: calc(100% - 40px);
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .page-mac > .account-bar {
@@ -171,6 +171,85 @@
 .mac-hero-shot {
     margin: 48px auto 0;
     width: min(1180px, calc(100% - 32px));
+}
+
+/* ----- iPad (capture encadrée avec Apple Frames) ----- */
+.mac-hero-shot {
+    position: relative;
+}
+
+.mac-ipad {
+    display: block;
+    height: auto;
+    filter: drop-shadow(0 24px 40px rgba(15, 23, 42, 0.28));
+}
+
+.mac-ipad-hero {
+    position: absolute;
+    right: -1%;
+    bottom: -9%;
+    width: 25%;
+}
+
+/* ----- Les deux apps ----- */
+.mac-section-tight {
+    padding-top: clamp(120px, 14vw, 170px);
+}
+
+.mac-products {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.mac-product {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+    padding: 40px 32px;
+    border-radius: 22px;
+    background: var(--mac-bg-alt);
+}
+
+.mac-product > i {
+    font-size: 2.4rem;
+    color: var(--mac-ink);
+    margin-bottom: 6px;
+}
+
+:root .page-mac .mac h3.mac-product-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+}
+
+.mac-product p {
+    color: var(--mac-ink-soft);
+    font-size: 1.05rem;
+    line-height: 1.5;
+    max-width: 380px;
+}
+
+.mac-product .mac-product-meta {
+    font-size: 0.88rem;
+    margin-bottom: 10px;
+}
+
+.mac-product .mac-button,
+.mac-badge {
+    margin-top: auto;
+}
+
+.mac-badge {
+    display: inline-block;
+    padding: 11px 22px;
+    border-radius: 999px;
+    border: 1px solid var(--mac-line);
+    color: var(--mac-ink-soft);
+    font-size: 1rem;
+    font-weight: 500;
 }
 
 /* ----- Captures ----- */
@@ -343,7 +422,8 @@
 /* ----- Petits écrans ----- */
 @media (max-width: 860px) {
     .mac-duo,
-    .mac-tiles {
+    .mac-tiles,
+    .mac-products {
         grid-template-columns: 1fr;
     }
 
@@ -369,7 +449,6 @@
 
     .page-mac > .account-bar,
     .page-mac > .footer {
-        margin-left: 16px;
-        margin-right: 16px;
+        width: calc(100% - 32px);
     }
 }

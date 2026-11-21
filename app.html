@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audience pour Mac</title>
-    <meta name="description" content="Audience pour Mac : préparez vos questionnaires, présentez-les en plein écran et recueillez les réponses de votre public en direct. Application native, gratuite et libre.">
-    <meta property="og:title" content="Audience pour Mac">
-    <meta property="og:description" content="Préparez, présentez et analysez vos questionnaires en direct, avec une application native pour macOS.">
-    <meta property="og:image" content="img/mac/editeur.webp">
+    <title>Audience pour Mac et iPad</title>
+    <meta name="description" content="Audience pour Mac et iPad : préparez vos questionnaires, présentez-les en plein écran et recueillez les réponses de votre public en direct. Applications natives, gratuites et libres.">
+    <meta property="og:title" content="Audience pour Mac et iPad">
+    <meta property="og:description" content="Préparez, présentez et analysez vos questionnaires en direct, avec des applications natives pour Mac et iPad.">
+    <meta property="og:image" content="img/app/editeur.webp">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=2">
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2">
@@ -28,7 +28,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="styles.css?v=20261121u">
-    <link rel="stylesheet" href="mac.css?v=20261121c">
+    <link rel="stylesheet" href="app.css?v=20261121e">
 </head>
 <body class="page-mac">
     <div id="accountBar" class="account-bar"></div>
@@ -37,26 +37,58 @@
         <!-- Ouverture -->
         <section class="mac-hero">
             <div class="mac-wrap">
-                <img class="mac-hero-icon" src="img/mac/icone.png" alt="" width="128" height="128">
-                <p class="mac-eyebrow">Audience pour Mac</p>
+                <img class="mac-hero-icon" src="img/app/icone.png" alt="" width="128" height="128">
+                <p class="mac-eyebrow">Audience pour Mac et iPad</p>
                 <h1 class="mac-hero-title">Vos questions.<br><span class="mac-gradient">En direct.</span></h1>
-                <p class="mac-lede">Préparez vos questionnaires, projetez-les en plein écran et voyez les réponses de la salle arriver en temps réel. Une vraie application Mac, rapide, élégante et utilisable hors ligne.</p>
+                <p class="mac-lede">Préparez vos questionnaires, projetez-les en plein écran et voyez les réponses de la salle arriver en temps réel. Deux vraies applications, rapides, élégantes et utilisables hors ligne.</p>
                 <div class="mac-cta">
                     <a class="mac-button" href="mac/Audience-macOS.zip" download>
                         <i class="fa-brands fa-apple" aria-hidden="true"></i>
                         Télécharger pour Mac
                     </a>
-                    <a class="mac-link" href="index.html">Utiliser la version web</a>
+                    <a class="mac-link" href="#ipad">Découvrir la version iPad</a>
                 </div>
-                <p class="mac-note">Gratuit et libre · macOS 26 ou ultérieur · Apple Silicon et Intel</p>
+                <p class="mac-note">Gratuit et libre · macOS 26 et iPadOS 26 ou ultérieur</p>
             </div>
             <div class="mac-hero-shot mac-reveal">
-                <img class="mac-shot" src="img/mac/editeur.webp" width="2200" height="1536" alt="La fenêtre d’Audience sur Mac : dossiers colorés à gauche, liste des questionnaires, puis l’éditeur d’une question à choix unique.">
+                <img class="mac-shot" src="img/app/editeur.webp" width="2200" height="1536" alt="La fenêtre d’Audience sur Mac : dossiers colorés à gauche, liste des questionnaires, puis l’éditeur d’une question à choix unique.">
+                <img class="mac-ipad mac-ipad-hero" src="img/app/ipad-editeur.webp" width="900" height="1264" alt="Audience sur iPad : la liste des questionnaires et l’éditeur d’une question.">
+
+            </div>
+        </section>
+
+        <!-- Deux apps -->
+        <section class="mac-section mac-section-tight">
+            <div class="mac-wrap">
+                <div class="mac-section-head mac-reveal">
+                    <p class="mac-kicker">Deux apps, une bibliothèque</p>
+                    <h2 class="mac-title">Commencez sur le Mac. Continuez sur l’iPad.</h2>
+                    <p class="mac-lede">Connectez votre compte Audience : questionnaires, dossiers et étiquettes vous suivent d’un appareil à l’autre, et sur le site.</p>
+                </div>
+                <div class="mac-products">
+                    <article class="mac-product mac-reveal">
+                        <i class="fa-solid fa-laptop" aria-hidden="true"></i>
+                        <h3 class="mac-product-title">Audience pour Mac</h3>
+                        <p>Fenêtres, raccourcis clavier, glisser-déposer et synthèse des résultats par une IA locale.</p>
+                        <p class="mac-product-meta">macOS 26 ou ultérieur · Apple Silicon et Intel</p>
+                        <a class="mac-button" href="mac/Audience-macOS.zip" download>
+                            <i class="fa-solid fa-download" aria-hidden="true"></i>
+                            Télécharger
+                        </a>
+                    </article>
+                    <article class="mac-product mac-reveal" id="ipad">
+                        <i class="fa-solid fa-tablet-screen-button" aria-hidden="true"></i>
+                        <h3 class="mac-product-title">Audience pour iPad</h3>
+                        <p>Tout le tactile : préparez en portrait ou en paysage, présentez en plein écran, pilotez le direct du bout des doigts.</p>
+                        <p class="mac-product-meta">iPadOS 26 ou ultérieur</p>
+                        <span class="mac-badge">Bientôt disponible</span>
+                    </article>
+                </div>
             </div>
         </section>
 
         <!-- Préparer -->
-        <section class="mac-section">
+        <section class="mac-section mac-section-alt">
             <div class="mac-wrap">
                 <div class="mac-section-head mac-reveal">
                     <p class="mac-kicker">Préparer</p>
@@ -64,35 +96,35 @@
                     <p class="mac-lede">Dossiers colorés, étiquettes, favoris et recherche instantanée : retrouvez n’importe quel questionnaire par son titre, son code ou son étiquette. Glissez, déposez, c’est rangé.</p>
                 </div>
                 <div class="mac-reveal">
-                    <img class="mac-shot" src="img/mac/inspecteur.webp" width="2200" height="1536" loading="lazy" alt="L’inspecteur d’Audience : dossier, couleur, étiquettes et réglages de participation d’un questionnaire.">
+                    <img class="mac-shot" src="img/app/inspecteur.webp" width="2200" height="1536" loading="lazy" alt="L’inspecteur d’Audience sur Mac : dossier, couleur, étiquettes et réglages de participation d’un questionnaire.">
                 </div>
                 <div class="mac-stats mac-reveal">
                     <div class="mac-stat"><strong>9</strong><span>types de questions</span></div>
                     <div class="mac-stat"><strong>0&nbsp;€</strong><span>gratuit et libre</span></div>
                     <div class="mac-stat"><strong>100&nbsp;%</strong><span>préparation hors ligne</span></div>
-                    <div class="mac-stat"><strong>2&nbsp;Mo</strong><span>par image, glissée-déposée</span></div>
+                    <div class="mac-stat"><strong>2</strong><span>apps, un seul compte</span></div>
                 </div>
             </div>
         </section>
 
         <!-- Présenter -->
-        <section class="mac-section mac-section-alt">
+        <section class="mac-section">
             <div class="mac-wrap">
                 <div class="mac-section-head mac-reveal">
                     <p class="mac-kicker">Présenter</p>
                     <h2 class="mac-title">La salle rejoint en un scan.</h2>
-                    <p class="mac-lede">Lancez le direct : un QR code s’affiche en grand, les téléphones patientent, puis tout le monde commence en même temps. Flèches pour avancer, C pour corriger, R pour les réponses.</p>
+                    <p class="mac-lede">Lancez le direct : un QR code s’affiche en grand, les téléphones patientent, puis tout le monde commence en même temps. Au clavier sur Mac, au doigt sur iPad, qui reste éveillé jusqu’à la fin.</p>
                 </div>
                 <div class="mac-reveal">
-                    <img class="mac-shot" src="img/mac/presentation.webp" width="2000" height="963" loading="lazy" alt="Une question présentée en plein écran, avec ses trois réponses et les commandes Correction, Résultats et Lancer en direct.">
+                    <img class="mac-shot" src="img/app/presentation.webp" width="2000" height="963" loading="lazy" alt="Une question présentée en plein écran, avec ses trois réponses et les commandes Correction, Résultats et Lancer en direct.">
                 </div>
                 <div class="mac-duo">
                     <figure class="mac-reveal">
-                        <img class="mac-shot mac-shot-flat" src="img/mac/salle-attente.webp" width="1440" height="820" loading="lazy" alt="La salle d’attente : QR code, adresse du site et code du questionnaire, avec le nombre de participants connectés.">
-                        <figcaption class="mac-caption">Salle d’attente : QR code généré sur le Mac, code en grand, participants comptés en direct.</figcaption>
+                        <img class="mac-shot mac-shot-flat" src="img/app/salle-attente.webp" width="1440" height="820" loading="lazy" alt="La salle d’attente : QR code, adresse du site et code du questionnaire, avec le nombre de participants connectés.">
+                        <figcaption class="mac-caption">Salle d’attente : QR code, code en grand, participants comptés en direct.</figcaption>
                     </figure>
                     <figure class="mac-reveal">
-                        <img class="mac-shot mac-shot-flat" src="img/mac/resultats.webp" width="1100" height="330" loading="lazy" alt="Résultats d’une question : barres par réponse, nombre de votes et pourcentages, bonne réponse en vert.">
+                        <img class="mac-shot mac-shot-flat" src="img/app/resultats.webp" width="1100" height="330" loading="lazy" alt="Résultats d’une question : barres par réponse, nombre de votes et pourcentages, bonne réponse en vert.">
                         <figcaption class="mac-caption">Les votes s’affichent au fil de l’eau, la bonne réponse en vert.</figcaption>
                     </figure>
                 </div>
@@ -100,12 +132,12 @@
         </section>
 
         <!-- Analyser et le reste -->
-        <section class="mac-section">
+        <section class="mac-section mac-section-alt">
             <div class="mac-wrap">
                 <div class="mac-section-head mac-reveal">
                     <p class="mac-kicker">Analyser</p>
                     <h2 class="mac-title">Comprendre ce qui a résisté.</h2>
-                    <p class="mac-lede">Taux de réussite, réponses les plus fréquentes, export CSV. Et, si vous le souhaitez, une synthèse rédigée par une IA qui tourne sur votre Mac.</p>
+                    <p class="mac-lede">Taux de réussite, réponses les plus fréquentes, export CSV. Et, sur Mac, une synthèse rédigée par une IA qui tourne sur votre ordinateur.</p>
                 </div>
                 <div class="mac-tiles">
                     <article class="mac-tile mac-tile-wide mac-reveal">
@@ -121,38 +153,39 @@
                     <article class="mac-tile mac-reveal">
                         <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>
                         <h3 class="mac-tile-title">Synchronisé avec le site</h3>
-                        <p>Connectez votre compte : questionnaires, dossiers et étiquettes se retrouvent des deux côtés.</p>
+                        <p>Mac, iPad et navigateur partagent la même bibliothèque grâce à votre compte.</p>
                     </article>
                     <article class="mac-tile mac-reveal">
                         <i class="fa-brands fa-markdown" aria-hidden="true"></i>
                         <h3 class="mac-tile-title">Import en un geste</h3>
-                        <p>Glissez un fichier Markdown, une archive du site ou collez simplement le texte d’un questionnaire.</p>
+                        <p>Ouvrez un fichier Markdown, une archive du site ou collez simplement le texte d’un questionnaire.</p>
                     </article>
                     <article class="mac-tile mac-reveal">
                         <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
-                        <h3 class="mac-tile-title">Pensée pour macOS</h3>
-                        <p>SwiftUI, Liquid Glass, raccourcis clavier, plein écran, mode sombre. Sans Electron ni navigateur caché.</p>
+                        <h3 class="mac-tile-title">Natives, tout simplement</h3>
+                        <p>SwiftUI, Liquid Glass, plein écran, mode sombre. Sans Electron ni navigateur caché.</p>
                     </article>
                 </div>
             </div>
         </section>
 
         <!-- Clôture -->
-        <section class="mac-section mac-section-alt mac-closing">
+        <section class="mac-section mac-closing">
             <div class="mac-wrap mac-reveal">
-                <img class="mac-hero-icon" src="img/mac/icone.png" alt="" width="96" height="96" loading="lazy">
-                <h2 class="mac-title">Essayez Audience sur votre Mac.</h2>
+                <img class="mac-hero-icon" src="img/app/icone.png" alt="" width="96" height="96" loading="lazy">
+                <h2 class="mac-title">Essayez Audience.</h2>
                 <p class="mac-lede">Gratuite, libre et sans publicité. Le code source est ouvert à tous.</p>
                 <div class="mac-cta">
                     <a class="mac-button" href="mac/Audience-macOS.zip" download>
-                        <i class="fa-solid fa-download" aria-hidden="true"></i>
-                        Télécharger
+                        <i class="fa-brands fa-apple" aria-hidden="true"></i>
+                        Télécharger pour Mac
                     </a>
                     <a class="mac-link" href="https://github.com/YannHY/audience" target="_blank" rel="noopener noreferrer">Voir le code source</a>
                 </div>
                 <p class="mac-requirements">
-                    Requiert macOS 26 ou ultérieur · Application universelle signée et notarisée par Apple<br>
-                    Décompressez l’archive, puis glissez Audience dans le dossier Applications.
+                    Mac : macOS 26 ou ultérieur, application universelle signée et notarisée par Apple.<br>
+                    Décompressez l’archive, puis glissez Audience dans le dossier Applications.<br>
+                    iPad : iPadOS 26 ou ultérieur, bientôt disponible.
                 </p>
             </div>
         </section>
@@ -165,7 +198,7 @@
                 <a href="https://www.linkedin.com/in/yann-houry-a2350651/" target="_blank" rel="noopener noreferrer">Yann Houry</a>
             </p>
             <p class="footer-legal">
-                <a href="conditions-utilisation.html">Conditions d'utilisation</a> | <a href="aide.html">Aide</a> | <a href="mac.html">App Mac</a> | <a href="contact.html">Contact</a> | <a href="https://github.com/YannHY/audience" target="_blank" rel="noopener noreferrer">Code source</a>
+                <a href="conditions-utilisation.html">Conditions d'utilisation</a> | <a href="aide.html">Aide</a> | <a href="app.html">Applications</a> | <a href="contact.html">Contact</a> | <a href="https://github.com/YannHY/audience" target="_blank" rel="noopener noreferrer">Code source</a>
             </p>
             <div class="license">
                 <p><i class="fa-brands fa-creative-commons" aria-hidden="true"></i> Logiciel libre : code sous <a href="https://www.gnu.org/licenses/gpl-3.0.fr.html" target="_blank" rel="noopener noreferrer">GPL v3</a>, contenus sous <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.fr" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a></p>
