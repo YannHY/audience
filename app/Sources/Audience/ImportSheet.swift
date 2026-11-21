@@ -12,6 +12,7 @@ struct ImportSheet: View {
     @State private var error: String?
     @State private var dropTargeted = false
     @State private var showFormat = false
+    @State private var choosingFiles = false
 
     static let example = """
     # Titre du questionnaire
@@ -27,6 +28,7 @@ struct ImportSheet: View {
     """
 
     var body: some View {
+        ScrollView {
         VStack(alignment: .leading, spacing: 14) {
             Text("Importer des questionnaires").font(.title2.bold())
             dropZone
@@ -64,7 +66,17 @@ struct ImportSheet: View {
             }
         }
         .padding(20)
-        .frame(width: 640, height: 680)
+        .frame(idealWidth: 640, maxWidth: 680)
+        }
+        .frame(idealHeight: 680)
+        #if os(iOS)
+        .fileImporter(isPresented: $choosingFiles, allowedContentTypes: LibraryStore.importTypes + [.plainText], allowsMultipleSelection: true) { result in
+            switch result {
+            case .success(let urls): finish(store.importFiles(urls))
+            case .failure(let failure): error = failure.localizedDescription
+            }
+        }
+        #endif
     }
 
     private var dropZone: some View {
@@ -78,8 +90,12 @@ struct ImportSheet: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-            Button("Choisir dans le Finder…") {
+            Button("Choisir un fichier…") {
+                #if os(macOS)
                 if let urls = store.chooseImportFiles() { finish(store.importFiles(urls)) }
+                #else
+                choosingFiles = true
+                #endif
             }
             .padding(.top, 2)
         }
@@ -103,6 +119,7 @@ struct ImportSheet: View {
 
     private var editor: some View {
         TextEditor(text: $text)
+            .frame(minHeight: 200)
             .font(.body.monospaced())
             .scrollContentBackground(.hidden)
             .padding(8)

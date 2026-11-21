@@ -11,11 +11,17 @@ struct PresentationView: View {
     @State private var reveal = false
     @State private var showResults = false
     @State private var showJoin = false
+    @State private var showingImage = false
     @State private var liveError: String?
     @State private var confirmLive = false
-    @Environment(\.openURL) private var openURL
+    #if os(macOS)
     @Environment(\.openSettings) private var openSettings
     @Environment(\.dismissWindow) private var dismissWindow
+    #else
+    @Environment(\.dismiss) private var dismiss
+    @State private var showSettings = false
+    @State private var confirmClose = false
+    #endif
     private var quiz: Quiz? { store.archive.quizzes[code] }
     private var isLive: Bool { store.liveCode == code }
     private var inLobby: Bool { isLive && store.liveLobby }
@@ -25,7 +31,7 @@ struct PresentationView: View {
             if let quiz, !quiz.isDeleted, quiz.questions.indices.contains(index) {
                 let question = quiz.questions[index]
                 GeometryReader { geometry in
-                    let scale = min(max(geometry.size.width / 1200, 0.85), 1.8)
+                    let scale = min(max(geometry.size.width / 1200, 0.6), 1.8)
                     if inLobby, let url = store.participantURL(code: code) {
                         LobbyView(title: quiz.title, code: code, url: url, participants: store.liveParticipants, scale: scale)
                     } else {
@@ -37,10 +43,15 @@ struct PresentationView: View {
                                 .textSelection(.enabled)
                                 .fixedSize(horizontal: false, vertical: true)
                             if !question["questionImage"].string.isEmpty {
-                                QuestionImage(source: question["questionImage"].string)
-                                    .frame(maxWidth: .infinity, maxHeight: 340 * scale)
+                                Button { showingImage = true } label: {
+                                    QuestionImage(source: question["questionImage"].string)
+                                        .frame(maxWidth: .infinity, maxHeight: min(geometry.size.height * 0.6, 560 * scale))
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("Agrandir l’image de la question")
+                                .help("Agrandir l’image")
                             }
-                            content(question, scale: scale)
+                            content(question, scale: scale, videoMaxHeight: max(200, geometry.size.height - 80 - 210 * scale))
                             if showResults {
                                 resultsPanel(question, scale: scale)
                             }
@@ -66,6 +77,9 @@ struct PresentationView: View {
                 .sheet(isPresented: $showJoin) {
                     if let url = store.participantURL(code: code) { JoinSheet(url: url, code: code) }
                 }
+                .sheet(isPresented: $showingImage) {
+                    QuestionImageViewer(source: question["questionImage"].string)
+                }
                 .task(id: isLive) {
                     guard isLive else { return }
                     while !Task.isCancelled {
@@ -81,14 +95,36 @@ struct PresentationView: View {
                 } description: {
                     Text("Ce questionnaire a été supprimé ou ne contient plus de question.")
                 } actions: {
-                    Button("Fermer la fenêtre") { dismissWindow() }
+                    Button("Fermer") { closePresentation() }
                 }
             }
         }
+        #if os(macOS)
         .frame(minWidth: 860, minHeight: 580)
+        #endif
         .background(.background)
+        #if os(macOS)
         .toolbar(removing: .title)
         .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+        #else
+        .safeAreaInset(edge: .top, alignment: .trailing) {
+            HStack {
+                Spacer()
+                Button("Fermer", systemImage: "xmark") {
+                    if isLive { confirmClose = true } else { closePresentation() }
+                }.buttonStyle(.glass).padding(.horizontal)
+            }.frame(minHeight: 48)
+        }
+        .confirmationDialog("Arrêter la session et fermer la présentation ?", isPresented: $confirmClose, titleVisibility: .visible) {
+            Button("Arrêter et fermer", role: .destructive) {
+                Task { await store.stopLive(); if !isLive { closePresentation() } }
+            }
+        }
+        .sheet(isPresented: $showSettings) { IPadSettingsView(store: store) }
+        .modifier(AudienceDialogs(store: store, active: !showSettings && !showJoin))
+        .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
+        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
+        #endif
         .onChange(of: store.liveIndex) { if isLive { index = store.liveIndex; reveal = false } }
         .onChange(of: quiz?.questions.count ?? 0) { _, count in if index >= count { index = max(0, count - 1) } }
         .onDisappear {
@@ -97,11 +133,11 @@ struct PresentationView: View {
     }
 
     private func header(_ quiz: Quiz) -> some View {
-        HStack {
+        FlowLayout(spacing: 14) {
             Text(quiz.title).foregroundStyle(.secondary).lineLimit(1)
             Spacer()
             if isLive {
-                HStack(spacing: 18) {
+                FlowLayout(spacing: 14) {
                     Label("En direct · \(code)", systemImage: "dot.radiowaves.left.and.right")
                         .foregroundStyle(.green)
                         .symbolEffect(.variableColor.iterative, isActive: true)
@@ -119,13 +155,13 @@ struct PresentationView: View {
                 .animation(.smooth, value: store.liveParticipants)
                 .animation(.smooth, value: responseCount)
             } else {
-                Label("Aperçu sur ce Mac", systemImage: "desktopcomputer").foregroundStyle(.secondary)
+                Label("Aperçu", systemImage: "play.rectangle").foregroundStyle(.secondary)
             }
         }
         .font(.headline)
     }
 
-    @ViewBuilder private func content(_ question: Question, scale: CGFloat) -> some View {
+    @ViewBuilder private func content(_ question: Question, scale: CGFloat, videoMaxHeight: CGFloat) -> some View {
         if question.kind.hasAnswers {
             // A ranking is stored in the expected order: never show that order before the correction.
             let order = question.kind == .ranking && !reveal
@@ -134,7 +170,7 @@ struct PresentationView: View {
             VStack(spacing: 12 * scale) {
                 ForEach(Array(order.enumerated()), id: \.element) { position, i in
                     let good = reveal && correct(question, i)
-                    HStack(spacing: 18) {
+                    FlowLayout(spacing: 14) {
                         Text(question.kind == .ranking && reveal ? "\(i + 1)" : answerLetter(position))
                             .font(.system(size: 20 * scale, weight: .bold).monospacedDigit())
                             .foregroundStyle(good ? Color.white : Color.secondary)
@@ -153,10 +189,15 @@ struct PresentationView: View {
             Text(reveal ? clozeAnswer(question["clozeText"].string) : question["clozeText"].string.replacingOccurrences(of: "\\[[^\\]]*\\]|\\{\\{[^}]*\\}\\}", with: "________", options: .regularExpression))
                 .font(.system(size: 26 * scale)).lineSpacing(12)
         } else if question.kind == .video {
-            Button("Lire la vidéo dans le navigateur", systemImage: "play.rectangle") {
-                if let url = videoURL(question) { openURL(url) }
+            if let video = YouTubeVideo(url: question["youtubeUrl"].string,
+                                        start: question["videoStartSec"].int, end: question["videoEndSec"].int) {
+                YouTubePlayer(video: video)
+                    .frame(maxWidth: videoMaxHeight * 16 / 9, alignment: .leading)
+                    .id("\(index)-\(video.embedURL.absoluteString)")
+            } else {
+                Label("Saisissez une URL YouTube valide dans l’éditeur.", systemImage: "exclamationmark.circle")
+                    .foregroundStyle(.secondary)
             }
-            .buttonStyle(.glass).controlSize(.extraLarge)
         } else if question.kind == .labelimage && reveal {
             ForEach(question["legendLabels"].array.indices, id: \.self) { i in
                 let label = question["legendLabels"].array[i]
@@ -215,9 +256,14 @@ struct PresentationView: View {
     }
 
     @ViewBuilder private func controls(_ quiz: Quiz) -> some View {
+        #if os(iOS)
+        iPadControls(quiz)
+        #else
         if inLobby { lobbyControls } else { questionControls(quiz) }
+        #endif
     }
 
+    #if os(macOS)
     private var lobbyControls: some View {
         GlassEffectContainer(spacing: 14) {
             HStack(spacing: 14) {
@@ -234,7 +280,7 @@ struct PresentationView: View {
                 HStack(spacing: 10) {
                     if let url = store.participantURL(code: code) {
                         Button("Copier le lien", systemImage: "doc.on.doc") {
-                            NSPasteboard.general.clearContents(); NSPasteboard.general.setString(url.absoluteString, forType: .string)
+                            PlatformClipboard.copy(url.absoluteString)
                         }.presentationControl()
                     }
                     Button("Arrêter", systemImage: "stop.fill") { Task { await store.stopLive() } }
@@ -324,9 +370,65 @@ struct PresentationView: View {
         }
     }
 
+    #endif
+
+    private func closePresentation() {
+        #if os(macOS)
+        dismissWindow()
+        #else
+        dismiss()
+        #endif
+    }
+
+    #if os(iOS)
+    private func iPadControls(_ quiz: Quiz) -> some View {
+        VStack(spacing: 12) {
+            if inLobby {
+                HStack {
+                    Button("Commencer", systemImage: "play.fill") {
+                        Task { await store.beginLive(); if !store.liveLobby { index = store.liveIndex; reveal = false } }
+                    }.buttonStyle(.glassProminent)
+                    Button("Arrêter", systemImage: "stop.fill") { Task { await store.stopLive() } }.tint(.red)
+                }
+            } else {
+                HStack(spacing: 24) {
+                    Button("Précédente", systemImage: "chevron.left") { navigate(-1, quiz: quiz) }
+                        .disabled(index == 0).labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
+                    Text("\(index + 1) / \(quiz.questions.count)").monospacedDigit()
+                    Button("Suivante", systemImage: "chevron.right") { navigate(1, quiz: quiz) }
+                        .disabled(index >= quiz.questions.count - 1).labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
+                    Spacer(minLength: 0)
+                    Menu("Session", systemImage: "ellipsis.circle") {
+                        if isLive {
+                            Button("Participer", systemImage: "qrcode") { showJoin = true }
+                            Button("Relancer le minuteur", systemImage: "timer") { Task { await store.restartQuestion() } }
+                            Button("Arrêter", systemImage: "stop.fill", role: .destructive) { Task { await store.stopLive() } }
+                        } else {
+                            Button("Lancer en direct", systemImage: "dot.radiowaves.left.and.right") {
+                                if store.connected { confirmLive = true } else { showSettings = true }
+                            }.disabled(store.liveCode != nil)
+                        }
+                    }.frame(minWidth: 44, minHeight: 44)
+                }
+                HStack {
+                    Toggle("Correction", systemImage: "checkmark.circle", isOn: $reveal)
+                    Toggle("Résultats", systemImage: "chart.bar", isOn: $showResults)
+                }.toggleStyle(.button)
+            }
+        }
+        .buttonStyle(.glass).controlSize(.large)
+        .disabled(store.busy).padding(.horizontal, 20).padding(.vertical, 10)
+        .background(.bar)
+    }
+    #endif
+
     private func openAccountSettings() {
         UserDefaults.standard.set(1, forKey: "settingsTab")
+        #if os(macOS)
         openSettings()
+        #else
+        showSettings = true
+        #endif
     }
     private func navigate(_ delta: Int, quiz: Quiz) {
         let next = index + delta
@@ -350,14 +452,6 @@ struct PresentationView: View {
         text.replacingOccurrences(of: "[", with: "").replacingOccurrences(of: "]", with: "")
             .replacingOccurrences(of: "\\{\\{([^,}]+)[^}]*\\}\\}", with: "$1", options: .regularExpression)
     }
-    private func videoURL(_ question: Question) -> URL? {
-        guard let url = URL(string: question["youtubeUrl"].string), var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
-        var items = components.queryItems ?? []
-        items.removeAll { $0.name == "t" }
-        if question["videoStartSec"].int > 0 { items.append(URLQueryItem(name: "t", value: "\(question["videoStartSec"].int)")) }
-        components.queryItems = items.isEmpty ? nil : items
-        return components.url
-    }
 }
 
 struct JoinSheet: View {
@@ -368,30 +462,34 @@ struct JoinSheet: View {
         VStack(spacing: 20) {
             Text("Rejoindre la session").font(.title2.bold())
             if let image = qrImage {
-                Image(nsImage: image).interpolation(.none).resizable().frame(width: 240, height: 240)
+                Image(platformImage: image).interpolation(.none).resizable().frame(width: 240, height: 240)
                     .padding(16).background(.white, in: .rect(cornerRadius: 16)).accessibilityLabel("QR code pour rejoindre la session")
             }
             Text(code).font(.title.monospaced().bold()).textSelection(.enabled)
             Text(url.absoluteString).font(.callout).foregroundStyle(.secondary).textSelection(.enabled).lineLimit(3)
             HStack {
-                Button("Copier le lien", systemImage: "doc.on.doc") { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(url.absoluteString, forType: .string) }
+                Button("Copier le lien", systemImage: "doc.on.doc") { PlatformClipboard.copy(url.absoluteString) }
                     .presentationControl()
                 ShareLink(item: url) { Label("Partager", systemImage: "square.and.arrow.up") }
                     .presentationControl()
                 Button("Terminé") { dismiss() }.keyboardShortcut(.defaultAction).buttonStyle(.glassProminent)
                     .presentationControl()
             }
-        }.padding(32).frame(width: 430)
+        }.padding(24).frame(idealWidth: 430, maxWidth: 480)
     }
-    private var qrImage: NSImage? { qrCode(for: url) }
+    private var qrImage: PlatformImage? { qrCode(for: url) }
 }
 
 /// QR code generated on this Mac, with a quiet zone so phones read it from a projector.
-func qrCode(for url: URL) -> NSImage? {
+func qrCode(for url: URL) -> PlatformImage? {
     let filter = CIFilter.qrCodeGenerator(); filter.message = Data(url.absoluteString.utf8); filter.correctionLevel = "M"
     guard let output = filter.outputImage?.transformed(by: CGAffineTransform(scaleX: 12, y: 12)),
           let cg = CIContext().createCGImage(output, from: output.extent) else { return nil }
+    #if os(macOS)
     return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
+    #else
+    return UIImage(cgImage: cg)
+    #endif
 }
 
 /// Waiting room shown before the first question: how to join, and who already did.
@@ -407,7 +505,17 @@ struct LobbyView: View {
         return host + url.path
     }
     var body: some View {
-        HStack(alignment: .center, spacing: 64 * scale) {
+        ScrollView {
+        ViewThatFits(in: .horizontal) {
+            lobbyLayout(horizontal: true)
+            lobbyLayout(horizontal: false)
+        }
+        .frame(maxWidth: .infinity, minHeight: 0)
+        }
+    }
+    private func lobbyLayout(horizontal: Bool) -> some View {
+        let layout = horizontal ? AnyLayout(HStackLayout(alignment: .center, spacing: 64 * scale)) : AnyLayout(VStackLayout(alignment: .leading, spacing: 24 * scale))
+        return layout {
             VStack(alignment: .leading, spacing: 30 * scale) {
                 VStack(alignment: .leading, spacing: 10 * scale) {
                     Text(title).font(.system(size: 22 * scale, weight: .medium)).foregroundStyle(.secondary).lineLimit(2)
@@ -427,7 +535,7 @@ struct LobbyView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             if let image = qrCode(for: url) {
-                Image(nsImage: image).interpolation(.none).resizable().aspectRatio(1, contentMode: .fit)
+                Image(platformImage: image).interpolation(.none).resizable().aspectRatio(1, contentMode: .fit)
                     .frame(width: 360 * scale)
                     .padding(26 * scale)
                     .background(.white, in: .rect(cornerRadius: 30 * scale))
@@ -486,7 +594,7 @@ struct CountdownView: View {
                         .foregroundStyle(left <= 5 ? Color.orange : Color.primary)
                         .contentTransition(.numericText(countsDown: true))
                 } else {
-                    Label("Temps écoulé · T pour relancer", systemImage: "timer").foregroundStyle(.orange)
+                    Label("Temps écoulé", systemImage: "timer").foregroundStyle(.orange)
                 }
             }
             .padding(.horizontal, 12).padding(.vertical, 6)

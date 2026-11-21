@@ -20,19 +20,9 @@ struct ResultsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Résultats").font(.largeTitle.bold())
-                        Text("\(quiz.questions.count) question(s) · Code \(quiz.code)").foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    if refreshing { ProgressView().controlSize(.small) }
-                    Button("Exporter en CSV", systemImage: "square.and.arrow.up") { store.exportResultsCSV(quiz) }
-                        .disabled(resultQuestions.isEmpty)
-                        .help("Enregistrer les réponses dans un tableau CSV, comme le bilan du site")
-                    Button("Actualiser", systemImage: "arrow.clockwise") { Task { await refresh() } }
-                        .disabled(!canRefresh || refreshing)
-                        .help(canRefresh ? "Télécharger les dernières réponses" : "Connectez-vous pour récupérer les réponses")
+                ViewThatFits(in: .horizontal) {
+                    HStack { reportTitle; reportActions }
+                    VStack(alignment: .leading, spacing: 16) { reportTitle; reportActions }
                 }
                 if let refreshError {
                     Label(refreshError, systemImage: "exclamationmark.icloud").font(.callout).foregroundStyle(.orange)
@@ -50,10 +40,25 @@ struct ResultsView: View {
                         }
                     }
                 }
-            }.padding(30).frame(maxWidth: 900, alignment: .leading).frame(maxWidth: .infinity)
+            }.padding(24).frame(maxWidth: 900, alignment: .leading).frame(maxWidth: .infinity)
         }
         .background(.background)
         .task(id: quiz.code) { if canRefresh { await refresh() } }
+    }
+    private var reportTitle: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Résultats").font(.largeTitle.bold())
+            Text("\(quiz.questions.count) question(s) · Code \(quiz.code)").foregroundStyle(.secondary)
+        }
+    }
+    private var reportActions: some View {
+        HStack {
+            if refreshing { ProgressView().controlSize(.small) }
+            Button("Exporter en CSV", systemImage: "square.and.arrow.up") { store.exportResultsCSV(quiz) }
+                .disabled(resultQuestions.isEmpty)
+            Button("Actualiser", systemImage: "arrow.clockwise") { Task { await refresh() } }
+                .disabled(!canRefresh || refreshing)
+        }.fixedSize(horizontal: true, vertical: false)
     }
     private var canRefresh: Bool { store.connected }
     private func refresh() async {

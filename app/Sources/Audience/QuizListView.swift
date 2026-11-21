@@ -3,6 +3,7 @@ import SwiftUI
 import AudienceCore
 #endif
 
+#if os(macOS)
 struct QuizListView: View {
     @Bindable var store: LibraryStore
     @Binding var sort: QuizSort
@@ -80,7 +81,7 @@ struct QuizListView: View {
         .confirmationDialog(purgeCodes.count > 1 ? "Supprimer définitivement \(purgeCodes.count) questionnaires ?" : "Supprimer définitivement ce questionnaire ?",
                             isPresented: Binding(get: { !purgeCodes.isEmpty }, set: { if !$0 { purgeCodes = [] } }), titleVisibility: .visible) {
             Button("Supprimer définitivement", role: .destructive) { store.purge(purgeCodes); purgeCodes = [] }
-        } message: { Text("Les réponses associées seront aussi supprimées, sur ce Mac et sur le compte synchronisé. Cette action est irréversible.") }
+        } message: { Text("Les réponses associées seront aussi supprimées, sur cet appareil et sur le compte synchronisé. Cette action est irréversible.") }
     }
 
     private func isFolder(_ item: SidebarItem) -> Bool { if case .folder = item { true } else { false } }
@@ -105,13 +106,17 @@ struct QuizListView: View {
     }
 }
 
+#endif
+
 struct QuizRow: View {
     let store: LibraryStore
     let quiz: Quiz
     var showsFolder = true
+    /// Set by lists whose selected rows do not raise background prominence (the iPad list).
+    var highlighted: Bool? = nil
     @Environment(\.backgroundProminence) private var prominence
 
-    private var selected: Bool { prominence == .increased }
+    private var selected: Bool { highlighted ?? (prominence == .increased) }
 
     var body: some View {
         let tint = store.displayColor(of: quiz)?.color
@@ -135,7 +140,7 @@ struct QuizRow: View {
                     Text("·").foregroundStyle(.tertiary)
                     Text(quiz.questions.count == 1 ? "1 question" : "\(quiz.questions.count) questions")
                 }
-                .font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
+                .font(.subheadline).foregroundStyle(highlighted == true ? AnyShapeStyle(.white.opacity(0.85)) : AnyShapeStyle(.secondary)).lineLimit(1)
                 if folder != nil || !quiz.tags.isEmpty {
                     FlowLayout(spacing: 5) {
                         if let folder {

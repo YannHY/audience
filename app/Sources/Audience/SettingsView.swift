@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 
 struct SettingsView: View {
@@ -14,7 +15,7 @@ struct SettingsView: View {
                         Text("Système").tag("system"); Text("Claire").tag("light"); Text("Sombre").tag("dark")
                     }
                     Section("Sauvegardes") {
-                        Text("Les questionnaires sont enregistrés automatiquement sur ce Mac.").foregroundStyle(.secondary)
+                        Text("Les questionnaires sont enregistrés automatiquement sur cet appareil.").foregroundStyle(.secondary)
                         HStack {
                             Button("Importer…") { store.importing = true }
                             Button("Tout exporter…") { store.exportBackup() }
@@ -42,7 +43,7 @@ struct SettingsView: View {
                                 if store.busy { ProgressView().controlSize(.small) }
                             }
                         }
-                        Text("Le mot de passe est enregistré dans le trousseau de ce Mac : l’app se reconnecte seule à chaque lancement. Se déconnecter l’efface.")
+                        Text("Le mot de passe est enregistré dans le trousseau de cet appareil : l’app se reconnecte seule à chaque lancement. Se déconnecter l’efface.")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     if store.connected {
@@ -59,7 +60,7 @@ struct SettingsView: View {
                             Text("Vos questionnaires, favoris et éléments de la corbeille sont synchronisés automatiquement.")
                                 .font(.caption).foregroundStyle(.secondary)
                             if store.syncDrafts > 0 {
-                                Text("Les questions incomplètes restent sur ce Mac jusqu’à ce qu’elles soient prêtes.")
+                                Text("Les questions incomplètes restent sur cet appareil jusqu’à ce qu’elles soient prêtes.")
                                     .font(.caption).foregroundStyle(.secondary)
                             }
                             if let message = store.syncError {
@@ -83,3 +84,5 @@ struct SettingsView: View {
         }
     }
 }
+
+#endif

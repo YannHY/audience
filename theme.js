@@ -50,46 +50,11 @@ function updateThemeToggleLabel(button, isDark) {
     button.setAttribute('title', label);
 }
 
-function initFooterSupportLinks() {
-    const footerContent = document.querySelector('.footer .footer-content');
-    if (!footerContent || footerContent.querySelector('.footer-support')) {
-        return;
-    }
-
-    const supportWrap = document.createElement('div');
-    supportWrap.className = 'footer-support';
-    supportWrap.innerHTML = '' +
-        '<span>Soutenez <span class="footer-support-brand">Audience</span> en faisant </span>' +
-        '<a class="footer-support-link" href="https://paypal.me/yannhoury" target="_blank" rel="noopener noreferrer" aria-label="Faire un don sur PayPal">' +
-            'un don sur <i class="fa-brands fa-paypal" aria-hidden="true"></i>' +
-        '</a>' +
-        '<span> ou en </span>' +
-        '<a class="footer-support-link" href="https://www.buymeacoffee.com/yannhoury" target="_blank" rel="noopener noreferrer" aria-label="Offrir un café via Buy Me a Coffee">' +
-            'm&apos;offrant un <i class="fa-solid fa-mug-hot" aria-hidden="true"></i>' +
-        '</a>' +
-        '<span>.</span>';
-
-    const footerLicense = footerContent.querySelector('.license');
-    if (footerLicense) {
-        footerContent.insertBefore(supportWrap, footerLicense);
-        return;
-    }
-
-    const footerYear = footerContent.querySelector('.year');
-    if (footerYear) {
-        footerContent.insertBefore(supportWrap, footerYear);
-        return;
-    }
-
-    footerContent.appendChild(supportWrap);
-}
-
 document.addEventListener('DOMContentLoaded', function() {
     const button = document.getElementById('themeToggle');
     const isDark = applyThemeFromStorage();
 
     updateThemeToggleLabel(button, isDark);
-    initFooterSupportLinks();
 
     if (window.matchMedia) {
         const darkMedia = window.matchMedia('(prefers-color-scheme: dark)');

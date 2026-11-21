@@ -100,10 +100,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer">
-    <link rel="stylesheet" href="styles.css?v=20261121u">
+    <link rel="stylesheet" href="styles.css?v=20261121y">
 </head>
 <body class="page-login">
-    <button type="button" id="themeToggle" class="theme-toggle" aria-label="Activer le mode sombre" title="Activer le mode sombre"><i class="fa-solid fa-moon" aria-hidden="true"></i></button>
+    <div id="accountBar" class="account-bar"></div>
     <div class="wrap">
         <div class="hero">
             <h1 class="title">Audience</h1>
@@ -139,26 +139,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             <div class="beta-notice">
                 <p class="beta-notice-title"><i class="fa-solid fa-bug" aria-hidden="true"></i> Le site est actuellement en version bêta.</p>
-                <p>Vous pouvez faire une demande pour l'essayer via la page <a href="contact.html">Contact</a> | <a href="https://github.com/YannHY/audience" target="_blank" rel="noopener noreferrer">Code source</a>.</p>
+                <p>Vous pouvez faire une demande pour l'essayer via la page <a href="contact.html">Contact</a>.</p>
             </div>
         </div>
 
-        <footer class="footer" data-animate="fade-up" data-delay="700">
-            <div class="footer-content">
-                <p class="made-with">
-                    Créé avec <i class="fas fa-heart" aria-hidden="true"></i> par
-                    <a href="https://www.linkedin.com/in/yann-houry-a2350651/" target="_blank" rel="noopener noreferrer">Yann Houry</a>
-                </p>
-                <p class="footer-legal">
-                    <a href="conditions-utilisation.html">Conditions d'utilisation</a> | <a href="aide.html">Aide</a> | <a href="app.html">Applications</a> | <a href="contact.html">Contact</a>
-                </p>
-                <div class="license">
-                    <p><i class="fa-brands fa-creative-commons" aria-hidden="true"></i> Logiciel libre : code sous <a href="https://www.gnu.org/licenses/gpl-3.0.fr.html" target="_blank" rel="noopener noreferrer">GPL v3</a>, contenus sous <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.fr" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a></p>
-                </div>
-                <p class="year"><span id="current-year"></span></p>
-            </div>
-        </footer>
+        <footer class="footer" data-animate="fade-up" data-delay="700" data-site-footer></footer>
     </div>
+    <script src="site-nav.js?v=20261121v"></script>
+    <script src="site-footer.js?v=20261121b"></script>
     <script src="theme.js"></script>
     <script>
         const footerYear = document.getElementById('current-year');

@@ -243,7 +243,8 @@ struct OrganizationTests {
 
     @Test func htmlEntitiesAreDecodedForDisplay() {
         #expect("Qu&#39;est-ce que l&#x27;intrigue ?".plainText == "Qu'est-ce que l'intrigue ?")
-        #expect("&laquo;&nbsp;Th&eacute;&acirc;tre&nbsp;&raquo; &amp;#39;".plainText == "« Théâtre » &#39;")
+        #expect("&laquo;&nbsp;Th&eacute;&acirc;tre&nbsp;&raquo; &amp;#39;".plainText == "« Théâtre » '")
+        #expect("&amp;#39;".decodingHTMLEntities == "&#39;")
         #expect("A & B &unknown; &".plainText == "A & B &unknown; &")
     }
 

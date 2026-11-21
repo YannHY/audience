@@ -12,12 +12,25 @@ trap 'rm -rf "$STAGE_DIR"' EXIT
 # Stage outside iCloud, whose Finder attributes can invalidate a bundle signature.
 ditto --norsrc --noextattr "$APP_DIR/build/Audience.app" "$STAGE_DIR/Audience.app"
 xattr -cr "$STAGE_DIR/Audience.app"
-if [[ "$SIGN_IDENTITY" == "-" ]]; then
-  codesign --force --sign - "$STAGE_DIR/Audience.app"
-else
-  # Audience is a native bundle with no embedded frameworks or helper executables.
-  codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$STAGE_DIR/Audience.app"
+# Sign nested Sparkle components from the inside out, retaining Downloader entitlements.
+sign_component() {
+  if [[ "$SIGN_IDENTITY" == "-" ]]; then
+    codesign --force --sign - --preserve-metadata=entitlements "$1"
+  else
+    codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" --preserve-metadata=entitlements "$1"
+  fi
+}
+SPARKLE="$STAGE_DIR/Audience.app/Contents/Frameworks/Sparkle.framework"
+if [[ ! -d "$SPARKLE" ]]; then
+  print -u2 'Sparkle.framework est absent : recompilez avec scripts/build.sh.'
+  exit 1
 fi
+sign_component "$SPARKLE/Versions/B/XPCServices/Installer.xpc"
+sign_component "$SPARKLE/Versions/B/XPCServices/Downloader.xpc"
+sign_component "$SPARKLE/Versions/B/Autoupdate"
+sign_component "$SPARKLE/Versions/B/Updater.app"
+sign_component "$SPARKLE"
+sign_component "$STAGE_DIR/Audience.app"
 codesign --verify --deep --strict --all-architectures "$STAGE_DIR/Audience.app"
 ditto -c -k --keepParent --norsrc --noextattr "$STAGE_DIR/Audience.app" "$STAGE_DIR/Audience-macOS.zip"
 if [[ -n "$NOTARY_PROFILE" ]]; then

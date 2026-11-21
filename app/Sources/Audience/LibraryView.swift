@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 #if SWIFT_PACKAGE
 import AudienceCore
@@ -92,7 +93,7 @@ struct LibraryView: View {
                     }
                     .confirmationDialog("Supprimer définitivement ce questionnaire ?", isPresented: $confirmPurge, titleVisibility: .visible) {
                         Button("Supprimer définitivement", role: .destructive) { store.purge([quiz.code]) }
-                    } message: { Text("Ses réponses seront aussi supprimées, sur ce Mac et sur le compte synchronisé.") }
+                    } message: { Text("Ses réponses seront aussi supprimées, sur cet appareil et sur le compte synchronisé.") }
                 } else if mode == .results {
                     ResultsView(store: store, quiz: quiz)
                 } else if mode == .statistics {
@@ -190,3 +191,5 @@ struct MultipleSelectionView: View {
         }
     }
 }
+
+#endif

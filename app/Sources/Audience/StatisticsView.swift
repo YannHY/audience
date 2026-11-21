@@ -1,5 +1,7 @@
 import SwiftUI
+#if os(macOS)
 import AppKit
+#endif
 #if SWIFT_PACKAGE
 import AudienceCore
 #endif
@@ -43,7 +45,9 @@ struct StatisticsView: View {
                         .frame(maxWidth: .infinity, minHeight: 230)
                 } else {
                     overview(stats)
+                    #if os(macOS)
                     synthesisSection(stats)
+                    #endif
                     VStack(alignment: .leading, spacing: 22) {
                         Text("Par question").font(.title2.bold())
                         ForEach(stats.questions) { question in
@@ -128,8 +132,7 @@ struct StatisticsView: View {
                         Text("\(report.model) · \(report.date.formatted(date: .abbreviated, time: .shortened))").font(.caption).foregroundStyle(.secondary)
                         Spacer()
                         Button("Copier", systemImage: "doc.on.doc") {
-                            NSPasteboard.general.clearContents()
-                            NSPasteboard.general.setString(report.text, forType: .string)
+                            PlatformClipboard.copy(report.text)
                         }
                     }
                     Text("Synthèse générée par un modèle : vérifiez ses interprétations avant de les utiliser.").font(.caption).foregroundStyle(.secondary)
@@ -176,7 +179,7 @@ struct StatisticsQuestionCard: View {
         VStack(alignment: .leading, spacing: 12) {
             Label("Question \(q.index + 1) · \(q.kind.title)", systemImage: q.kind.symbol).font(.subheadline).foregroundStyle(.secondary)
             Text(q.title).font(.title3.weight(.semibold)).textSelection(.enabled)
-            HStack(spacing: 18) {
+            FlowLayout(spacing: 18) {
                 Text(q.submissions.map { "\($0) réponse(s)" } ?? "\(q.selections) choix sélectionnés")
                 Label("\(q.correct) justes", systemImage: "checkmark.circle").foregroundStyle(.green)
                 Label("\(q.incorrect) fausses", systemImage: "xmark.circle").foregroundStyle(.red)

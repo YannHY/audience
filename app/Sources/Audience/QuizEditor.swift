@@ -9,6 +9,10 @@ struct QuizEditor: View {
     let code: String
     @State private var selected: Int? = 0
     @State private var deleteIndex: Int?
+    @State private var showQuestions = false
+    #if os(iOS)
+    @State private var questionEditMode = EditMode.inactive
+    #endif
     private var quiz: Quiz { store.archive.quizzes[code] ?? Quiz(code: code) }
     private var index: Int? {
         guard let selected, quiz.questions.indices.contains(selected) else { return nil }
@@ -21,35 +25,51 @@ struct QuizEditor: View {
     private var locked: Bool { store.liveCode == code || store.readOnly }
 
     var body: some View {
-        HStack(spacing: 0) {
-            navigator
-                .frame(width: 250)
-            Divider()
-            Form {
-                Section {
-                    TextField("Titre", text: Binding(get: { quiz.title }, set: { value in store.update(code) { $0.title = value } }),
-                              prompt: Text("Titre du questionnaire"))
-                        .font(.title3.weight(.semibold))
-                        .labelsHidden()
+        #if os(iOS)
+        GeometryReader { geometry in
+            if geometry.size.width >= 820 {
+                HStack(spacing: 0) {
+                    navigator.frame(width: 250)
+                    Divider()
+                    editorForm
                 }
-                if let index {
-                    QuestionEditor(question: question(at: index), number: index + 1)
-                } else {
-                    Section {
-                        ContentUnavailableView {
-                            Label(quiz.questions.isEmpty ? "La première question" : "Aucune question sélectionnée", systemImage: "text.badge.plus")
-                        } description: {
-                            Text(quiz.questions.isEmpty ? "Choisissez un format pour commencer." : "Sélectionnez une question dans la liste.")
-                        } actions: {
-                            if quiz.questions.isEmpty {
-                                addMenu.buttonStyle(.glassProminent).fixedSize()
-                            }
-                        }
+            } else {
+                VStack(spacing: 0) {
+                    if store.liveCode == code {
+                        Label("Session en direct · Édition suspendue", systemImage: "dot.radiowaves.left.and.right")
+                            .font(.callout).padding(12)
                     }
+                    HStack {
+                        Button("Questions", systemImage: "list.bullet") { showQuestions = true }
+                        Spacer()
+                        Text(index.map { "Question \($0 + 1) / \(quiz.questions.count)" } ?? "Aucune question")
+                            .font(.callout).foregroundStyle(.secondary)
+                        addMenu.labelStyle(.iconOnly)
+                    }.padding(.horizontal).frame(minHeight: 48).disabled(locked)
+                    editorForm
                 }
             }
-            .formStyle(.grouped)
-            .disabled(locked)
+        }
+        .sheet(isPresented: $showQuestions) {
+            NavigationStack {
+                navigator
+                    .navigationTitle("Questions")
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) { Button("Terminé") { showQuestions = false } }
+                        ToolbarItem(placement: .primaryAction) { EditButton().disabled(locked) }
+                    }
+                    .onChange(of: selected) { if !questionEditMode.isEditing { showQuestions = false } }
+            }
+            .environment(\.editMode, $questionEditMode)
+        }
+        .onChange(of: quiz.questions.count) { _, count in
+            if let selected, selected >= count { self.selected = count > 0 ? count - 1 : nil }
+        }
+        #else
+        HStack(spacing: 0) {
+            navigator.frame(width: 250)
+            Divider()
+            editorForm
         }
         .overlay(alignment: .top) {
             if store.liveCode == code {
@@ -65,6 +85,35 @@ struct QuizEditor: View {
             get: { deleteIndex != nil }, set: { if !$0 { deleteIndex = nil } }), titleVisibility: .visible) {
             Button("Supprimer", role: .destructive) { if let deleteIndex { remove(deleteIndex) } }
         } message: { Text("Les réponses déjà recueillies pour cette question resteront sur le site.") }
+        #endif
+    }
+
+    private var editorForm: some View {
+        Form {
+            Section {
+                TextField("Titre", text: Binding(get: { quiz.title }, set: { value in store.update(code) { $0.title = value } }),
+                          prompt: Text("Titre du questionnaire"))
+                    .font(.title3.weight(.semibold))
+                    .labelsHidden()
+            }
+            if let index {
+                QuestionEditor(question: question(at: index), number: index + 1)
+            } else {
+                Section {
+                    ContentUnavailableView {
+                        Label(quiz.questions.isEmpty ? "La première question" : "Aucune question sélectionnée", systemImage: "text.badge.plus")
+                    } description: {
+                        Text(quiz.questions.isEmpty ? "Choisissez un format pour commencer." : "Sélectionnez une question dans la liste.")
+                    } actions: {
+                        if quiz.questions.isEmpty {
+                            addMenu.buttonStyle(.glassProminent).fixedSize()
+                        }
+                    }
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .disabled(locked)
     }
 
     private var navigator: some View {
@@ -101,7 +150,10 @@ struct QuizEditor: View {
                 if let moved, source.count == 1 { selected = moved < destination ? destination - 1 : destination }
             }
         }
+        #if os(macOS)
         .onDeleteCommand { if let index, !locked { deleteIndex = index } }
+        #endif
+        .disabled(locked)
         .safeAreaBar(edge: .bottom) {
             HStack {
                 addMenu.buttonStyle(.borderless).fixedSize()
@@ -112,6 +164,12 @@ struct QuizEditor: View {
             .padding(.horizontal, 12).padding(.vertical, 8)
             .disabled(locked)
         }
+        #if os(iOS)
+        .confirmationDialog("Supprimer cette question ?", isPresented: Binding(
+            get: { deleteIndex != nil }, set: { if !$0 { deleteIndex = nil } }), titleVisibility: .visible) {
+                Button("Supprimer", role: .destructive) { if let deleteIndex { remove(deleteIndex) }; deleteIndex = nil }
+            }
+        #endif
     }
 
     private var addMenu: some View {
@@ -148,6 +206,8 @@ struct QuestionEditor: View {
     var number = 1
     @State private var imageError: String?
     @State private var imageTargeted = false
+    @State private var choosingImage = false
+    @State private var showingImage = false
     private static let timeLimits = [5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240]
     var body: some View {
         Section("Question \(number)") {
@@ -224,19 +284,50 @@ struct QuestionEditor: View {
         }
         if [.multiple, .checkbox, .open, .cloze, .labelimage].contains(question.kind) {
             Section("Image") {
-                if !question["questionImage"].string.isEmpty {
-                    QuestionImage(source: question["questionImage"].string).frame(maxHeight: 220)
-                    Button("Retirer l’image", role: .destructive) { question["questionImage"] = .string("") }
+                VStack(alignment: .leading, spacing: 16) {
+                    if !question["questionImage"].string.isEmpty {
+                        Button { showingImage = true } label: {
+                            QuestionImage(source: question["questionImage"].string)
+                                .frame(maxWidth: .infinity, maxHeight: 440)
+                                .padding(12)
+                                .background(.background, in: .rect(cornerRadius: 12))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Agrandir l’image de la question")
+                        ViewThatFits(in: .horizontal) {
+                            HStack {
+                                imageActions
+                            }
+                            VStack(alignment: .leading, spacing: 12) {
+                                imageActions
+                            }
+                        }
+                    } else {
+                        Button("Choisir une image…", systemImage: "photo") { chooseImage() }
+                    }
+                    Text("Glissez une image ici · 2 Mo maximum")
+                        .font(.caption).foregroundStyle(.secondary)
+                    if let imageError { Text(imageError).font(.caption).foregroundStyle(.red) }
                 }
-                Button("Choisir une image…", systemImage: "photo") { chooseImage() }
-                Text("Vous pouvez aussi glisser une image ici (2 Mo au maximum).").font(.caption).foregroundStyle(.secondary)
-                if let imageError { Text(imageError).font(.caption).foregroundStyle(.red) }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 8)
+            }
+            .sheet(isPresented: $showingImage) {
+                QuestionImageViewer(source: question["questionImage"].string)
             }
             .dropDestination(for: URL.self) { urls, _ in
                 guard let url = urls.first else { return false }
                 loadImage(url); return true
             } isTargeted: { imageTargeted = $0 }
             .listRowBackground(imageTargeted ? Color.accentColor.opacity(0.15) : nil)
+            #if os(iOS)
+            .fileImporter(isPresented: $choosingImage, allowedContentTypes: [.png, .jpeg, .gif, .webP]) { result in
+                switch result {
+                case .success(let url): loadImage(url)
+                case .failure(let error): imageError = error.localizedDescription
+                }
+            }
+            #endif
         }
         if question.kind == .labelimage {
             Section("Étiquettes") {
@@ -269,6 +360,14 @@ struct QuestionEditor: View {
             Toggle("Montrer les résultats aux participants", isOn: bool("participantResponsesVisible", fallback: true))
         }
     }
+    @ViewBuilder private var imageActions: some View {
+        Button("Agrandir", systemImage: "arrow.up.left.and.arrow.down.right") { showingImage = true }
+        Button("Remplacer…", systemImage: "photo") { chooseImage() }
+        Button("Retirer", systemImage: "trash", role: .destructive) {
+            question["questionImage"] = .string("")
+            imageError = nil
+        }
+    }
     private func isCorrect(_ i: Int) -> Bool { question.kind == .multiple ? question["correctIndex"].int == i : question["correctIndexes"].array.map(\.int).contains(i) }
     private func string(_ key: String, fallback: String = "") -> Binding<String> {
         Binding(get: { question.fields[key]?.string ?? fallback }, set: { question[key] = .string($0) })
@@ -290,15 +389,21 @@ struct QuestionEditor: View {
         })
     }
     private func chooseImage() {
+        #if os(macOS)
         let panel = NSOpenPanel(); panel.allowedContentTypes = [.png, .jpeg, .gif, .webP]
         guard panel.runModal() == .OK, let url = panel.url else { return }
         loadImage(url)
+        #else
+        choosingImage = true
+        #endif
     }
     private func loadImage(_ url: URL) {
         guard let type = UTType(filenameExtension: url.pathExtension), [UTType.png, .jpeg, .gif, .webP].contains(where: { type.conforms(to: $0) }) else {
             imageError = "Choisissez une image PNG, JPEG, GIF ou WebP."; return
         }
         do {
+            let access = url.startAccessingSecurityScopedResource()
+            defer { if access { url.stopAccessingSecurityScopedResource() } }
             let data = try Data(contentsOf: url)
             guard data.count <= 2 * 1024 * 1024 else { imageError = "Choisissez une image de 2 Mo maximum."; return }
             let mime = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType ?? "image/png"
@@ -308,25 +413,64 @@ struct QuestionEditor: View {
 }
 
 /// Decoding a 2 MB data URL on every keystroke would make typing sluggish.
-@MainActor private let decodedImages: NSCache<NSString, NSImage> = { let cache = NSCache<NSString, NSImage>(); cache.countLimit = 40; return cache }()
+@MainActor private let decodedImages: NSCache<NSString, PlatformImage> = { let cache = NSCache<NSString, PlatformImage>(); cache.countLimit = 40; return cache }()
 
 struct QuestionImage: View, Equatable {
     let source: String
-    private var embedded: NSImage? {
+    private var embedded: PlatformImage? {
         guard source.hasPrefix("data:"), let comma = source.firstIndex(of: ",") else { return nil }
         let key = source as NSString
         if let image = decodedImages.object(forKey: key) { return image }
-        guard let data = Data(base64Encoded: String(source[source.index(after: comma)...])), let image = NSImage(data: data) else { return nil }
+        guard let data = Data(base64Encoded: String(source[source.index(after: comma)...])), let image = PlatformImage(data: data) else { return nil }
         decodedImages.setObject(image, forKey: key)
         return image
     }
     var body: some View {
         if let image = embedded {
-            Image(nsImage: image).resizable().scaledToFit().accessibilityLabel("Image de la question")
+            Image(platformImage: image).resizable().scaledToFit().accessibilityLabel("Image de la question")
         } else if let url = URL(string: source), url.scheme == "https" {
-            AsyncImage(url: url) { image in image.resizable().scaledToFit() } placeholder: { ProgressView() }
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image.resizable().scaledToFit().accessibilityLabel("Image de la question")
+                case .failure:
+                    unavailable
+                default:
+                    ProgressView().accessibilityLabel("Chargement de l’image")
+                }
+            }
         } else {
-            Label("Image indisponible hors ligne", systemImage: "photo").foregroundStyle(.secondary)
+            unavailable
         }
+    }
+    private var unavailable: some View {
+        Label("Image indisponible", systemImage: "photo").foregroundStyle(.secondary)
+    }
+}
+
+struct QuestionImageViewer: View {
+    let source: String
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Image de la question").font(.headline)
+                Spacer()
+                Button("Fermer", systemImage: "xmark") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+            }
+            .padding()
+            Divider()
+            GeometryReader { geometry in
+                QuestionImage(source: source)
+                    .frame(width: max(0, geometry.size.width - 32), height: max(0, geometry.size.height - 32))
+                    .padding(16)
+            }
+        }
+        .background(.background)
+        #if os(macOS)
+        .frame(width: 1000, height: 700)
+        #endif
     }
 }

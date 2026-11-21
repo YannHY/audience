@@ -78,9 +78,11 @@
                 isCurrent: currentPage === 'index.html'
             })
         ];
+        // Account links sit on the right, just before the theme toggle.
+        const accountLinks = [];
 
         if (user) {
-            links.push(createIconLink({
+            accountLinks.push(createIconLink({
                 href: 'profile.php',
                 label: 'Profil',
                 icon: 'fa-solid fa-user',
@@ -88,7 +90,7 @@
             }));
 
             if (String(user.role || '') === 'admin') {
-                links.push(createIconLink({
+                accountLinks.push(createIconLink({
                     href: 'admin.php',
                     label: 'Admin',
                     icon: 'fa-solid fa-gear',
@@ -97,7 +99,7 @@
             }
 
             if (!user.offline) {
-                links.push(createIconLink({
+                accountLinks.push(createIconLink({
                     href: 'logout.php',
                     label: 'Déconnexion',
                     icon: 'fa-solid fa-door-open',
@@ -107,6 +109,9 @@
         }
 
         structure.left.replaceChildren(...links);
+        const themeButton = structure.right.querySelector('#themeToggle');
+        structure.right.querySelectorAll('.account-icon-link').forEach(function(link) { link.remove(); });
+        accountLinks.forEach(function(link) { structure.right.insertBefore(link, themeButton); });
     }
 
     async function fetchCurrentUser() {

@@ -97,7 +97,12 @@ struct SynchronizationTests {
         let saved = await state.snapshot()
         #expect(saved.quizzes.count == 2)
         #expect(saved.quizzes[original.code]?.title == "Version site")
-        #expect(saved.quizzes.values.contains { $0.title == "Version Mac (conflit sur ce Mac)" && $0.code != original.code })
+        #if os(iOS)
+        let conflictTitle = "Version Mac (conflit sur cet iPad)"
+        #else
+        let conflictTitle = "Version Mac (conflit sur ce Mac)"
+        #endif
+        #expect(saved.quizzes.values.contains { $0.title == conflictTitle && $0.code != original.code })
         #expect(await remote.writeCount() == 0)
         _ = try await cycle(state, remote)
         #expect(await state.snapshot().quizzes.count == 2)

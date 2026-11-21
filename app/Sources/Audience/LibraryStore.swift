@@ -1,4 +1,6 @@
+#if os(macOS)
 import AppKit
+#endif
 import Observation
 import SwiftUI
 import UniformTypeIdentifiers
@@ -91,6 +93,11 @@ final class ArchiveWriter: @unchecked Sendable {
     var notice: String?
     /// Shows the import sheet: a file chosen in the Finder or dropped, or pasted text.
     var importing = false
+    #if os(iOS)
+    var errorMessage: String?
+    var exportDocument: AudienceDocument?
+    var exportFilename = "Audience-sauvegarde.json"
+    #endif
     var busy = false
     var connected = false
     /// The signed-in account must accept the website's terms of use before synchronizing.
@@ -150,7 +157,7 @@ final class ArchiveWriter: @unchecked Sendable {
             }
         } catch {
             readOnly = true
-            alerts.append("Lecture des données impossible : \(error.localizedDescription). Le fichier existant est conservé et les modifications sont bloquées. Récupérez-le dans le Finder avant de relancer l’app.")
+            alerts.append("Lecture des données impossible : \(error.localizedDescription). Le fichier existant est conservé et les modifications sont bloquées.")
             DispatchQueue.main.async { [weak self] in self?.presentNextAlert() }
         }
     }
@@ -182,11 +189,19 @@ final class ArchiveWriter: @unchecked Sendable {
 
     /// Shows one alert at a time, attached to the active window.
     func report(_ message: String) {
+        #if os(iOS)
+        errorMessage = message
+        #else
         guard !alerts.contains(message) else { return }
         alerts.append(message)
         presentNextAlert()
+        #endif
     }
     private func presentNextAlert() {
+        #if os(iOS)
+        errorMessage = alerts.first
+        alerts.removeAll()
+        #else
         guard !alertVisible, let message = alerts.first else { return }
         alertVisible = true
         let alert = NSAlert()
@@ -204,6 +219,7 @@ final class ArchiveWriter: @unchecked Sendable {
         } else {
             alert.runModal(); finish()
         }
+        #endif
     }
 
     // MARK: - Persistence
@@ -311,7 +327,7 @@ final class ArchiveWriter: @unchecked Sendable {
         guard connected else { return savedLoginPending ? "Connexion à réessayer" : "Disponible hors ligne" }
         let pending = visibleQuizzes.contains(where: isPending)
             || archive.synchronization.pendingPurges.values.contains(activeAccount ?? "")
-        if pending { return syncDrafts > 0 ? "\(syncDrafts) brouillon(s) sur ce Mac" : "Modifications en attente" }
+        if pending { return syncDrafts > 0 ? "\(syncDrafts) brouillon(s) sur cet appareil" : "Modifications en attente" }
         return "À jour"
     }
 
@@ -445,12 +461,14 @@ final class ArchiveWriter: @unchecked Sendable {
     static func canImport(_ url: URL) -> Bool { ["json", "md", "markdown", "txt", "zip"].contains(url.pathExtension.lowercased()) }
 
     /// Opens the Finder panel; nil when cancelled.
+    #if os(macOS)
     func chooseImportFiles() -> [URL]? {
         let panel = NSOpenPanel(); panel.allowedContentTypes = Self.importTypes; panel.allowsMultipleSelection = true
         panel.message = "Choisissez une sauvegarde Audience (.json), des questionnaires Markdown (.md) ou une archive ZIP exportée du site."
         guard panel.runModal() == .OK, !panel.urls.isEmpty else { return nil }
         return panel.urls
     }
+    #endif
     /// Returns the reason when a file cannot be read; nothing is imported then.
     func importFiles(_ urls: [URL]) -> String? {
         do {
@@ -459,6 +477,8 @@ final class ArchiveWriter: @unchecked Sendable {
                 guard Self.canImport(url) else {
                     throw AudienceError.message("\(url.lastPathComponent) : format non pris en charge (.md, .zip ou .json).")
                 }
+                let access = url.startAccessingSecurityScopedResource()
+                defer { if access { url.stopAccessingSecurityScopedResource() } }
                 let data = try Data(contentsOf: url)
                 switch url.pathExtension.lowercased() {
                 case "md", "markdown", "txt":
@@ -520,10 +540,12 @@ final class ArchiveWriter: @unchecked Sendable {
         archive.quizzes[quiz.code] = quiz
     }
     func exportBackup(only codes: Set<String>? = nil) {
+        #if os(macOS)
         let panel = NSSavePanel(); panel.allowedContentTypes = [.json]
         if let codes, codes.count == 1, let code = codes.first { panel.nameFieldStringValue = "Audience-\(code).json" }
         else { panel.nameFieldStringValue = "Audience-sauvegarde.json" }
         guard panel.runModal() == .OK, let url = panel.url else { return }
+        #endif
         do {
             var output = LibraryArchive()
             let quizzes = visibleQuizzes.filter { codes?.contains($0.code) ?? true }
@@ -541,8 +563,15 @@ final class ArchiveWriter: @unchecked Sendable {
                 }
             }
             let encoder = JSONEncoder(); encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-            try encoder.encode(output).write(to: url, options: .atomic)
+            let data = try encoder.encode(output)
+            #if os(macOS)
+            try data.write(to: url, options: .atomic)
             notice = "Sauvegarde exportée."
+            #else
+            if let codes, codes.count == 1, let code = codes.first { exportFilename = "Audience-\(code).json" }
+            else { exportFilename = "Audience-sauvegarde.json" }
+            exportDocument = AudienceDocument(data: data, type: .json)
+            #endif
         } catch { report(error.localizedDescription) }
     }
     func exportResultsCSV(_ quiz: Quiz) {
@@ -550,17 +579,27 @@ final class ArchiveWriter: @unchecked Sendable {
               let csv = ResultsCSV.build(quiz: quiz, responses: responses) else {
             report("Aucun résultat à exporter."); return
         }
+        #if os(macOS)
         let panel = NSSavePanel(); panel.allowedContentTypes = [.commaSeparatedText]
         panel.nameFieldStringValue = ResultsCSV.filename(code: quiz.code)
         guard panel.runModal() == .OK, let url = panel.url else { return }
+        #endif
         do {
             // The byte order mark lets Excel read accented characters correctly.
-            try Data(("\u{FEFF}" + csv).utf8).write(to: url, options: .atomic)
+            let data = Data(("\u{FEFF}" + csv).utf8)
+            #if os(macOS)
+            try data.write(to: url, options: .atomic)
             notice = "Résultats exportés."
+            #else
+            exportFilename = ResultsCSV.filename(code: quiz.code)
+            exportDocument = AudienceDocument(data: data, type: .commaSeparatedText)
+            #endif
         } catch { report(error.localizedDescription) }
     }
     func revealData() {
+        #if os(macOS)
         NSWorkspace.shared.activateFileViewerSelecting([FileManager.default.fileExists(atPath: dataURL.path) ? dataURL : dataURL.deletingLastPathComponent()])
+        #endif
     }
 
     // MARK: - Account and synchronization
@@ -689,7 +728,7 @@ final class ArchiveWriter: @unchecked Sendable {
         var next = archive
         let applied = next.apply(event)
         if next != archive {
-            guard commit({ $0 = next }) else { throw AudienceError.message("Impossible d’enregistrer les questionnaires sur ce Mac.") }
+            guard commit({ $0 = next }) else { throw AudienceError.message("Impossible d’enregistrer les questionnaires sur cet appareil.") }
         }
         if !applied || event.kind == .conflict { retryAfterSync = true }
     }

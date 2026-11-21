@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 #if SWIFT_PACKAGE
 import AudienceCore
@@ -17,10 +18,12 @@ struct AudienceApp: App {
                 .environment(localAI)
                 .onAppear {
                     appDelegate.store = store
+                    AppUpdater.shared.start(store: store)
                     #if DEBUG
                     DebugSnapshots.runIfRequested(store: store)
                     #endif
                 }
+                .onChange(of: store.liveCode) { _, _ in AppUpdater.shared.resumeInstallationIfPossible() }
                 .preferredColorScheme(colorScheme)
         }
         .defaultSize(width: 1320, height: 840)
@@ -47,6 +50,7 @@ struct LibraryCommands: Commands {
     @Environment(\.openWindow) private var openWindow
 
     var body: some Commands {
+        AppUpdateCommands(store: store)
         SidebarCommands()
         ToolbarCommands()
         InspectorCommands()
@@ -124,3 +128,5 @@ final class AudienceAppDelegate: NSObject, NSApplicationDelegate {
     }
     func applicationWillTerminate(_ notification: Notification) { store?.flush() }
 }
+
+#endif

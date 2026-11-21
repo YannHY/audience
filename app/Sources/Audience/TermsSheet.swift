@@ -23,7 +23,9 @@ struct TermsSheet: View {
             }
             Link("Lire les conditions d’utilisation complètes", destination: Self.termsURL)
             Toggle("J’ai lu et j’accepte les conditions d’utilisation", isOn: $agreed)
+                #if os(macOS)
                 .toggleStyle(.checkbox)
+                #endif
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(.quinary, in: .rect(cornerRadius: 10))
@@ -40,7 +42,7 @@ struct TermsSheet: View {
             .padding(.top, 4)
         }
         .padding(24)
-        .frame(width: 500)
+        .frame(idealWidth: 500, maxWidth: 560)
         .interactiveDismissDisabled()
     }
 

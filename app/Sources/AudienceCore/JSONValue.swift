@@ -60,22 +60,32 @@ public extension String {
     var unformattedText: String {
         replacingOccurrences(of: "<br\\s*/?>|</(?:p|div|li)>", with: "\n", options: .regularExpression)
             .replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
-            .decodingHTMLEntities
+            .decodeHTMLEntities(repairingNestedEscapes: true)
     }
     /// Decodes named and numeric entities (&#39;, &#x27;, &rsquo;…) in one pass, so "&amp;#39;" stays "&#39;".
-    var decodingHTMLEntities: String {
+    var decodingHTMLEntities: String { decodeHTMLEntities(repairingNestedEscapes: false) }
+
+    /// Old server saves could escape the same entity several times. Decode those
+    /// layers while scanning, after removing markup, so decoded <…> stays text.
+    private func decodeHTMLEntities(repairingNestedEscapes: Bool) -> String {
         guard contains("&") else { return self }
         var result = "", rest = self[...]
         while let amp = rest.firstIndex(of: "&") {
             result += rest[..<amp]
             let tail = rest[amp...]
-            if let semicolon = tail.prefix(12).firstIndex(of: ";"),
-               let decoded = Self.entity(tail[tail.index(after: amp)..<semicolon]) {
+            var entityStart = tail.index(after: amp)
+            if repairingNestedEscapes {
+                while tail[entityStart...].hasPrefix("amp;") {
+                    entityStart = tail.index(entityStart, offsetBy: 4)
+                }
+            }
+            if let semicolon = tail[entityStart...].prefix(12).firstIndex(of: ";"),
+               let decoded = Self.entity(tail[entityStart..<semicolon]) {
                 result += decoded
                 rest = tail[tail.index(after: semicolon)...]
             } else {
                 result += "&"
-                rest = tail.dropFirst()
+                rest = tail[entityStart...]
             }
         }
         return result + rest

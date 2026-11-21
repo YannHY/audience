@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 #if SWIFT_PACKAGE
 import AudienceCore
@@ -61,7 +62,7 @@ struct SidebarView: View {
         } message: { Text("Les questionnaires qu’il contient ne sont pas supprimés : ils restent dans la bibliothèque.") }
         .confirmationDialog("Vider la corbeille ?", isPresented: $confirmEmptyTrash, titleVisibility: .visible) {
             Button("Supprimer définitivement", role: .destructive) { store.emptyTrash() }
-        } message: { Text("Les questionnaires et leurs réponses seront supprimés de ce Mac et du compte synchronisé. Cette action est irréversible.") }
+        } message: { Text("Les questionnaires et leurs réponses seront supprimés de cet appareil et du compte synchronisé. Cette action est irréversible.") }
     }
 
     private func row(_ item: SidebarItem) -> some View {
@@ -151,3 +152,5 @@ struct SidebarView: View {
         .padding(.horizontal, 14).padding(.vertical, 10)
     }
 }
+
+#endif

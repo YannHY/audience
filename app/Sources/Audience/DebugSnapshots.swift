@@ -1,4 +1,4 @@
-#if DEBUG
+#if DEBUG && os(macOS)
 import AppKit
 import SwiftUI
 #if SWIFT_PACKAGE
@@ -38,6 +38,17 @@ import AudienceCore
                 for tag in ["conjugaison", "grammaire", "révisions"] { store.addTag(tag, to: [quiz.code]) }
                 await pause()
                 snap("sidebar-after", to: output)
+                return
+            }
+            // AUDIENCE_SNAPSHOT_SHOWCASE=<code>: that questionnaire in its folder, inspector open.
+            if let code = ProcessInfo.processInfo.environment["AUDIENCE_SNAPSHOT_SHOWCASE"],
+               let quiz = store.archive.quizzes[code] {
+                if let folder = quiz.folderID { store.sidebar = .folder(folder) }
+                await pause()
+                store.selection = [code]
+                UserDefaults.standard.set(true, forKey: "inspectorVisible")
+                await pause(2)
+                snap("showcase", to: output)
                 return
             }
             snap("1-library", to: output)

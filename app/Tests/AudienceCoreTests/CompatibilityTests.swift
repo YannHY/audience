@@ -92,6 +92,31 @@ struct CompatibilityTests {
         #expect(question.text == "Si 2 < 3 & 5 > 4\nAlors ?")
         #expect(question["question"].string.contains("&lt;"))
     }
+    @Test func legacyNestedEntitiesDisplayAndRemainStableWhenEdited() throws {
+        for entity in ["&#39;", "&#x27;", "&#X27;", "&apos;", "&rsquo;"] {
+            let apostrophe = entity.decodingHTMLEntities
+            for depth in 0...6 {
+                var escaped = entity
+                for _ in 0..<depth { escaped = escaped.replacingOccurrences(of: "&", with: "&amp;") }
+                let stored = "<p>De quel organe s\(escaped)agit-il ?</p>"
+                var question = Question(fields: ["question": .string(stored)])
+                let expected = "De quel organe s\(apostrophe)agit-il ?\n"
+                #expect(question.text == expected)
+                // Reading a legacy question must not rewrite its HTML or unknown fields.
+                #expect(question["question"].string == stored)
+                for _ in 0..<3 { question.text = question.text }
+                #expect(question.text == expected)
+                let restored = try JSONDecoder().decode(Question.self, from: JSONEncoder().encode(question))
+                #expect(restored.text == expected)
+            }
+        }
+    }
+    @Test func legacyEntityRepairPreservesTextAndDoesNotReparseDecodedMarkup() {
+        let stored = "<p>&amp;Eacute;t&eacute; &amp;amp;rsquo; &amp;amp;lt;exemple&amp;amp;gt; &amp;amp;amp;</p>"
+        #expect(stored.plainText == "Été ’ <exemple> &")
+        #expect("A & B &amp;amp;unknown; &amp;".plainText == "A & B &unknown; &")
+        #expect("Avant<br>Apr&amp;amp;egrave;s\n ".unformattedText == "Avant\nAprès\n ")
+    }
     @Test func validationRejectsUnusableQuestionsBeforeSending() {
         var quiz = Quiz(code: "TEST")
         #expect(quiz.validationMessage != nil)

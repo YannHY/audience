@@ -175,7 +175,11 @@ public extension LibraryArchive {
             copy["code"] = .string(copyCode)
             copy["deletedAt"] = .null
             copy["liveActive"] = .bool(false)
+            #if os(iOS)
+            copy.title += " (conflit sur cet iPad)"
+            #else
             copy.title += " (conflit sur ce Mac)"
+            #endif
             copy["updatedAt"] = .string(Quiz.timestamp)
             quizzes[copyCode] = copy
             synchronization.owners[copyCode] = event.account

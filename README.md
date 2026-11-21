@@ -3,7 +3,7 @@
 Audience permet de créer des questionnaires et de recueillir en direct les réponses d’un public. Le projet comprend :
 
 - le **site web** (PHP, HTML, CSS, JavaScript), à la racine du dépôt ;
-- l’**application macOS** native (SwiftUI), dans le dossier [`app`](app/README.md).
+- les **applications macOS et iPad** natives (SwiftUI), dans le dossier [`app`](app/README.md).
 
 ## Installer le site
 

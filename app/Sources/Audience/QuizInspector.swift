@@ -65,7 +65,7 @@ struct QuizInspector: View {
                     HStack(spacing: 6) {
                         Text(quiz.code).monospaced().textSelection(.enabled)
                         Button("Copier le code", systemImage: "doc.on.doc") {
-                            NSPasteboard.general.clearContents(); NSPasteboard.general.setString(quiz.code, forType: .string)
+                            PlatformClipboard.copy(quiz.code)
                             store.notice = "Code copié."
                         }.labelStyle(.iconOnly).buttonStyle(.borderless)
                     }
@@ -99,10 +99,17 @@ struct ColorSwatches: View {
     @Binding var selection: QuizColor?
     var inherited: QuizColor?
     var body: some View {
+        #if os(iOS)
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 44))], spacing: 8) {
+            swatch(nil)
+            ForEach(QuizColor.allCases) { swatch($0) }
+        }
+        #else
         HStack(spacing: 5) {
             swatch(nil)
             ForEach(QuizColor.allCases) { swatch($0) }
         }
+        #endif
     }
     private func swatch(_ color: QuizColor?) -> some View {
         let selected = selection == color
@@ -120,7 +127,11 @@ struct ColorSwatches: View {
                     Circle().strokeBorder(Color.primary.opacity(0.85), lineWidth: 2).padding(-3)
                 }
             }
+            #if os(iOS)
+            .frame(width: 24, height: 24).padding(10)
+            #else
             .frame(width: 16, height: 16)
+            #endif
             .contentShape(.circle)
         }
         .buttonStyle(.plain)

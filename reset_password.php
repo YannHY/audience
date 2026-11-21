@@ -114,7 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer">
-    <link rel="stylesheet" href="styles.css?v=20261121u">
+    <link rel="stylesheet" href="styles.css?v=20261121y">
 </head>
 <body class="page-login">
     <div id="accountBar" class="account-bar"></div>
@@ -151,7 +151,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
     </div>
-    <script src="site-nav.js?v=20261121u"></script>
+    <footer class="footer" data-site-footer></footer>
+    <script src="site-nav.js?v=20261121v"></script>
+    <script src="site-footer.js?v=20261121b"></script>
     <script src="theme.js"></script>
 </body>
 </html>
