@@ -285,11 +285,11 @@ try {
         } elseif ($questionType === 'checkbox') {
             $rawCorrectIndexes = is_array($q['correctIndexes'] ?? null) ? $q['correctIndexes'] : [];
             foreach ($rawCorrectIndexes as $value) {
-                $index = (int)$value;
-                if ($index < 0 || $index >= count($answers)) {
+                $correctValue = (int)$value;
+                if ($correctValue < 0 || $correctValue >= count($answers)) {
                     continue;
                 }
-                $correctIndexes[] = $index;
+                $correctIndexes[] = $correctValue;
             }
             $correctIndexes = array_values(array_unique($correctIndexes));
         }
