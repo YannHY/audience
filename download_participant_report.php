@@ -27,7 +27,7 @@ if (!is_array($input) || !is_array($input['report'] ?? null)) {
 
 try {
     $report = participant_report_pdf_prepare_report($input['report']);
-    $pdf = participant_report_pdf_build($report, __DIR__ . '/logo.png');
+    $pdf = participant_report_pdf_build($report, __DIR__ . '/img/logo/logo.png');
     $filename = participant_report_pdf_filename($report);
 
     header('Content-Type: application/pdf');

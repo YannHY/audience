@@ -70,8 +70,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta property="og:title" content="Audience">
     <meta property="og:description" content="Créez vos questions et affichez les réponses en direct.">
     <meta property="og:url" content="https://www.ralentirtravaux.com/apps/audience/login.php">
-    <meta property="og:image" content="https://www.ralentirtravaux.com/apps/audience/audience-social-preview.png">
-    <meta property="og:image:secure_url" content="https://www.ralentirtravaux.com/apps/audience/audience-social-preview.png">
+    <meta property="og:image" content="https://www.ralentirtravaux.com/apps/audience/img/partage/audience-social-preview.png">
+    <meta property="og:image:secure_url" content="https://www.ralentirtravaux.com/apps/audience/img/partage/audience-social-preview.png">
     <meta property="og:image:type" content="image/png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="627">
@@ -79,11 +79,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Audience">
     <meta name="twitter:description" content="Créez vos questions et affichez les réponses en direct.">
-    <meta name="twitter:image" content="https://www.ralentirtravaux.com/apps/audience/audience-social-preview.png">
+    <meta name="twitter:image" content="https://www.ralentirtravaux.com/apps/audience/img/partage/audience-social-preview.png">
     <meta name="twitter:image:alt" content="Audience — Créez vos questions et affichez les réponses en direct.">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2">
-    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=2">
-    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2">
+    <link rel="icon" type="image/png" sizes="32x32" href="img/icones/favicon-32.png?v=2">
+    <link rel="icon" type="image/png" sizes="16x16" href="img/icones/favicon-16.png?v=2">
+    <link rel="apple-touch-icon" sizes="180x180" href="img/icones/apple-touch-icon.png?v=2">
     <script>
         try {
             const savedTheme = localStorage.getItem('audience-theme');
@@ -114,7 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="split">
                     <div class="logo-pane">
                         <a href="index.html" aria-label="Retour à l'accueil Audience">
-                            <img src="logo.png" alt="Logo Audience">
+                            <img src="img/logo/logo.png" alt="Logo Audience">
                         </a>
                     </div>
                     <div class="divider" aria-hidden="true"></div>

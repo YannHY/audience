@@ -239,9 +239,9 @@ function admin_list_query(array $overrides = []): string {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Admin - Audience</title>
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2">
-    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=2">
-    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2">
+    <link rel="icon" type="image/png" sizes="32x32" href="img/icones/favicon-32.png?v=2">
+    <link rel="icon" type="image/png" sizes="16x16" href="img/icones/favicon-16.png?v=2">
+    <link rel="apple-touch-icon" sizes="180x180" href="img/icones/apple-touch-icon.png?v=2">
     <script>
         try {
             const savedTheme = localStorage.getItem('audience-theme');
@@ -267,7 +267,7 @@ function admin_list_query(array $overrides = []): string {
         <div class="page-top-brand">
             <div class="page-brand-line">
                 <a href="index.html" aria-label="Retour à l'accueil Audience">
-                    <img src="logo.png" alt="Logo Audience" class="page-brand-logo">
+                    <img src="img/logo/logo.png" alt="Logo Audience" class="page-brand-logo">
                 </a>
                 <h1 class="page-title">Audience</h1>
             </div>

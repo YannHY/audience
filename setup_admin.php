@@ -35,9 +35,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Configuration admin - Audience</title>
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2">
-    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=2">
-    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2">
+    <link rel="icon" type="image/png" sizes="32x32" href="img/icones/favicon-32.png?v=2">
+    <link rel="icon" type="image/png" sizes="16x16" href="img/icones/favicon-16.png?v=2">
+    <link rel="apple-touch-icon" sizes="180x180" href="img/icones/apple-touch-icon.png?v=2">
     <script>
         try {
             if (localStorage.getItem('audience-theme') === 'dark') {
@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div id="accountBar" class="account-bar"></div>
     <div class="wrap">
         <div class="card">
-            <h1 class="brand-heading"><a href="index.html" aria-label="Retour à l'accueil Audience"><img src="logo.png" alt="Logo Audience"></a><span>Créer le premier compte admin</span></h1>
+            <h1 class="brand-heading"><a href="index.html" aria-label="Retour à l'accueil Audience"><img src="img/logo/logo.png" alt="Logo Audience"></a><span>Créer le premier compte admin</span></h1>
             <p>Cette page n'est disponible que tant qu'aucun administrateur n'existe.</p>
             <form method="post">
                 <label for="username">Nom d'utilisateur</label>
