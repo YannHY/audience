@@ -34,9 +34,21 @@
     "build": 7,
     "date": "2026-11-21",
     "notes": [
-      "Mises à jour automatiques : Audience vérifie chaque jour la présence d’une nouvelle version, et la commande « Rechercher les mises à jour… » est disponible dans le menu Audience.",
-      "Les recherches et le redémarrage sont différés pendant une session en direct, et vos données sont enregistrées avant l’installation.",
-      "Audience devient un logiciel libre, publié sous licence GNU GPL v3."
+      "Mises à jour automatiques : Audience vérifie chaque jour la présence d’une nouvelle version, et la commande « Rechercher les mises à jour… » est disponible dans le menu Audience. Les recherches et le redémarrage sont différés pendant une session en direct.",
+      "Import des questionnaires en Markdown dans une fenêtre unique : depuis le Finder, par glisser-déposer ou par collage.",
+      "Salle d’attente avant le début du questionnaire, affichage des votes reçus en direct et reconnexion automatique.",
+      "Statistiques et export CSV des résultats d’un questionnaire.",
+      "Synthèse des réponses par une IA locale, avec les modèles Ollama installés sur le Mac.",
+      "Étiquettes plus lisibles dans la liste et icône agrandie.",
+      "Audience devient un logiciel libre : le code est publié sous licence GNU GPL v3, les contenus sous CC BY-SA 4.0."
+    ]
+  },
+  {
+    "version": "1.2.0",
+    "build": 6,
+    "date": "2026-11-21",
+    "notes": [
+      "Première version de l’application native pour Mac, reliée au site Audience : préparation des questionnaires, présentation en plein écran et réponses du public en direct."
     ]
   }
 ]

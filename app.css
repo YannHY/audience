@@ -197,6 +197,15 @@
     color: var(--mac-ink-soft);
 }
 
+.mac-note a {
+    color: var(--mac-accent);
+    text-decoration: none;
+}
+
+.mac-note a:hover {
+    text-decoration: underline;
+}
+
 .mac-hero-shot {
     margin: 48px auto 0;
     width: min(1180px, calc(100% - 32px));
@@ -426,6 +435,119 @@
     font-size: 0.9rem;
     color: var(--mac-ink-soft);
     line-height: 1.7;
+}
+
+/* ----- Page des nouveautés ----- */
+.mac-history-hero {
+    padding-bottom: clamp(56px, 8vw, 88px);
+}
+
+.mac-timeline {
+    list-style: none;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 0 0 28px;
+    position: relative;
+}
+
+.mac-timeline::before {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 12px;
+    bottom: 12px;
+    width: 2px;
+    border-radius: 2px;
+    background: linear-gradient(180deg, var(--mac-accent) 0%, var(--mac-line) 100%);
+}
+
+.mac-release {
+    position: relative;
+    background: var(--mac-card);
+    border: 1px solid var(--mac-line);
+    border-radius: 20px;
+    padding: 24px 28px 10px;
+    margin-bottom: 20px;
+}
+
+.mac-release::before {
+    content: '';
+    position: absolute;
+    left: -28px;
+    top: 30px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--mac-bg-alt);
+    border: 3px solid var(--mac-accent);
+    box-sizing: border-box;
+}
+
+.mac-release:first-child::before {
+    background: var(--mac-accent);
+}
+
+.mac-release-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 12px;
+    margin-bottom: 10px;
+}
+
+:root .page-mac .mac .mac-release h3 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.mac-release time {
+    color: var(--mac-ink-soft);
+    font-size: 0.92rem;
+}
+
+.mac-release-pill {
+    margin-left: auto;
+    padding: 3px 12px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--mac-accent) 14%, transparent);
+    color: var(--mac-accent);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.mac-release ul {
+    margin: 0;
+    padding: 0 0 0 1.15em;
+    color: var(--mac-ink);
+    font-size: 1rem;
+    line-height: 1.55;
+}
+
+.mac-release li {
+    margin: 0 0 14px;
+}
+
+.mac-release li::marker {
+    color: var(--mac-accent);
+}
+
+@media (max-width: 480px) {
+    .mac-timeline {
+        padding-left: 20px;
+    }
+
+    .mac-timeline::before {
+        left: 3px;
+    }
+
+    .mac-release {
+        padding: 20px 18px 6px;
+    }
+
+    .mac-release::before {
+        left: -22px;
+    }
 }
 
 /* ----- Apparition au défilement ----- */

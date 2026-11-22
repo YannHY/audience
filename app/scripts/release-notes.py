@@ -121,17 +121,139 @@ def page(history):
     <picture><source srcset="../img/app/icone-sombre.png" media="(prefers-color-scheme: dark)"><img src="../img/app/icone.png" alt="" width="56" height="56"></picture>
     <div><p class="brand">Audience pour Mac</p><h1>Nouveautés</h1></div>
   </header>
-{sections}  <footer><a href="../app.html">Découvrir Audience pour Mac et iPad</a></footer>
+{sections}  <footer><a href="../nouveautes.html">Toutes les nouveautés sur le site</a></footer>
 </main>
 </body>
 </html>
 '''
 
 
+def site_release(entry, latest):
+    when = (f'<time datetime="{escape(entry["date"])}">{french_date(entry["date"])}</time>'
+            if entry.get('date') else '')
+    pill = '<span class="mac-release-pill">Dernière version</span>' if latest else ''
+    items = ''.join(f'\n                            <li>{escape(note)}</li>' for note in entry['notes'])
+    return f'''                    <li class="mac-release mac-reveal">
+                        <div class="mac-release-head">
+                            <h3>Audience {escape(entry["version"])}</h3>{when}{pill}
+                        </div>
+                        <ul>{items}
+                        </ul>
+                    </li>
+'''
+
+
+def site_page(history):
+    releases = ''.join(site_release(entry, index == 0) for index, entry in enumerate(history))
+    return f'''<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <!-- Page générée par app/scripts/release-notes.py depuis app/Resources/ReleaseNotes.json : ne pas modifier à la main. -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nouveautés d’Audience</title>
+    <meta name="description" content="L’évolution d’Audience pour Mac et iPad : toutes les versions et leurs nouveautés.">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png?v=2">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=2">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=2">
+    <script>
+        try {{
+            const savedTheme = localStorage.getItem('audience-theme');
+            if (savedTheme === 'dark') {{
+                document.documentElement.classList.add('theme-dark');
+            }} else if (savedTheme === 'light') {{
+                document.documentElement.classList.add('theme-light');
+            }} else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {{
+                document.documentElement.classList.add('theme-dark');
+            }}
+        }} catch (_) {{}}
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="styles.css?v=20261121y">
+    <link rel="stylesheet" href="app.css?v={SITE_CSS_VERSION}">
+</head>
+<body class="page-mac">
+    <div id="accountBar" class="account-bar"></div>
+
+    <main class="mac">
+        <section class="mac-hero mac-history-hero">
+            <div class="mac-wrap">
+                <picture>
+                    <source srcset="img/app/icone-sombre.png" media="(prefers-color-scheme: dark)" data-dark-source>
+                    <img class="mac-hero-icon" src="img/app/icone.png" alt="" width="128" height="128">
+                </picture>
+                <p class="mac-eyebrow">Audience pour Mac et iPad</p>
+                <h1 class="mac-hero-title">Toutes les<br><span class="mac-gradient">nouveautés</span></h1>
+                <p class="mac-lede">L’évolution d’Audience, version après version. Les mises à jour s’installent automatiquement depuis l’application.</p>
+                <div class="mac-cta">
+                    <a class="mac-button" href="mac/Audience-macOS.zip" download>
+                        <i class="fa-brands fa-apple" aria-hidden="true"></i>
+                        Télécharger la version {escape(history[0]["version"])}
+                    </a>
+                    <a class="mac-link" href="app.html">Découvrir l’application</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="mac-section mac-section-alt">
+            <div class="mac-wrap">
+                <ol class="mac-timeline">
+{releases}                </ol>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer" data-site-footer></footer>
+
+    <script src="site-nav.js?v=20261121v"></script>
+    <script src="site-footer.js?v=20261121b"></script>
+    <script src="theme.js?v=20261122a"></script>
+    <script>
+        (function() {{
+            const root = document.documentElement;
+            const sources = document.querySelectorAll('source[data-dark-source]');
+            function syncSources() {{
+                const media = root.classList.contains('theme-dark') ? 'all'
+                    : root.classList.contains('theme-light') ? 'not all'
+                    : '(prefers-color-scheme: dark)';
+                sources.forEach(function(source) {{ source.media = media; }});
+            }}
+            syncSources();
+            new MutationObserver(syncSources).observe(root, {{ attributes: true, attributeFilter: ['class'] }});
+        }})();
+
+        const revealed = document.querySelectorAll('.mac-reveal');
+        if ('IntersectionObserver' in window) {{
+            const observer = new IntersectionObserver(function(entries) {{
+                entries.forEach(function(entry) {{
+                    if (entry.isIntersecting) {{
+                        entry.target.classList.add('is-visible');
+                        observer.unobserve(entry.target);
+                    }}
+                }});
+            }}, {{ rootMargin: '0px 0px -8% 0px', threshold: 0.08 }});
+            revealed.forEach(function(element) {{ observer.observe(element); }});
+        }} else {{
+            revealed.forEach(function(element) {{ element.classList.add('is-visible'); }});
+        }}
+    </script>
+</body>
+</html>
+'''
+
+
+SITE_CSS_VERSION = '20261122a'
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('directory', type=Path)
+    parser.add_argument('directory', type=Path, nargs='?')
     parser.add_argument('--max-build', type=int)
+    parser.add_argument('--site', type=Path, help='écrit aussi la page « Nouveautés » du site à cet emplacement')
     args = parser.parse_args()
     max_build = args.max_build
     if max_build is None:
@@ -143,7 +265,11 @@ def main():
     assert len(builds) == len(set(builds)), 'Numéro de build en double dans ReleaseNotes.json'
     if max_build not in builds:
         raise SystemExit(f'Aucune note de version pour le build {max_build} dans Resources/ReleaseNotes.json.')
-    for index, entry in enumerate(entries):
+    if args.site:
+        released = [entry for entry in entries if entry['build'] <= max_build]
+        args.site.write_text(site_page(released))
+        print(args.site)
+    for index, entry in enumerate(entries if args.directory else []):
         name = f'Audience-{entry["version"]}-{entry["build"]}-macOS'
         if entry['build'] > max_build or not (args.directory / f'{name}.zip').is_file():
             continue
