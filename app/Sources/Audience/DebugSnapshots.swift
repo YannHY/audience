@@ -150,6 +150,14 @@ import AudienceCore
                                          "answers": .array([.string("Un lieu où l’on joue de la musique"), .string("Un endroit d’où l’on voit (des gradins)"), .string("Une salle où l’on récite des poèmes")])])
         let result: JSONValue = .object(["results": .array([.number(5), .number(14), .number(2)]), "total": .number(21)])
         save(ResultCard(question: question, index: 0, result: result, compact: true, showCorrect: true, scale: 1.2).padding(30), "8-live-results", size: CGSize(width: 1100, height: 330))
+        // Cloze correction: the expected words stand out in the text, and in each participant's answer.
+        let clozeText = "Je [décidai] (décider) de visiter le parc. J'[aperçus] (apercevoir) des chênes."
+        let cloze = Question(fields: ["type": .string("cloze"), "question": .string("Conjugue au passé simple."), "clozeText": .string(clozeText)])
+        let clozeResult: JSONValue = .object(["openResponses": .array([.string("Je Décidai (décider) de visiter le parc. J'aperçu (apercevoir) des chênes.")]), "total": .number(1)])
+        save(VStack(alignment: .leading, spacing: 24) {
+            Text(ClozeTemplate(clozeText).rendered(reveal: true)).font(.system(size: 26)).lineSpacing(12)
+            ResultCard(question: cloze, index: 0, result: clozeResult, compact: true, showCorrect: true, scale: 1.2)
+        }.padding(30), "12-cloze-correction", size: CGSize(width: 1100, height: 330))
     }
 
     private typealias WindowImage = @convention(c) (CGRect, UInt32, UInt32, UInt32) -> Unmanaged<CGImage>?

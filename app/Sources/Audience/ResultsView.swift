@@ -12,6 +12,79 @@ struct ResultRow: Identifiable {
     var correct = false
 }
 
+/// A cloze text split into plain text and blanks: `[réponse]` or `{{réponse, leurre…}}`.
+struct ClozeTemplate {
+    enum Part { case text(String), blank(String) }
+    let parts: [Part]
+
+    init(_ source: String) {
+        var parts: [Part] = []
+        var rest = Substring(source)
+        let pattern = /\[([^\]]*)\]|\{\{([^}]*)\}\}/
+        while let match = rest.firstMatch(of: pattern) {
+            if match.range.lowerBound > rest.startIndex { parts.append(.text(String(rest[..<match.range.lowerBound]))) }
+            let answer = match.output.1.map(String.init)
+                ?? String(match.output.2?.split(separator: ",", maxSplits: 1).first ?? "")
+            parts.append(.blank(answer.trimmingCharacters(in: .whitespaces)))
+            rest = rest[match.range.upperBound...]
+        }
+        if !rest.isEmpty { parts.append(.text(String(rest))) }
+        self.parts = parts
+    }
+
+    var hasBlanks: Bool { parts.contains { if case .blank = $0 { true } else { false } } }
+
+    /// The text with blanks hidden, or with the expected words highlighted for the correction.
+    func rendered(reveal: Bool) -> AttributedString {
+        parts.reduce(into: AttributedString()) { text, part in
+            switch part {
+            case .text(let s): text += AttributedString(s)
+            case .blank(let answer):
+                if reveal { text += Self.mark(answer, good: true) } else { text += AttributedString("________") }
+            }
+        }
+    }
+
+    /// A participant's full text, with each word written in a blank marked right or wrong.
+    /// Returns nil when the text does not follow the template (then it is shown as is).
+    func graded(_ response: String) -> AttributedString? {
+        guard hasBlanks else { return nil }
+        var regex = "^"
+        for part in parts {
+            switch part {
+            case .text(let s): regex += NSRegularExpression.escapedPattern(for: s)
+            case .blank: regex += "(.*?)"
+            }
+        }
+        regex += "$"
+        guard let re = try? NSRegularExpression(pattern: regex, options: [.dotMatchesLineSeparators]),
+              let match = re.firstMatch(in: response, range: NSRange(response.startIndex..., in: response)) else { return nil }
+        var group = 0
+        return parts.reduce(into: AttributedString()) { text, part in
+            switch part {
+            case .text(let s): text += AttributedString(s)
+            case .blank(let answer):
+                group += 1
+                let written = Range(match.range(at: group), in: response).map { String(response[$0]) } ?? ""
+                text += Self.mark(written.isEmpty ? "—" : written, good: Self.same(written, answer))
+            }
+        }
+    }
+
+    static func same(_ a: String, _ b: String) -> Bool {
+        a.trimmingCharacters(in: .whitespaces).compare(b.trimmingCharacters(in: .whitespaces),
+                                                       options: [.caseInsensitive], locale: Locale(identifier: "fr")) == .orderedSame
+    }
+
+    private static func mark(_ word: String, good: Bool) -> AttributedString {
+        var piece = AttributedString(word)
+        piece.foregroundColor = good ? .green : .red
+        piece.backgroundColor = (good ? Color.green : Color.red).opacity(0.15)
+        piece.inlinePresentationIntent = .stronglyEmphasized
+        return piece
+    }
+}
+
 struct ResultsView: View {
     @Bindable var store: LibraryStore
     let quiz: Quiz
@@ -145,8 +218,11 @@ struct ResultCard: View {
             }
             let open = compact ? Array(result["openResponses"].array.suffix(12)) : result["openResponses"].array
             if !open.isEmpty {
+                let cloze = question.kind == .cloze && showCorrect && !question["isPollMode"].bool
+                    ? ClozeTemplate(question["clozeText"].string) : nil
                 ForEach(open.indices, id: \.self) { i in
-                    Text(open[i].string.isEmpty ? open[i]["text"].string : open[i].string)
+                    let response = open[i].string.isEmpty ? open[i]["text"].string : open[i].string
+                    Text(cloze?.graded(response) ?? AttributedString(response))
                         .font(.system(size: 16 * scale))
                         .textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
                         .padding(12 * scale).background(.quaternary, in: .rect(cornerRadius: 10 * scale))

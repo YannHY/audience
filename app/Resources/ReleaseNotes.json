@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.3.4",
+    "build": 11,
+    "date": "2026-11-22",
+    "notes": [
+      "Texte à trous : quand la correction est affichée, les mots à trouver ressortent en vert dans le texte.",
+      "Dans les réponses reçues, chaque mot écrit par un participant dans un trou apparaît en vert s’il est juste et en rouge sinon."
+    ]
+  },
+  {
     "version": "1.3.3",
     "build": 10,
     "date": "2026-11-22",

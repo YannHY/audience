@@ -188,7 +188,7 @@ struct PresentationView: View {
                 }
             }
         } else if question.kind == .cloze {
-            Text(reveal ? clozeAnswer(question["clozeText"].string) : question["clozeText"].string.replacingOccurrences(of: "\\[[^\\]]*\\]|\\{\\{[^}]*\\}\\}", with: "________", options: .regularExpression))
+            Text(ClozeTemplate(question["clozeText"].string).rendered(reveal: reveal))
                 .font(.system(size: 26 * scale)).lineSpacing(12)
         } else if question.kind == .video {
             if let video = YouTubeVideo(url: question["youtubeUrl"].string,
@@ -473,10 +473,6 @@ struct PresentationView: View {
         case .ranking: return true
         default: return false
         }
-    }
-    private func clozeAnswer(_ text: String) -> String {
-        text.replacingOccurrences(of: "[", with: "").replacingOccurrences(of: "]", with: "")
-            .replacingOccurrences(of: "\\{\\{([^,}]+)[^}]*\\}\\}", with: "$1", options: .regularExpression)
     }
 }
 
