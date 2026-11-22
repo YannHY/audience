@@ -65,7 +65,7 @@ if (
 $contactTo = trim((string)(
     app_env('CONTACT_TO_EMAIL')
     ?? app_env('CONTACT_RECIPIENT_EMAIL')
-    ?? ''
+    ?? 'yannhoury@ralentirtravaux.com'
 ));
 $contactFrom = app_default_from_email();
 

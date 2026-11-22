@@ -21,13 +21,9 @@ function app_file_config(): array {
     }
 
     $config = [];
-    $projectRoot = dirname(__DIR__);
     $serverHome = dirname(dirname(dirname(dirname(__DIR__))));
     $homeFromEnv = trim((string)(getenv('HOME') ?: ''));
-    $candidates = [
-        $projectRoot . '/app-config.php',
-        $projectRoot . '/config.local.php'
-    ];
+    $candidates = [];
     if ($homeFromEnv !== '') {
         $candidates[] = rtrim($homeFromEnv, '/\\') . '/audience-secrets.php';
     }

@@ -8,8 +8,14 @@ Audience permet de créer des questionnaires et de recueillir en direct les rép
 ## Installer le site
 
 1. Copiez les fichiers sur un serveur PHP avec MySQL.
-2. Créez `config.local.php` (ignoré par Git) ou définissez les variables de [`.env.example`](.env.example) : connexion à la base et adresse publique du site.
+2. Copiez [`config.local.example.php`](config.local.example.php) sous le nom `audience-secrets.php` dans le dossier `HOME` du compte serveur, **hors du répertoire public**, puis renseignez la connexion à la base et l’adresse publique du site. Par exemple : `/home/mon-compte/audience-secrets.php` si les fichiers publics sont dans `/home/mon-compte/www/apps/audience/`. Le modèle peut rester dans le dépôt ; la copie remplie doit rester privée.
 3. Ouvrez `setup_admin.php` pour créer le premier compte administrateur.
+
+En développement, utilisez également `audience-secrets.php` dans votre dossier `HOME`, hors du répertoire public, ou les variables d’environnement.
+
+Vous pouvez aussi définir les variables d’environnement listées dans [`.env.example`](.env.example) : elles sont prioritaires sur les fichiers PHP. L’application ne charge pas automatiquement de fichier `.env`.
+
+`APP_BASE_URL` fixe l’URL publique de l’installation, notamment pour les liens de réinitialisation de mot de passe. Renseignez-la dans `audience-secrets.php` ou dans l’environnement ; à défaut, l’application la déduit de la requête.
 
 ## Licence
 

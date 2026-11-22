@@ -24,7 +24,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer">
-    <link rel="stylesheet" href="styles.css?v=20261121y">
+    <link rel="stylesheet" href="styles.css?v=20261122d">
 </head>
 <body>
     <div id="accountBar" class="account-bar"></div>
@@ -40,7 +40,7 @@
     <main class="legal-page contact-page">
         <h1><i class="fa-solid fa-envelope" aria-hidden="true"></i> Contact</h1>
         <form id="contactForm" class="contact-form" novalidate>
-            <p class="contact-help">Envoyez-nous votre message. Un email de confirmation sera envoyé à l'adresse indiquée.</p>
+            <p class="contact-help">Envoyez votre message.<br>Si celui-ci sollicite un accès à Audience, merci de justifier brièvement votre demande (votre intérêt, vos usages, le public auquel vous le destinez).</p>
 
             <label for="contactName">Nom</label>
             <input id="contactName" name="name" type="text" autocomplete="name" required>
@@ -74,6 +74,34 @@
 
         const contactForm = document.getElementById('contactForm');
         const statusEl = document.getElementById('contactStatus');
+
+        function showContactSuccess(el) {
+            el.className = 'contact-status is-success';
+            el.innerHTML = `
+                <span class="contact-success-badge" aria-hidden="true">
+                    <svg viewBox="0 0 52 52">
+                        <circle class="contact-success-circle" cx="26" cy="26" r="24"></circle>
+                        <path class="contact-success-check" d="M15 27 l7 7 l15 -16"></path>
+                    </svg>
+                </span>
+                <span class="contact-success-title">Message envoyé&nbsp;!</span>
+                <span class="contact-success-text">Il est bien arrivé à destination. Un email de confirmation vous attend dans votre boîte de réception.</span>
+                <span class="contact-confetti" aria-hidden="true"></span>`;
+
+            const confetti = el.querySelector('.contact-confetti');
+            const colors = ['#10b981', '#34d399', '#6ee7b7'];
+            const count = 14;
+            for (let i = 0; i < count; i++) {
+                const piece = document.createElement('i');
+                const angle = (Math.PI * 2 * i) / count + Math.random() * 0.3;
+                const distance = 60 + Math.random() * 50;
+                piece.style.setProperty('--dx', `${Math.cos(angle) * distance}px`);
+                piece.style.setProperty('--dy', `${Math.sin(angle) * distance * 0.8 - 20}px`);
+                piece.style.setProperty('--delay', `${750 + Math.round(Math.random() * 100)}ms`);
+                piece.style.background = colors[i % colors.length];
+                confetti.appendChild(piece);
+            }
+        }
 
         if (contactForm && statusEl) {
             contactForm.addEventListener('submit', async function (event) {
@@ -113,10 +141,7 @@
                         throw new Error((data && data.error) ? data.error : 'Erreur lors de l’envoi');
                     }
 
-                    statusEl.textContent = (data && data.message)
-                        ? `${data.message} Un email de confirmation vous a été envoyé.`
-                        : 'Message envoyé avec succès. Un email de confirmation vous a été envoyé.';
-                    statusEl.className = 'contact-status is-success';
+                    showContactSuccess(statusEl);
                     contactForm.classList.add('is-complete');
                     contactForm.reset();
                     isSent = true;

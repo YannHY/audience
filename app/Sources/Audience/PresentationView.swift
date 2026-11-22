@@ -35,7 +35,7 @@ struct PresentationView: View {
                 GeometryReader { geometry in
                     let scale = min(max(geometry.size.width / 1200, 0.6), 1.8)
                     if inLobby, let url = store.participantURL(code: code) {
-                        LobbyView(title: quiz.title, code: code, url: url, participants: store.liveParticipants, scale: scale, participationActive: isLive)
+                        LobbyView(title: quiz.title, code: code, url: url, participants: store.liveParticipants, participationActive: isLive)
                     } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 28 * scale) {
@@ -524,7 +524,6 @@ struct LobbyView: View {
     let code: String
     let url: URL
     let participants: Int?
-    let scale: CGFloat
     var participationActive = true
     /// The participant page without the code, for people typing the address by hand.
     private var entryAddress: String {
@@ -533,14 +532,23 @@ struct LobbyView: View {
     }
     var body: some View {
         GeometryReader { geometry in
+            let fit = Self.fit(geometry.size)
             ScrollView {
-                // Choose from the available width: the long joining address must wrap,
-                // rather than pushing the QR code below the fold in a wide window.
-                lobbyLayout(horizontal: geometry.size.width >= 850)
+                lobbyLayout(horizontal: fit.horizontal, scale: fit.scale)
+                    // Centred in the window, instead of leaving the bottom half empty.
+                    .frame(minHeight: geometry.size.height)
             }
         }
     }
-    private func lobbyLayout(horizontal: Bool) -> some View {
+    /// The layout and scale that show the lobby largest in this space. Its content is about
+    /// 1160 × 660 points side by side at scale 1, and 700 × 1100 points stacked.
+    private static func fit(_ size: CGSize) -> (horizontal: Bool, scale: CGFloat) {
+        let side = min(size.width / 1160, size.height / 660)
+        let stacked = min(size.width / 700, size.height / 1100)
+        let horizontal = side >= stacked
+        return (horizontal, min(max(horizontal ? side : stacked, 0.5), 2.2))
+    }
+    private func lobbyLayout(horizontal: Bool, scale: CGFloat) -> some View {
         let layout = horizontal ? AnyLayout(HStackLayout(alignment: .center, spacing: 64 * scale)) : AnyLayout(VStackLayout(alignment: .leading, spacing: 24 * scale))
         return layout {
             VStack(alignment: .leading, spacing: 30 * scale) {
@@ -550,15 +558,15 @@ struct LobbyView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 VStack(alignment: .leading, spacing: 16 * scale) {
-                    step(1, Text("Scannez le QR code avec votre téléphone"))
-                    step(2, Text("ou ouvrez **\(entryAddress)** et saisissez le code"))
+                    step(1, scale: scale, Text("Scannez le QR code avec votre téléphone"))
+                    step(2, scale: scale, Text("ou ouvrez **\(entryAddress)** et saisissez le code"))
                 }
                 VStack(alignment: .leading, spacing: 2 * scale) {
                     Text("CODE").font(.system(size: 16 * scale, weight: .semibold)).tracking(2 * scale).foregroundStyle(.secondary)
                     Text(code).font(.system(size: 88 * scale, weight: .bold, design: .rounded).monospacedDigit())
                         .tracking(8 * scale).textSelection(.enabled)
                 }
-                if participationActive { participantBadge }
+                if participationActive { participantBadge(scale: scale) }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             if let image = qrCode(for: url) {
@@ -574,16 +582,16 @@ struct LobbyView: View {
         .padding(.horizontal, 60 * scale).padding(.vertical, 40 * scale)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    private func step(_ number: Int, _ text: Text) -> some View {
+    private func step(_ number: Int, scale: CGFloat, _ text: Text) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 14 * scale) {
             Text("\(number)").font(.system(size: 17 * scale, weight: .bold).monospacedDigit())
                 .foregroundStyle(.white)
                 .frame(width: 30 * scale, height: 30 * scale)
                 .background(Color.accentColor, in: .circle)
-            text.font(.system(size: 24 * scale))
+            text.font(.system(size: 24 * scale)).fixedSize(horizontal: false, vertical: true)
         }
     }
-    private var participantBadge: some View {
+    private func participantBadge(scale: CGFloat) -> some View {
         let count = participants ?? 0
         return HStack(spacing: 12 * scale) {
             Circle().fill(count > 0 ? Color.green : Color.secondary.opacity(0.5))

@@ -129,19 +129,22 @@ import AudienceCore
             try? NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?.write(to: directory.appending(path: "\(name).png"))
         }
         // The lobby scrolls, which ImageRenderer leaves blank: it is drawn in a borderless window instead.
+        // Wide, the shape of a presenter window, and portrait: the lobby must fill each one.
+        let lobbySizes: [(String, CGSize)] = [("7-lobby", CGSize(width: 1600, height: 911)), ("7-lobby-window", CGSize(width: 935, height: 680)), ("7-lobby-portrait", CGSize(width: 820, height: 1100))]
         if let url = RemoteClient.participantURL(code: "913244") {
-            let size = CGSize(width: 1600, height: 911)
-            let window = NSWindow(contentRect: CGRect(origin: CGPoint(x: 40, y: 40), size: size), styleMask: .borderless, backing: .buffered, defer: false)
-            window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
-            window.contentView = NSHostingView(rootView: LobbyView(title: "Le vocabulaire du théâtre", code: "913244", url: url, participants: 3, scale: 1.0)
-                .frame(width: size.width, height: size.height)
-                .background(dark ? Color(red: 32 / 255, green: 35 / 255, blue: 37 / 255) : Color.white))
-            window.orderFrontRegardless()
-            try? await Task.sleep(for: .seconds(1.5))
-            if let image = windowImage?(.null, 8, UInt32(window.windowNumber), 1)?.takeRetainedValue() {
-                try? NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?.write(to: directory.appending(path: "7-lobby.png"))
+            for (name, size) in lobbySizes {
+                let window = NSWindow(contentRect: CGRect(origin: CGPoint(x: 40, y: 40), size: size), styleMask: .borderless, backing: .buffered, defer: false)
+                window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
+                window.contentView = NSHostingView(rootView: LobbyView(title: "Le vocabulaire du théâtre", code: "913244", url: url, participants: 3)
+                    .frame(width: size.width, height: size.height)
+                    .background(dark ? Color(red: 32 / 255, green: 35 / 255, blue: 37 / 255) : Color.white))
+                window.orderFrontRegardless()
+                try? await Task.sleep(for: .seconds(1.5))
+                if let image = windowImage?(.null, 8, UInt32(window.windowNumber), 1)?.takeRetainedValue() {
+                    try? NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?.write(to: directory.appending(path: "\(name).png"))
+                }
+                window.orderOut(nil)
             }
-            window.orderOut(nil)
         }
         let question = Question(fields: ["type": .string("multiple"), "question": .string("Que désigne le mot « théâtre » ?"), "correctIndex": .number(1),
                                          "answers": .array([.string("Un lieu où l’on joue de la musique"), .string("Un endroit d’où l’on voit (des gradins)"), .string("Une salle où l’on récite des poèmes")])])
