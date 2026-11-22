@@ -131,16 +131,71 @@ def page(history):
 def site_release(entry, latest):
     when = (f'<time datetime="{escape(entry["date"])}">{french_date(entry["date"])}</time>'
             if entry.get('date') else '')
-    pill = '<span class="mac-release-pill">Dernière version</span>' if latest else ''
+    pill = '<span class="nv-pill">Dernière version</span>' if latest else ''
+    count = len(entry['notes'])
+    label = f'{count} nouveauté{"s" if count > 1 else ""}'
     items = ''.join(f'\n                            <li>{escape(note)}</li>' for note in entry['notes'])
-    return f'''                    <li class="mac-release mac-reveal">
-                        <div class="mac-release-head">
-                            <h3>Audience {escape(entry["version"])}</h3>{when}{pill}
-                        </div>
+    return f'''                <article class="nv-release{' is-latest' if latest else ''} mac-reveal">
+                    <header class="nv-meta">
+                        <p class="nv-app">Audience</p>
+                        <h2 class="nv-version">{escape(entry["version"])}</h2>
+                        {when}
+                        <p class="nv-count">{label}</p>
+                        {pill}
+                    </header>
+                    <div class="nv-card">
                         <ul>{items}
                         </ul>
-                    </li>
+                    </div>
+                </article>
 '''
+
+
+HISTORY_STYLE = '''
+        .nv-hero { padding-bottom: clamp(40px, 6vw, 64px); }
+        :root .page-mac .mac h1.nv-title { font-size: clamp(2.4rem, 6vw, 4.2rem); }
+        .nv-history { padding: clamp(24px, 4vw, 48px) 0 clamp(72px, 10vw, 120px); }
+        .nv-list { --nv-aside: 190px; --nv-gap: 72px; width: min(980px, calc(100% - 40px)); margin: 0 auto; }
+        .nv-release { position: relative; display: grid; grid-template-columns: var(--nv-aside) 1fr; column-gap: var(--nv-gap); padding-bottom: 44px; }
+        .nv-release::before { content: ''; position: absolute; left: calc(var(--nv-aside) + var(--nv-gap) / 2 - 1px); top: 0; bottom: 0; width: 2px; background: var(--mac-line); }
+        .nv-release:first-child::before { top: 22px; background: linear-gradient(180deg, var(--mac-accent), var(--mac-line) 220px); }
+        .nv-release:last-child::before { bottom: auto; height: 22px; }
+        .nv-release:first-child:last-child::before { display: none; }
+        .nv-release::after { content: ''; position: absolute; left: calc(var(--nv-aside) + var(--nv-gap) / 2 - 7px); top: 15px; width: 14px; height: 14px; border-radius: 50%; box-sizing: border-box; background: var(--mac-bg); border: 3px solid var(--mac-accent); }
+        .nv-release.is-latest::after { border: 0; background: var(--mac-accent); box-shadow: 0 0 0 6px color-mix(in srgb, var(--mac-accent) 18%, transparent); }
+        .nv-meta { text-align: right; padding-top: 4px; }
+        .nv-meta p { margin: 0; }
+        .nv-app { font-size: 0.85rem; font-weight: 600; color: var(--mac-ink-soft); text-transform: uppercase; letter-spacing: 0.08em; }
+        :root .page-mac .mac h2.nv-version { font-size: 2.6rem; font-weight: 700; line-height: 1.05; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; margin: 2px 0 6px; }
+        :root .page-mac .mac .is-latest h2.nv-version { background: linear-gradient(100deg, #4f46e5 0%, #7c3aed 45%, #db2777 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+        .nv-meta time { display: block; font-size: 0.95rem; color: var(--mac-ink); }
+        .nv-count { font-size: 0.85rem; color: var(--mac-ink-soft); }
+        .nv-pill { display: inline-block; margin-top: 12px; padding: 4px 12px; border-radius: 999px; background: color-mix(in srgb, var(--mac-accent) 14%, transparent); color: var(--mac-accent); font-size: 0.8rem; font-weight: 600; }
+        .nv-card { background: var(--mac-bg-alt); border: 1px solid var(--mac-line); border-radius: 22px; padding: 26px 30px 12px; }
+        .is-latest .nv-card { background: linear-gradient(var(--mac-card), var(--mac-card)) padding-box, linear-gradient(120deg, #4f46e5, #7c3aed 50%, #db2777) border-box; border: 1.5px solid transparent; box-shadow: 0 24px 60px -30px rgba(79, 70, 229, 0.45); }
+        .nv-card ul { list-style: none; margin: 0; padding: 0; }
+        .nv-card li { position: relative; padding-left: 34px; margin: 0 0 16px; font-size: 1.04rem; line-height: 1.55; color: var(--mac-ink); }
+        .nv-card li::before { content: ''; position: absolute; left: 0; top: 2px; width: 22px; height: 22px; border-radius: 50%; background: color-mix(in srgb, var(--mac-accent) 14%, transparent); }
+        .nv-card li::after { content: ''; position: absolute; left: 8px; top: 7px; width: 5px; height: 9px; border: solid var(--mac-accent); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+        :root.theme-dark .page-mac .mac .is-latest h2.nv-version { background-image: linear-gradient(100deg, #a5b4fc 0%, #c084fc 50%, #f472b6 100%); }
+        :root.theme-dark .is-latest .nv-card { background: linear-gradient(var(--mac-card), var(--mac-card)) padding-box, linear-gradient(120deg, #818cf8, #c084fc 50%, #f472b6) border-box; box-shadow: none; }
+        @media (prefers-color-scheme: dark) {
+            :root:not(.theme-light) .page-mac .mac .is-latest h2.nv-version { background-image: linear-gradient(100deg, #a5b4fc 0%, #c084fc 50%, #f472b6 100%); }
+            :root:not(.theme-light) .is-latest .nv-card { background: linear-gradient(var(--mac-card), var(--mac-card)) padding-box, linear-gradient(120deg, #818cf8, #c084fc 50%, #f472b6) border-box; box-shadow: none; }
+        }
+        @media (max-width: 760px) {
+            .nv-list { width: calc(100% - 32px); }
+            .nv-release { grid-template-columns: 1fr; padding: 0 0 36px 30px; }
+            .nv-release::before { left: 6px; }
+            .nv-release::after { left: 0; top: 13px; }
+            .nv-meta { text-align: left; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; margin-bottom: 14px; padding-top: 0; }
+            .nv-app { flex-basis: 100%; }
+            :root .page-mac .mac h2.nv-version { font-size: 2rem; margin: 0; }
+            .nv-pill { margin-top: 0; }
+            .nv-card { padding: 20px 20px 6px; border-radius: 18px; }
+            .nv-card li { font-size: 1rem; }
+        }
+'''.rstrip()
 
 
 def site_page(history):
@@ -175,19 +230,22 @@ def site_page(history):
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="styles.css?v=20261121y">
     <link rel="stylesheet" href="app.css?v={SITE_CSS_VERSION}">
+    <style>
+{HISTORY_STYLE}
+    </style>
 </head>
 <body class="page-mac">
     <div id="accountBar" class="account-bar"></div>
 
     <main class="mac">
-        <section class="mac-hero mac-history-hero">
+        <section class="mac-hero nv-hero">
             <div class="mac-wrap">
                 <picture>
                     <source srcset="img/app/icone-sombre.png" media="(prefers-color-scheme: dark)" data-dark-source>
                     <img class="mac-hero-icon" src="img/app/icone.png" alt="" width="128" height="128">
                 </picture>
                 <p class="mac-eyebrow">Audience pour Mac et iPad</p>
-                <h1 class="mac-hero-title">Toutes les<br><span class="mac-gradient">nouveautés</span></h1>
+                <h1 class="mac-hero-title nv-title">Toutes les<br><span class="mac-gradient">nouveautés</span></h1>
                 <p class="mac-lede">L’évolution d’Audience, version après version. Les mises à jour s’installent automatiquement depuis l’application.</p>
                 <div class="mac-cta">
                     <a class="mac-button" href="mac/Audience-macOS.zip" download>
@@ -199,11 +257,9 @@ def site_page(history):
             </div>
         </section>
 
-        <section class="mac-section mac-section-alt">
-            <div class="mac-wrap">
-                <ol class="mac-timeline">
-{releases}                </ol>
-            </div>
+        <section class="nv-history" aria-label="Historique des versions">
+            <div class="nv-list">
+{releases}            </div>
         </section>
     </main>
 
