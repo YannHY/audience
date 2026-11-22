@@ -137,6 +137,11 @@ printf '\\nExport terminé. Aucun téléversement ni invitation TestFlight n’a
                 raise FileExistsError(f'Archive déjà présente : {archived}')
             archived.parent.mkdir(parents=True, exist_ok=True)
             previous.rename(archived)
+    # A copy of mac/ at the site root mirrors /apps/audience/mac/ on the server, ready to drag and drop.
+    server_mac = SITE / 'mac'
+    if server_mac.exists():
+        shutil.rmtree(server_mac)
+    shutil.copytree(mac, server_mac, ignore=shutil.ignore_patterns('.*'))
     # Rebuilding the source ZIP must also refresh the handoff's integrity manifest.
     checksums = destination / 'SHA256SUMS.txt'
     files = sorted(path for path in destination.rglob('*')

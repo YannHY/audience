@@ -6,3 +6,4 @@ audience-secrets.php
 app/build/
 app/.build/
 output/
+mac/

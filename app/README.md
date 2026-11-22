@@ -78,7 +78,7 @@ python3 scripts/prepare-publication.py
 
 La préparation vérifie que les versions Mac et iPad correspondent et contrôle la signature de l’archive iPad avant de la compresser. Si l’export `build/travail/TestFlight/Export/Audience.ipa` est présent, sa version est également vérifiée avant son ajout au dossier de publication.
 
-Le dossier `build/Publication-1.3.2-9/mac/` contient uniquement les fichiers de téléchargement et de mise à jour Mac : téléchargement courant, archives versionnées, correctifs Sparkle, notes de version, flux et sources natives correspondantes. Déposer ce dossier `mac` dans `/apps/audience/` sur le serveur et publier `appcast.xml` en dernier. Les pages, feuilles de style, scripts et images du site existant ne sont pas recopiés dans le dossier de publication.
+Le dossier `build/Publication-1.3.2-9/mac/` contient uniquement les fichiers de téléchargement et de mise à jour Mac : téléchargement courant, archives versionnées, correctifs Sparkle, notes de version, flux et sources natives correspondantes. La préparation en place aussi une copie au premier niveau du site, dans `audience/mac/` : c’est ce dossier qu’il suffit de glisser dans `/apps/audience/` sur le serveur, en publiant `appcast.xml` en dernier. Il est remplacé à chaque nouvelle version et exclu de Git. Les pages, feuilles de style, scripts et images du site existant ne sont pas recopiés dans le dossier de publication.
 
 Pour préparer l’iPad avec une configuration App Store Connect distincte de celle des appareils de développement :
 
