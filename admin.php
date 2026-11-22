@@ -499,7 +499,7 @@ function admin_list_query(array $overrides = []): string {
 </div>
 <script src="site-nav.js?v=20261121v"></script>
 <script src="site-footer.js?v=20261121b"></script>
-<script src="theme.js"></script>
+<script src="theme.js?v=20261122a"></script>
 <script src="client-common.js?v=20261121s"></script>
 <script>
     document.addEventListener('submit', async function(event) {

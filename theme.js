@@ -1,7 +1,8 @@
 const THEME_STORAGE_KEY = 'audience-theme';
+let themePreference = null;
 
 function systemPrefersDark() {
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
 }
 
 function getEffectiveDarkMode() {
@@ -15,27 +16,24 @@ function getEffectiveDarkMode() {
     return systemPrefersDark();
 }
 
-function applyThemeFromStorage() {
+function applyDarkMode(isDark) {
     const root = document.documentElement;
+    root.classList.toggle('theme-dark', isDark);
+    root.classList.toggle('theme-light', !isDark);
+    root.style.colorScheme = isDark ? 'dark' : 'light';
+}
+
+function applyThemeFromStorage() {
     try {
         const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-
-        root.classList.remove('theme-dark', 'theme-light');
-
-        if (savedTheme === 'dark') {
-            root.classList.add('theme-dark');
-            return true;
-        }
-
-        if (savedTheme === 'light') {
-            root.classList.add('theme-light');
-            return false;
-        }
+        themePreference = savedTheme === 'dark' || savedTheme === 'light' ? savedTheme : null;
     } catch (_) {
-        root.classList.remove('theme-dark', 'theme-light');
+        themePreference = null;
     }
 
-    return systemPrefersDark();
+    const isDark = themePreference === null ? systemPrefersDark() : themePreference === 'dark';
+    applyDarkMode(isDark);
+    return isDark;
 }
 
 function updateThemeToggleLabel(button, isDark) {
@@ -59,11 +57,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (window.matchMedia) {
         const darkMedia = window.matchMedia('(prefers-color-scheme: dark)');
         darkMedia.addEventListener('change', function() {
-            const root = document.documentElement;
-            if (root.classList.contains('theme-dark') || root.classList.contains('theme-light')) {
+            // The classes describe the active theme; only a manual choice overrides the system.
+            if (themePreference !== null) {
                 return;
             }
-            const autoDark = getEffectiveDarkMode();
+            const autoDark = darkMedia.matches;
+            applyDarkMode(autoDark);
 
             updateThemeToggleLabel(button, autoDark);
         });
@@ -74,19 +73,18 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     button.addEventListener('click', function() {
-        const root = document.documentElement;
         const currentlyDark = getEffectiveDarkMode();
         const nextDark = !currentlyDark;
+        themePreference = nextDark ? 'dark' : 'light';
 
         button.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
         button.style.transform = 'rotate(360deg) scale(0.85)';
 
         setTimeout(function() {
-            root.classList.toggle('theme-dark', nextDark);
-            root.classList.toggle('theme-light', !nextDark);
+            applyDarkMode(nextDark);
 
             try {
-                localStorage.setItem(THEME_STORAGE_KEY, nextDark ? 'dark' : 'light');
+                localStorage.setItem(THEME_STORAGE_KEY, themePreference);
             } catch (_) {
                 // ignore storage issues
             }

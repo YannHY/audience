@@ -154,6 +154,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <footer class="footer" data-site-footer></footer>
     <script src="site-nav.js?v=20261121v"></script>
     <script src="site-footer.js?v=20261121b"></script>
-    <script src="theme.js"></script>
+    <script src="theme.js?v=20261122a"></script>
 </body>
 </html>
