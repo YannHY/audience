@@ -42,6 +42,8 @@ if [[ -e "$UPDATES/$NAME" ]] && ! cmp -s "$ARCHIVE" "$UPDATES/$NAME"; then
   exit 1
 fi
 cp "$ARCHIVE" "$UPDATES/$NAME"
+# Chaque page de notes reprend tout l’historique (Sparkle n’affiche que la plus récente).
+python3 "$APP_DIR/scripts/release-notes.py" "$UPDATES" --max-build "$BUILD"
 "$SPARKLE_BIN/generate_appcast" --account "$ACCOUNT" \
   --download-url-prefix "$PREFIX" \
   --link 'https://www.ralentirtravaux.com/apps/audience/' "$UPDATES"

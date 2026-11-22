@@ -1,0 +1,42 @@
+[
+  {
+    "version": "1.3.3",
+    "build": 10,
+    "date": "2026-11-22",
+    "notes": [
+      "La salle d’attente occupe désormais toute la fenêtre : le code et le QR code s’agrandissent selon la largeur et la hauteur disponibles, et restent centrés.",
+      "Dans une fenêtre haute ou en portrait, le code et le QR code s’affichent l’un sous l’autre pour rester lisibles de loin.",
+      "L’adresse à saisir pour rejoindre le questionnaire n’est plus tronquée."
+    ]
+  },
+  {
+    "version": "1.3.2",
+    "build": 9,
+    "date": "2026-11-21",
+    "notes": [
+      "La présentation affiche d’abord le code et le QR code pour rejoindre le questionnaire. La première question apparaît seulement après l’action du présentateur.",
+      "La participation en direct se prépare depuis la salle d’attente ; la première question et son minuteur démarrent avec « Commencer ».",
+      "La disposition de la salle d’attente garde le code et le QR code côte à côte dans les fenêtres larges."
+    ]
+  },
+  {
+    "version": "1.3.1",
+    "build": 8,
+    "date": "2026-11-21",
+    "notes": [
+      "Lecture des vidéos YouTube dans l’éditeur et la présentation, avec prise en compte des limites de début et de fin.",
+      "Amélioration de la compatibilité des textes et des réponses des questionnaires importés.",
+      "Améliorations de la bibliothèque et de la synchronisation."
+    ]
+  },
+  {
+    "version": "1.3.0",
+    "build": 7,
+    "date": "2026-11-21",
+    "notes": [
+      "Mises à jour automatiques : Audience vérifie chaque jour la présence d’une nouvelle version, et la commande « Rechercher les mises à jour… » est disponible dans le menu Audience.",
+      "Les recherches et le redémarrage sont différés pendant une session en direct, et vos données sont enregistrées avant l’installation.",
+      "Audience devient un logiciel libre, publié sous licence GNU GPL v3."
+    ]
+  }
+]
