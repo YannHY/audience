@@ -49,6 +49,7 @@ struct IPadSettingsView: View {
                             .disabled(store.syncing || store.busy || store.liveCode != nil)
                     }
                 }
+                AIAssistantsSection()
                 Section("Sauvegardes") {
                     Text("Les questionnaires sont enregistrés automatiquement sur cet iPad.")
                         .font(.callout).foregroundStyle(.secondary)
@@ -56,9 +57,7 @@ struct IPadSettingsView: View {
                     Button("Exporter la bibliothèque…", systemImage: "square.and.arrow.up") { store.exportBackup() }
                 }
                 Section {
-                    Link("Aide Audience", destination: URL(string: "https://www.ralentirtravaux.com/apps/audience/aide.html")!)
-                    Text("Les synthèses Ollama sont disponibles dans l’application Mac.")
-                        .font(.caption).foregroundStyle(.secondary)
+                    NavigationLink { HelpView() } label: { Label("Aide Audience", systemImage: "questionmark.circle") }
                 }
             }
             .navigationTitle("Réglages")

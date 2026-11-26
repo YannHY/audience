@@ -122,7 +122,12 @@ final class ArchiveWriter: @unchecked Sendable {
     var renamingFolder: String?
     private(set) var readOnly = false
 
-    let remote = RemoteClient()
+    /// An expired website session is renewed with the keychain password, without bothering the user.
+    let remote = RemoteClient(savedCredentials: {
+        let email = SavedCredentials.email
+        guard !email.isEmpty, let password = SavedCredentials.password(for: email) else { return nil }
+        return (email, password)
+    })
     let dataURL: URL
     @ObservationIgnored private let writer: ArchiveWriter
     @ObservationIgnored private var generation = 0
@@ -608,7 +613,21 @@ final class ArchiveWriter: @unchecked Sendable {
         guard !busy else { return }
         busy = true; defer { busy = false }
         do { try await action() }
-        catch is CancellationError {} catch { report(error.localizedDescription) }
+        catch is CancellationError {}
+        catch AudienceError.sessionExpired { await sessionEnded() }
+        catch { report(error.localizedDescription) }
+    }
+    /// The website's session ended and the saved password could not renew it (offline, password changed,
+    /// none saved). The app returns to the signed-out state so Settings offers to sign in again,
+    /// without forgetting anything: the saved password is retried when the app becomes active.
+    private func sessionEnded() async {
+        guard connected else { return }
+        scheduledSync?.cancel()
+        await remote.disconnect()
+        connected = false; syncError = nil; termsPending = false
+        let email = SavedCredentials.email
+        savedLoginPending = await Task.detached { !email.isEmpty && SavedCredentials.password(for: email) != nil }.value
+        report(AudienceError.sessionExpired.localizedDescription)
     }
     private func localChange() {
         editRevision += 1
@@ -659,6 +678,7 @@ final class ArchiveWriter: @unchecked Sendable {
         connected = false
         accountName = try await remote.connect(address: RemoteClient.siteURL.absoluteString, email: email, password: password)
         let account = try await remote.accountIdentity()
+        let sameAccount = archive.synchronization.activeAccount == account
         guard commit({ archive in
             archive.synchronization.activeAccount = account
             for code in archive.quizzes.keys where archive.synchronization.owners[code] == nil {
@@ -667,7 +687,8 @@ final class ArchiveWriter: @unchecked Sendable {
         }) else { await remote.disconnect(); return }
         connected = true
         termsPending = await remote.needsTermsAcceptance()
-        sidebar = .all; search = ""; selection = []
+        // Signing back into the same account keeps the questionnaire being edited on screen.
+        if !sameAccount { sidebar = .all; search = ""; selection = [] }
         syncError = nil; lastFullRefresh = nil
     }
     /// Records the acceptance on the website, then starts the synchronization it was holding.
@@ -719,6 +740,8 @@ final class ArchiveWriter: @unchecked Sendable {
                 lastSyncAt = Date()
             } else if showErrors, let syncError { self.report(syncError) }
         } catch is CancellationError {
+        } catch AudienceError.sessionExpired {
+            await sessionEnded()
         } catch {
             syncError = error.localizedDescription
             if showErrors { self.report(error.localizedDescription) }

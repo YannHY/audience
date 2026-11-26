@@ -6,6 +6,24 @@ typealias PlatformImage = NSImage
 import UIKit
 typealias PlatformImage = UIImage
 #endif
+#if SWIFT_PACKAGE
+import AudienceCore
+#endif
+
+extension RichText {
+    /// A statement with its bold, italic and underlined parts, for Text. The size and weight stay the view's.
+    static func attributed(_ text: String) -> AttributedString {
+        runs(text).reduce(into: AttributedString()) { result, run in
+            var piece = AttributedString(run.text)
+            var intent: InlinePresentationIntent = []
+            if run.bold { intent.insert(.stronglyEmphasized) }
+            if run.italic { intent.insert(.emphasized) }
+            if !intent.isEmpty { piece.inlinePresentationIntent = intent }
+            if run.underline { piece.swiftUI.underlineStyle = .single }
+            result += piece
+        }
+    }
+}
 
 extension Image {
     init(platformImage: PlatformImage) {
@@ -24,6 +42,32 @@ enum PlatformClipboard {
         NSPasteboard.general.setString(text, forType: .string)
         #else
         UIPasteboard.general.string = text
+        #endif
+    }
+}
+
+/// Width shared by the list columns (sidebar, questionnaires, questions) so they line up as one grid.
+enum IPadColumn {
+    static let width: CGFloat = 280
+    static let maximum: CGFloat = 380
+}
+
+extension View {
+    func platformHoverEffect(lift: Bool = false) -> some View {
+        #if os(iOS)
+        hoverEffect(lift ? .lift : .highlight)
+        #else
+        self
+        #endif
+    }
+
+    func codeEntryField(url: Bool = false) -> some View {
+        #if os(iOS)
+        textInputAutocapitalization(.never)
+            .keyboardType(url ? .URL : .default)
+            .autocorrectionDisabled()
+        #else
+        autocorrectionDisabled()
         #endif
     }
 }

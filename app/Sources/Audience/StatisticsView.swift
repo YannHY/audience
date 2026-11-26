@@ -45,6 +45,7 @@ struct StatisticsView: View {
                         .frame(maxWidth: .infinity, minHeight: 230)
                 } else {
                     overview(stats)
+                    AISynthesisSection(quiz: quiz, statistics: stats)
                     #if os(macOS)
                     synthesisSection(stats)
                     #endif

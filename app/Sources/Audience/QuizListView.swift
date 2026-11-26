@@ -108,6 +108,27 @@ struct QuizListView: View {
 
 #endif
 
+extension Quiz {
+    /// The most frequent question kind gives a questionnaire its symbol.
+    var dominantSymbol: String {
+        let counts = Dictionary(grouping: questions.map(\.kind), by: { $0 }).mapValues(\.count)
+        guard let kind = counts.max(by: { $0.value != $1.value ? $0.value < $1.value : $0.key.rawValue > $1.key.rawValue })?.key else {
+            return "doc.text"
+        }
+        return switch kind {
+        case .multiple: "list.bullet"
+        case .checkbox: "checklist"
+        case .open: "text.alignleft"
+        case .wordcloud: "cloud.fill"
+        case .rating: "star.fill"
+        case .cloze: "text.badge.plus"
+        case .video: "play.fill"
+        case .ranking: "list.number"
+        case .labelimage: "photo.fill"
+        }
+    }
+}
+
 struct QuizRow: View {
     let store: LibraryStore
     let quiz: Quiz
@@ -122,7 +143,7 @@ struct QuizRow: View {
         let tint = store.displayColor(of: quiz)?.color
         let folder = showsFolder ? store.folder(of: quiz) : nil
         HStack(alignment: .top, spacing: 12) {
-            QuizTile(symbol: dominantSymbol, tint: tint)
+            QuizTile(symbol: quiz.dominantSymbol, tint: tint)
             VStack(alignment: .leading, spacing: 3) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(quiz.title.isEmpty ? "Sans titre" : quiz.title).font(.headline).lineLimit(2)
@@ -159,25 +180,6 @@ struct QuizRow: View {
         }
         .padding(.vertical, 6)
         .accessibilityElement(children: .combine)
-    }
-
-    /// The most frequent question kind gives the tile its symbol.
-    private var dominantSymbol: String {
-        let counts = Dictionary(grouping: quiz.questions.map(\.kind), by: { $0 }).mapValues(\.count)
-        guard let kind = counts.max(by: { $0.value != $1.value ? $0.value < $1.value : $0.key.rawValue > $1.key.rawValue })?.key else {
-            return "doc.text"
-        }
-        return switch kind {
-        case .multiple: "list.bullet"
-        case .checkbox: "checklist"
-        case .open: "text.alignleft"
-        case .wordcloud: "cloud.fill"
-        case .rating: "star.fill"
-        case .cloze: "text.badge.plus"
-        case .video: "play.fill"
-        case .ranking: "list.number"
-        case .labelimage: "photo.fill"
-        }
     }
 
     private var relativeDate: String {

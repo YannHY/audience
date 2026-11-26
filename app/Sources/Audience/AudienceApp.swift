@@ -37,6 +37,11 @@ struct AudienceApp: App {
         .windowStyle(.hiddenTitleBar)
         .commandsRemoved()
 
+        Window("Aide Audience", id: "help") {
+            HelpView().preferredColorScheme(colorScheme)
+        }
+        .defaultSize(width: 900, height: 680)
+
         Settings {
             SettingsView(store: store)
                 .environment(localAI)
@@ -102,7 +107,8 @@ struct LibraryCommands: Commands {
             Button("Afficher les données dans le Finder", action: store.revealData)
         }
         CommandGroup(replacing: .help) {
-            Link("Aide Audience", destination: URL(string: "https://www.ralentirtravaux.com/apps/audience/aide.html")!)
+            Button("Aide Audience") { openWindow(id: "help") }
+                .keyboardShortcut("?", modifiers: .command)
         }
     }
 }

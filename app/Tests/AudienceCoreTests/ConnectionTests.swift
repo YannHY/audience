@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import Synchronization
 @testable import AudienceCore
 
 struct ConnectionTests {
@@ -66,6 +67,31 @@ struct ConnectionTests {
         #expect(await !isRejection("limited.example"))
         #expect(await !isRejection("offline.example"))
     }
+    @Test func expiredSessionIsRenewedWithTheSavedPasswordAndTheRequestRetried() async throws {
+        let client = RemoteClient(configurationFactory: {
+            let config = RemoteClient.sessionConfiguration()
+            config.protocolClasses = [ConnectionProtocol.self]
+            return config
+        }, savedCredentials: { ("synthetic@example.org", "synthetic") })
+        _ = try await client.connect(address: "https://expired.example/apps/audience/", email: "synthetic@example.org", password: "synthetic")
+        let identity = try await client.accountIdentity()
+        try await client.acceptTerms() // HTTP 401 first, accepted after the second sign-in.
+        #expect(ConnectionProtocol.logins(for: "expired.example") == 2)
+        #expect(try await client.accountIdentity() == identity)
+        await client.disconnect()
+    }
+    @Test func expiredSessionWithoutSavedPasswordAsksToSignInAgain() async throws {
+        let client = client()
+        _ = try await client.connect(address: "https://unsaved.example/apps/audience/", email: "synthetic@example.org", password: "synthetic")
+        do {
+            try await client.acceptTerms()
+            Issue.record("The request should report the expired session")
+        } catch AudienceError.sessionExpired {
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+        #expect(ConnectionProtocol.logins(for: "unsaved.example") == 1)
+    }
     @Test func rateLimitsAreNotReportedAsInvalidCredentials() async {
         await expectFailure(host: "limited.example", containing: "Trop de tentatives")
     }
@@ -88,6 +114,10 @@ struct ConnectionTests {
 
 /// No real server or real credentials are used in these connection fixtures.
 private final class ConnectionProtocol: URLProtocol, @unchecked Sendable {
+    /// Sign-ins per host: on expired.example and unsaved.example, the first session expires at once.
+    private static let signIns = Mutex<[String: Int]>([:])
+    static func logins(for host: String) -> Int { signIns.withLock { $0[host] ?? 0 } }
+
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
     override func stopLoading() {}
@@ -100,6 +130,7 @@ private final class ConnectionProtocol: URLProtocol, @unchecked Sendable {
         var status = 200
         var body = "<html><body>Audience</body></html>"
         if url.lastPathComponent == "login.php" {
+            Self.signIns.withLock { $0[host, default: 0] += 1 }
             #expect(request.httpMethod == "POST")
             #expect(request.value(forHTTPHeaderField: "Origin") == "https://\(host)")
             #expect(request.value(forHTTPHeaderField: "Content-Type") == "application/x-www-form-urlencoded")
@@ -115,7 +146,11 @@ private final class ConnectionProtocol: URLProtocol, @unchecked Sendable {
         } else if url.lastPathComponent == "accept_terms.php" {
             #expect(request.httpMethod == "POST")
             #expect(request.value(forHTTPHeaderField: "Origin") == "https://\(host)")
-            body = #"{"success":true}"#
+            if (host == "expired.example" || host == "unsaved.example") && Self.logins(for: host) < 2 {
+                status = 401; body = #"{"success":false,"error":"Authentification requise"}"#
+            } else {
+                body = #"{"success":true}"#
+            }
         } else if url.lastPathComponent == "auth_me.php" {
             if host == "outdated.example" { status = 404; body = "Not Found" }
             else if host == "terms.example" { body = #"{"success":true,"user":{"id":3,"username":"Nouveau","termsAccepted":false}}"# }

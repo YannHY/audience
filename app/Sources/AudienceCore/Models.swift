@@ -215,7 +215,12 @@ public enum AudienceError: LocalizedError {
     case message(String)
     /// The website refused the e-mail or password, as opposed to a network or server failure.
     case rejectedCredentials(String)
+    /// The website's session ended (HTTP 401) and the saved password could not open a new one.
+    case sessionExpired
     public var errorDescription: String? {
-        switch self { case .message(let message), .rejectedCredentials(let message): message }
+        switch self {
+        case .message(let message), .rejectedCredentials(let message): message
+        case .sessionExpired: "La session du site Audience a expiré. Reconnectez-vous dans Réglages → Compte."
+        }
     }
 }

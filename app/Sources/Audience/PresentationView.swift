@@ -40,7 +40,7 @@ struct PresentationView: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 28 * scale) {
                             header(quiz)
-                            Text(question.text.plainText)
+                            Text(RichText.attributed(question["question"].string))
                                 .font(.system(size: 38 * scale, weight: .semibold))
                                 .textSelection(.enabled)
                                 .fixedSize(horizontal: false, vertical: true)

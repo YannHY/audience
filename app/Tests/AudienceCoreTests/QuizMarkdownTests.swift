@@ -3,6 +3,14 @@ import Testing
 @testable import AudienceCore
 
 struct QuizMarkdownTests {
+    @Test func assistantTemplateImportsEveryFormat() throws {
+        let questions = try QuizMarkdown.parse(QuizMarkdown.generationExample).questions
+        #expect(questions.map(\.kind) == [.multiple, .multiple, .multiple, .cloze, .labelimage, .ranking, .video, .open, .open, .checkbox, .wordcloud, .rating, .multiple])
+        #expect(questions[4]["legendLabels"].array.count == 5)
+        #expect(questions[8]["responseFormat"].string == "math")
+        #expect(questions[12].answers[1].contains(#"\hat{y}"#))
+    }
+
     /// Same layout as `audience_export_build_quiz_markdown` in lib/quiz_export.php.
     static let export = #"""
     # Révision \| chapitre 2

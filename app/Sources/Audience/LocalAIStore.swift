@@ -13,6 +13,7 @@ final class LocalAIStore {
         let date: Date
     }
     var syntheses: [String: Synthesis] = [:]
+    var assistantSyntheses: [String: Synthesis] = [:]
     var models: [LocalModel] = []
     var selectedModel: String {
         didSet { UserDefaults.standard.set(selectedModel, forKey: "statisticsModel") }

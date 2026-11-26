@@ -16,15 +16,24 @@ struct AudienceIPadApp: App {
     }
 }
 
+/// Width shared by the iPad list columns (sidebar, questionnaires, questions) so they line up as one grid.
+enum IPadColumn {
+    static let width: CGFloat = 280
+    static let maximum: CGFloat = 380
+}
+
 struct IPadLibraryView: View {
     @Bindable var store: LibraryStore
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.horizontalSizeClass) private var sizeClass
+    @ScaledMetric(relativeTo: .body) private var columnWidth = IPadColumn.width
     @AppStorage("librarySort") private var sort: QuizSort = .modified
     @State private var column: NavigationSplitViewColumn = .content
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
     @State private var expandedColumnVisibility: NavigationSplitViewVisibility = .all
     @State private var mode = 0
+    @State private var home = ["home", "assistant", nil].contains(ProcessInfo.processInfo.environment["AUDIENCE_IPAD_PREVIEW"])
+    @State private var assistant = false
     @State private var showSettings = false
     @State private var showInspector = false
     @State private var presentation: PresentationSelection?
@@ -35,6 +44,50 @@ struct IPadLibraryView: View {
     }
 
     var body: some View {
+        Group {
+            if home {
+                IPadHomeView(
+                    store: store,
+                    newQuiz: { store.sidebar = .all; store.create(); openEditor() },
+                    createWithAI: { assistant = true },
+                    openLibrary: showLibrary,
+                    openQuiz: { code in store.sidebar = .all; store.selection = [code]; openEditor() },
+                    showImport: { store.importing = true },
+                    showSettings: { showSettings = true })
+                    .transition(.opacity)
+            } else { library.transition(.opacity) }
+        }
+        .sheet(isPresented: $assistant) { QuizCreationView(store: store) { assistant = false; openEditor() } }
+        .sheet(isPresented: $showSettings) { IPadSettingsView(store: store) }
+        .sheet(isPresented: Binding(get: { !showSettings && !assistant && store.importing }, set: { if !$0 && !showSettings { store.importing = false } })) { ImportSheet(store: store) }
+        .modifier(AudienceDialogs(store: store, active: !showSettings && !assistant && presentation == nil && !showInspector && !store.importing))
+        .overlay(alignment: .bottom) {
+            if let notice = store.notice {
+                Text(notice).font(.callout).padding(14)
+                    .glassEffect(.regular, in: .capsule).padding(.bottom, home ? 28 : 60)
+                    .accessibilityAddTraits(.updatesFrequently)
+                    .task(id: notice) {
+                        try? await Task.sleep(for: .seconds(4))
+                        if store.notice == notice { store.notice = nil }
+                    }
+            }
+        }
+        .task {
+            #if DEBUG
+            if let screen = ProcessInfo.processInfo.environment["AUDIENCE_IPAD_PREVIEW"] { preparePreview(screen); return }
+            #endif
+            await store.connectSaved()
+        }
+        .task { await store.automaticSyncLoop() }
+        .onChange(of: scenePhase) {
+            if scenePhase == .background { store.flush() }
+            if scenePhase == .active { Task { if store.savedLoginPending { await store.connectSaved() }; await store.synchronize() } }
+        }
+    }
+
+    private func openEditor() { mode = 0; home = false; foldColumns() }
+
+    private var library: some View {
         NavigationSplitView(columnVisibility: $columnVisibility, preferredCompactColumn: $column) {
             IPadSidebar(store: store)
         } content: {
@@ -53,8 +106,6 @@ struct IPadLibraryView: View {
                     .disabled(store.readOnly)
             }
         }
-        .sheet(isPresented: $showSettings) { IPadSettingsView(store: store) }
-        .sheet(isPresented: Binding(get: { !showSettings && store.importing }, set: { if !$0 && !showSettings { store.importing = false } })) { ImportSheet(store: store) }
         .sheet(isPresented: $showInspector) {
             NavigationStack {
                 if let quiz = store.selectedQuiz {
@@ -68,42 +119,11 @@ struct IPadLibraryView: View {
             PresentationView(store: store, code: item.id)
                 .interactiveDismissDisabled(store.liveCode != nil)
         }
-        .modifier(AudienceDialogs(store: store, active: !showSettings && presentation == nil && !showInspector && !store.importing))
         .confirmationDialog("Supprimer définitivement ces questionnaires et leurs réponses ?", isPresented: Binding(
             get: { !purgeCodes.isEmpty }, set: { if !$0 { purgeCodes = [] } }), titleVisibility: .visible) {
                 Button("Supprimer définitivement", role: .destructive) { store.purge(purgeCodes); purgeCodes = [] }
             }
-        .overlay(alignment: .bottom) {
-            if let notice = store.notice {
-                Text(notice).font(.callout).padding(14)
-                    .glassEffect(.regular, in: .capsule).padding(.bottom, 60)
-                    .accessibilityAddTraits(.updatesFrequently)
-                    .task(id: notice) {
-                        try? await Task.sleep(for: .seconds(4))
-                        if store.notice == notice { store.notice = nil }
-                    }
-            }
-        }
-        .task {
-            #if DEBUG
-            if let screen = ProcessInfo.processInfo.environment["AUDIENCE_IPAD_PREVIEW"] {
-                preparePreview(screen)
-                return
-            }
-            #endif
-            await store.connectSaved()
-        }
-        .task { await store.automaticSyncLoop() }
-        .onChange(of: store.selection) { if store.selectedQuiz != nil { column = .detail } }
-        .onChange(of: scenePhase) {
-            if scenePhase == .background { store.flush() }
-            if scenePhase == .active {
-                Task {
-                    if store.savedLoginPending { await store.connectSaved() }
-                    await store.synchronize()
-                }
-            }
-        }
+        .onChange(of: store.selection) { foldColumns() }
     }
 
     private var quizList: some View {
@@ -120,7 +140,11 @@ struct IPadLibraryView: View {
             }
         }
         .navigationTitle(store.title(of: store.sidebar ?? .all))
-        .navigationSplitViewColumnWidth(min: 260, ideal: 320, max: 420)
+        .navigationSplitViewColumnWidth(min(columnWidth, IPadColumn.maximum))
+        // Pull to refresh replaces the sync button: the status itself is in Settings.
+        .refreshable {
+            if store.connected { await store.synchronize(showErrors: true) } else { await store.connectSaved() }
+        }
         .overlay {
             if quizzes.isEmpty {
                 if store.syncing { ProgressView("Chargement…") }
@@ -180,6 +204,7 @@ struct IPadLibraryView: View {
             .navigationTitle(quiz.title.isEmpty ? "Sans titre" : quiz.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                detailHomeButton
                 if !quiz.isDeleted {
                     ToolbarItem(placement: .primaryAction) {
                         Button("Présenter", systemImage: "play.fill") { present(quiz) }
@@ -199,11 +224,36 @@ struct IPadLibraryView: View {
             } description: { Text("Sélectionnez un questionnaire ou créez-en un nouveau.") } actions: {
                 Button("Nouveau questionnaire", action: store.create).buttonStyle(.glassProminent).disabled(store.readOnly)
             }
+            .toolbar { detailHomeButton }
         }
     }
 
+    /// Back to the home screen. It sits in the editor column, which has room for its name and stays
+    /// visible when the sidebar is folded; the selection is kept, so coming back resumes the same questionnaire.
+    @ToolbarContentBuilder private var detailHomeButton: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
+            Button { withAnimation(.smooth) { home = true } } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "chevron.backward").font(.body.weight(.semibold))
+                    Text("Accueil")
+                }
+            }
+            .keyboardShortcut("[", modifiers: .command)
+            .accessibilityHint("Retourne à l’écran d’accueil.")
+        }
+    }
+
+    private func showLibrary() {
+        store.selection = []
+        column = .content
+        if sizeClass == .regular { columnVisibility = .all }
+        withAnimation(.smooth) { home = false }
+    }
+
     private var libraryToggle: some View {
-        Button(columnVisibility == .detailOnly ? "Afficher les questionnaires" : "Masquer les questionnaires", systemImage: "sidebar.left") {
+        // Distinct from the system "sidebar.left" button that brings back the folded sidebar next to it.
+        Button(columnVisibility == .detailOnly ? "Afficher les questionnaires" : "Masquer les questionnaires",
+               systemImage: "rectangle.lefthalf.inset.filled.arrow.left") {
             withAnimation {
                 if columnVisibility == .detailOnly {
                     columnVisibility = expandedColumnVisibility
@@ -217,10 +267,34 @@ struct IPadLibraryView: View {
         .keyboardShortcut("l", modifiers: [.command, .shift])
     }
 
+    /// Opening a questionnaire folds the sidebar so the editor gets the room; with nothing open, it comes back.
+    /// Only the full three-column layout is folded, so a library the user hid stays hidden.
+    private func foldColumns() {
+        let open = store.selectedQuiz != nil
+        if open { column = .detail }
+        guard sizeClass == .regular else { return }
+        if open, columnVisibility == .all {
+            withAnimation { columnVisibility = .doubleColumn }
+        } else if !open, columnVisibility == .doubleColumn {
+            withAnimation { columnVisibility = .all }
+        }
+    }
+
     #if DEBUG
     /// Isolated simulator fixtures, using a separate library supplied by the build scripts.
     private func preparePreview(_ screen: String) {
         guard ProcessInfo.processInfo.environment["AUDIENCE_LIBRARY"] != nil else { return }
+        if screen == "home" || screen == "assistant" {
+            seedHomePreview()
+            if screen == "assistant" {
+                // AUDIENCE_IPAD_FAKEKEY=claude shows that service as connected, with an unusable key.
+                if let service = ProcessInfo.processInfo.environment["AUDIENCE_IPAD_FAKEKEY"] {
+                    UserDefaults.standard.set(service, forKey: "ai.provider")
+                }
+                assistant = true
+            }
+            return
+        }
         if store.archive.quizzes.isEmpty {
             _ = store.importText(ImportSheet.example.replacingOccurrences(of: "Titre du questionnaire", with: "Le vocabulaire du théâtre"))
         }
@@ -228,6 +302,10 @@ struct IPadLibraryView: View {
         guard let quiz = store.visibleQuizzes.first(where: { $0.code == wanted }) ?? store.visibleQuizzes.first else { return }
         store.selection = [quiz.code]
         store.notice = nil
+        // AUDIENCE_IPAD_FOLD=1 folds the columns as opening a questionnaire from the home screen does.
+        if ProcessInfo.processInfo.environment["AUDIENCE_IPAD_FOLD"] != nil {
+            Task { try? await Task.sleep(for: .seconds(1)); foldColumns() }
+        }
         if screen == "statistics" || screen == "results" {
             store.archive.responses[quiz.code] = .object(["questions": .array([.object([
                 "questionIndex": .number(0), "results": .object(["0": .number(3), "1": .number(12)]), "total": .number(15)
@@ -244,6 +322,23 @@ struct IPadLibraryView: View {
     }
     #endif
 
+    /// A library with varied questionnaires, to judge the home screen; AUDIENCE_IPAD_EMPTY keeps it empty.
+    private func seedHomePreview() {
+        guard ProcessInfo.processInfo.environment["AUDIENCE_IPAD_EMPTY"] == nil, store.archive.quizzes.isEmpty else { return }
+        let titles = ["L’intelligence artificielle", "Le vocabulaire du théâtre", "Le passé simple", "Molière et la comédie", "Les caractéristiques du conte"]
+        let colors: [QuizColor?] = [nil, .teal, .rose, .amber, .green]
+        for (index, title) in titles.enumerated() {
+            let text = index == 0 ? QuizMarkdown.generationExample : ImportSheet.example.replacingOccurrences(of: "Titre du questionnaire", with: title)
+            _ = store.importText(text)
+        }
+        let quizzes = store.visibleQuizzes.sorted { $0.title < $1.title }
+        for (index, quiz) in quizzes.enumerated() {
+            store.archive.quizzes[quiz.code]?.cardColor = colors[index % colors.count]
+            store.archive.quizzes[quiz.code]?.isFavorite = index == 1
+        }
+        store.notice = nil
+    }
+
     private func present(_ quiz: Quiz) {
         if let message = quiz.validationMessage { store.report(message) }
         else { presentation = PresentationSelection(id: quiz.code) }
@@ -257,18 +352,13 @@ struct IPadSidebar: View {
     @State private var name = ""
     @State private var folderToDelete: String?
     @State private var emptyTrash = false
+    @ScaledMetric(relativeTo: .body) private var columnWidth = IPadColumn.width
 
+    // The account and synchronization status live in Settings, not in the sidebar.
     var body: some View {
-        VStack(spacing: 0) {
-            sidebarList
-                .frame(maxHeight: .infinity)
-            Divider()
-            syncFooter
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .ignoresSafeArea(.container, edges: .bottom)
+        sidebarList
         .navigationTitle("Audience")
-        .navigationSplitViewColumnWidth(min: 190, ideal: 220, max: 300)
+        .navigationSplitViewColumnWidth(min(columnWidth, IPadColumn.maximum))
         .alert("Nom du dossier", isPresented: Binding(get: { folderToRename != nil }, set: { if !$0 { folderToRename = nil } })) {
             TextField("Nom", text: $name)
             Button("Enregistrer") { if let id = folderToRename { store.renameFolder(id, to: name) }; folderToRename = nil }
@@ -319,34 +409,6 @@ struct IPadSidebar: View {
     }
     private func row(_ item: SidebarItem) -> some View {
         NavigationLink(value: item) { Label(store.title(of: item), systemImage: item.symbol).badge(store.quizzes(in: item).count) }
-    }
-
-    private var syncFooter: some View {
-        HStack(spacing: 8) {
-            Image(systemName: store.connected ? (store.syncError == nil ? "checkmark.icloud" : "exclamationmark.icloud") : "internaldrive")
-                .foregroundStyle(store.syncError == nil ? Color.secondary : Color.orange)
-                .symbolEffect(.pulse, isActive: store.syncing)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(store.connected ? store.accountName : "Sur cet iPad")
-                    .font(.callout).lineLimit(1)
-                Text(store.syncStatus).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityElement(children: .combine)
-            if store.connected {
-                Button("Synchroniser", systemImage: "arrow.triangle.2.circlepath") {
-                    Task { await store.synchronize(showErrors: true) }
-                }
-                .labelStyle(.iconOnly).buttonStyle(.borderless)
-                .frame(minWidth: 44, minHeight: 44)
-                .disabled(store.syncing || store.busy || store.liveCode != nil)
-                .help(store.syncError ?? "Synchroniser maintenant")
-            }
-        }
-        .padding(.horizontal, 12).padding(.vertical, 6)
-        .fixedSize(horizontal: false, vertical: true)
-        .background(.bar, ignoresSafeAreaEdges: [])
     }
 }
 #endif

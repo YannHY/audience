@@ -205,7 +205,7 @@ struct ResultCard: View {
         VStack(alignment: .leading, spacing: 16 * scale) {
             if !compact {
                 Label("Question \(index + 1) · \(question.kind.title)", systemImage: question.kind.symbol).font(.subheadline).foregroundStyle(.secondary)
-                Text(question.text.plainText).font(.title3.weight(.semibold)).textSelection(.enabled)
+                Text(RichText.attributed(question["question"].string)).font(.title3.weight(.semibold)).textSelection(.enabled)
             }
             let rows = rows
             if rows.contains(where: { $0.count > 0 }) {

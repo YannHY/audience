@@ -12,9 +12,11 @@ struct QuizEditor: View {
     @State private var showQuestions = false
     #if os(iOS)
     @State private var questionEditMode = EditMode.inactive
-    @ScaledMetric(relativeTo: .body) private var navigatorWidth: CGFloat = 210
+    @ScaledMetric(relativeTo: .body) private var scaledNavigatorWidth = IPadColumn.width
     @ScaledMetric(relativeTo: .body) private var minimumFormWidth: CGFloat = 400
     @ScaledMetric(relativeTo: .body) private var questionButtonSize: CGFloat = 44
+    /// Same width as the sidebar and questionnaire columns.
+    private var navigatorWidth: CGFloat { min(scaledNavigatorWidth, IPadColumn.maximum) }
     #endif
     private var quiz: Quiz { store.archive.quizzes[code] ?? Quiz(code: code) }
     private var index: Int? {
@@ -121,7 +123,7 @@ struct QuizEditor: View {
                                         .foregroundStyle(selected == i ? Color.white : Color.primary)
                                 }
                                 .buttonStyle(.plain)
-                                .accessibilityLabel("Question \(i + 1), \(question.text.isEmpty ? "Nouvelle question" : question.text.plainText)")
+                                .accessibilityLabel("Question \(i + 1), \(question.text.isEmpty ? "Nouvelle question" : RichText.plainText(question["question"].string))")
                                 .accessibilityValue(question.validationMessage == nil ? "" : "Question incomplète")
                                 .accessibilityAddTraits(selected == i ? [.isSelected] : [])
                                 .id(i)
@@ -152,21 +154,43 @@ struct QuizEditor: View {
             if let index {
                 QuestionEditor(question: question(at: index), number: index + 1)
             } else {
-                Section {
-                    ContentUnavailableView {
-                        Label(quiz.questions.isEmpty ? "La première question" : "Aucune question sélectionnée", systemImage: "text.badge.plus")
-                    } description: {
-                        Text(quiz.questions.isEmpty ? "Choisissez un format pour commencer." : "Sélectionnez une question dans la liste.")
-                    } actions: {
-                        if quiz.questions.isEmpty {
-                            addMenu.buttonStyle(.glassProminent).fixedSize()
-                        }
-                    }
-                }
+                Section { noQuestionState }
             }
         }
         .formStyle(.grouped)
         .disabled(locked)
+    }
+
+    @ViewBuilder private var noQuestionState: some View {
+        let title = quiz.questions.isEmpty ? "La première question" : "Aucune question sélectionnée"
+        let hint = quiz.questions.isEmpty ? "Choisissez un format pour commencer." : "Sélectionnez une question dans la liste."
+        #if os(iOS)
+        // On the iPad, a ContentUnavailableView in a Form row gives its action the whole height of the
+        // row (the button becomes a tall, empty pill), and the row tints the icon of a button label like
+        // the button itself. The same layout is drawn by hand, with a white label.
+        VStack(spacing: 12) {
+            Image(systemName: "text.badge.plus").font(.system(size: 48)).foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            Text(title).font(.title2.bold()).accessibilityAddTraits(.isHeader)
+            Text(hint).foregroundStyle(.secondary)
+            if quiz.questions.isEmpty {
+                addMenu.foregroundStyle(.white).buttonStyle(.glassProminent).padding(.top, 8)
+            }
+        }
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
+        #else
+        ContentUnavailableView {
+            Label(title, systemImage: "text.badge.plus")
+        } description: {
+            Text(hint)
+        } actions: {
+            if quiz.questions.isEmpty {
+                addMenu.buttonStyle(.glassProminent).fixedSize()
+            }
+        }
+        #endif
     }
 
     private var navigator: some View {
@@ -175,7 +199,7 @@ struct QuizEditor: View {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text("\(i + 1)").font(.callout.monospacedDigit()).foregroundStyle(.secondary).frame(minWidth: 18, alignment: .trailing)
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(question.text.isEmpty ? "Nouvelle question" : question.text.plainText)
+                        Text(question.text.isEmpty ? AttributedString("Nouvelle question") : RichText.attributed(question["question"].string))
                             .lineLimit(2).foregroundStyle(question.text.isEmpty ? .secondary : .primary)
                         Label(question.kind.title, systemImage: question.kind.symbol)
                             .font(.caption).foregroundStyle(.secondary)
@@ -270,17 +294,41 @@ struct QuestionEditor: View {
     @State private var imageTargeted = false
     @State private var choosingImage = false
     @State private var showingImage = false
+    /// The statement as typed, in Markdown. The question keeps the website's HTML.
+    @State private var statement = ""
     private static let timeLimits = [5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240]
     var body: some View {
         Section("Question \(number)") {
             Picker("Format", selection: $question.kind) {
                 ForEach(QuestionKind.allCases) { Label($0.title, systemImage: $0.symbol).tag($0) }
+            } currentValueLabel: {
+                #if os(iOS)
+                // The iPad menu button flattens its label to a symbol set against the text and ignores
+                // view spacing: an en space keeps them apart, at any text size.
+                Label("\u{2002}" + question.kind.title, systemImage: question.kind.symbol)
+                #else
+                Label(question.kind.title, systemImage: question.kind.symbol)
+                #endif
             }
-            // The site stores the statement as HTML ("l&#39;origine"): edit it as plain text.
-            TextField("Énoncé", text: Binding(get: { question.text.unformattedText }, set: { value in
-                if value != question.text.unformattedText { question.text = value.htmlEscaped }
-            }), prompt: Text("Énoncé de la question"), axis: .vertical)
+            // The site stores the statement as HTML (<em>, l&#39;origine): it is edited as Markdown.
+            TextField("Énoncé", text: $statement, prompt: Text("Énoncé de la question"), axis: .vertical)
                 .lineLimit(3...8).labelsHidden()
+                .onAppear(perform: loadStatement)
+                .onChange(of: question["question"].string) { loadStatement() }
+                .onChange(of: statement) {
+                    // Showing a question must not modify it: only a different text is saved.
+                    let stored = question["question"].string
+                    if statement != RichText.markdown(fromHTML: stored) {
+                        question["question"] = .string(RichText.html(fromMarkdown: statement))
+                    }
+                }
+            if RichText.isFormatted(question["question"].string) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Aperçu").font(.caption).foregroundStyle(.secondary)
+                    Text(RichText.attributed(question["question"].string))
+                }
+                .accessibilityElement(children: .combine)
+            }
             let limit = question.fields["timeLimitSec"]?.int ?? 30
             Picker("Temps de réponse", selection: int("timeLimitSec", fallback: 30)) {
                 // Keep a nonstandard value from an older questionnaire selectable.
@@ -337,6 +385,16 @@ struct QuestionEditor: View {
         if question.kind == .video {
             Section("Vidéo YouTube") {
                 TextField("URL", text: string("youtubeUrl"))
+                let link = question["youtubeUrl"].string
+                if let video = YouTubeVideo(url: link, start: question["videoStartSec"].int, end: question["videoEndSec"].int) {
+                    // The presentation's player, to check the link and the extract while editing.
+                    YouTubePlayer(video: video)
+                        .padding(.vertical, 6)
+                        .id(video.embedURL)
+                } else if !link.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Label("Ce lien n’est pas une vidéo YouTube reconnue.", systemImage: "exclamationmark.circle")
+                        .font(.callout).foregroundStyle(.secondary)
+                }
                 Stepper("Début : \(question["videoStartSec"].int) s", value: int("videoStartSec"), in: 0...43200, step: 5)
                 Stepper("Fin : \(question["videoEndSec"].int) s (0 = fin de la vidéo)", value: int("videoEndSec"), in: 0...43200, step: 5)
             }
@@ -431,6 +489,12 @@ struct QuestionEditor: View {
         }
     }
     private func isCorrect(_ i: Int) -> Bool { question.kind == .multiple ? question["correctIndex"].int == i : question["correctIndexes"].array.map(\.int).contains(i) }
+    /// Another question, an import or a synchronization changed the statement: show it as Markdown,
+    /// unless it is exactly what is being typed (trailing spaces included).
+    private func loadStatement() {
+        let stored = question["question"].string
+        if RichText.html(fromMarkdown: statement) != stored { statement = RichText.markdown(fromHTML: stored) }
+    }
     private func string(_ key: String, fallback: String = "") -> Binding<String> {
         Binding(get: { question.fields[key]?.string ?? fallback }, set: { question[key] = .string($0) })
     }

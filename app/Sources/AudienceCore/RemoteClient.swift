@@ -16,10 +16,18 @@ public actor RemoteClient: SyncRemote, OrganizationRemote {
     private var folders: [RemoteFolder]?
     private var termsAccepted = true
     private let configurationFactory: @Sendable () -> URLSessionConfiguration
+    /// Reads the saved e-mail and password (keychain) only when the website's session has expired.
+    public typealias SavedCredentials = @Sendable () async -> (email: String, password: String)?
+    private let savedCredentials: SavedCredentials?
+    private var renewal: Task<Bool, Never>?
 
-    public init() { configurationFactory = Self.sessionConfiguration }
-    init(configurationFactory: @escaping @Sendable () -> URLSessionConfiguration) {
+    public init(savedCredentials: SavedCredentials? = nil) {
+        configurationFactory = Self.sessionConfiguration
+        self.savedCredentials = savedCredentials
+    }
+    init(configurationFactory: @escaping @Sendable () -> URLSessionConfiguration, savedCredentials: SavedCredentials? = nil) {
         self.configurationFactory = configurationFactory
+        self.savedCredentials = savedCredentials
     }
 
     static func sessionConfiguration() -> URLSessionConfiguration {
@@ -41,25 +49,46 @@ public actor RemoteClient: SyncRemote, OrganizationRemote {
         disconnect()
         session = URLSession(configuration: configurationFactory())
         base = url
-        var form = URLComponents()
-        form.queryItems = [URLQueryItem(name: "email", value: email.trimmingCharacters(in: .whitespacesAndNewlines)), URLQueryItem(name: "password", value: password)]
-        let body = form.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B").data(using: .utf8)
         do {
-            let login = try await request("login.php", body: body, contentType: "application/x-www-form-urlencoded", json: false)
-            // PHP returns HTTP 200 with the login form for invalid credentials.
-            // Show its explicit error instead of blaming credentials for every failure.
-            if let error = Self.loginError(in: login.string) { throw AudienceError.rejectedCredentials(error) }
-            let me = try await request("auth_me.php")
-            let user = me["user"]
-            // Older sites do not send the field: only an explicit false asks for acceptance.
-            termsAccepted = user["termsAccepted"] != .bool(false)
-            let key = user["id"].int > 0 ? String(user["id"].int) : email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-            identity = SHA256.hash(data: Data("\(url.absoluteString)|\(key)".utf8)).map { String(format: "%02x", $0) }.joined()
-            return me["user"]["username"].string
+            return try await logIn(email: email, password: password)
         } catch {
             disconnect()
             throw error
         }
+    }
+    /// Posts the credentials in the current session (login.php), then reads the account (auth_me.php).
+    private func logIn(email: String, password: String) async throws -> String {
+        guard let base else { throw AudienceError.message("Connectez-vous au site dans les réglages.") }
+        var form = URLComponents()
+        form.queryItems = [URLQueryItem(name: "email", value: email.trimmingCharacters(in: .whitespacesAndNewlines)), URLQueryItem(name: "password", value: password)]
+        let body = form.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B").data(using: .utf8)
+        let login = try await request("login.php", body: body, contentType: "application/x-www-form-urlencoded", json: false)
+        // PHP returns HTTP 200 with the login form for invalid credentials.
+        // Show its explicit error instead of blaming credentials for every failure.
+        if let error = Self.loginError(in: login.string) { throw AudienceError.rejectedCredentials(error) }
+        let me = try await request("auth_me.php")
+        let user = me["user"]
+        // Older sites do not send the field: only an explicit false asks for acceptance.
+        termsAccepted = user["termsAccepted"] != .bool(false)
+        let key = user["id"].int > 0 ? String(user["id"].int) : email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        identity = SHA256.hash(data: Data("\(base.absoluteString)|\(key)".utf8)).map { String(format: "%02x", $0) }.joined()
+        return me["user"]["username"].string
+    }
+    /// Opens a new website session for the same account after an HTTP 401.
+    /// Concurrent requests that hit the expiry share a single sign-in.
+    private func renewSession() async -> Bool {
+        if let renewal { return await renewal.value }
+        let task = Task { await signInAgain() }
+        renewal = task
+        defer { renewal = nil }
+        return await task.value
+    }
+    private func signInAgain() async -> Bool {
+        guard let previous = identity, let saved = await savedCredentials?(),
+              (try? await logIn(email: saved.email, password: saved.password)) != nil else { return false }
+        // The keychain holds a single account; never continue silently under another one.
+        guard identity == previous else { disconnect(); return false }
+        return true
     }
     public func accountIdentity() throws -> String {
         guard let identity else { throw AudienceError.message("Connectez-vous à votre compte Audience.") }; return identity
@@ -82,7 +111,7 @@ public actor RemoteClient: SyncRemote, OrganizationRemote {
         return message.isEmpty ? nil : String(message.prefix(300))
     }
 
-    private func request(_ path: String, body: Data? = nil, contentType: String = "application/json", json: Bool = true) async throws -> JSONValue {
+    private func request(_ path: String, body: Data? = nil, contentType: String = "application/json", json: Bool = true, renew: Bool = true) async throws -> JSONValue {
         guard let base, let session, let url = URL(string: path, relativeTo: base)?.absoluteURL else { throw AudienceError.message("Connectez-vous au site dans les réglages.") }
         var r = URLRequest(url: url)
         r.httpMethod = body == nil ? "GET" : "POST"
@@ -102,6 +131,12 @@ public actor RemoteClient: SyncRemote, OrganizationRemote {
         }
         if http.statusCode == 404 {
             throw AudienceError.message("Le site ne propose pas la page \(url.lastPathComponent). Vérifiez l’adresse du dossier Audience et la mise à jour du site.")
+        }
+        // The website's session ended (expiry, password change): the request was not processed,
+        // so it is sent once more after signing in again. The sign-in pages report their own errors.
+        if http.statusCode == 401, path != "login.php", path != "auth_me.php" {
+            guard renew, await renewSession() else { throw AudienceError.sessionExpired }
+            return try await request(path, body: body, contentType: contentType, json: json, renew: false)
         }
         let value = try? JSONDecoder().decode(JSONValue.self, from: data)
         guard (200..<300).contains(http.statusCode) else {
@@ -196,8 +231,9 @@ public actor RemoteClient: SyncRemote, OrganizationRemote {
         for i in questions.indices {
             if let runID { questions[i]["runId"] = .string(runID) }
             // Keep escaped characters intact through PHP's rich-text normalizer.
-            let text = questions[i]["question"].string
-            if !text.contains("<") { questions[i]["question"] = .string("<p>\(text)</p>") }
+            // Markdown (imports, older statements) becomes the website's HTML, so participants see the formatting.
+            let text = RichText.normalized(questions[i]["question"].string)
+            questions[i]["question"] = .string(text.contains("<") ? text : "<p>\(text)</p>")
             let image = questions[i]["questionImage"].string
             if image.hasPrefix("data:"), let comma = image.firstIndex(of: ","),
                let bytes = Data(base64Encoded: String(image[image.index(after: comma)...])) {
