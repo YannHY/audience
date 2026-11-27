@@ -60,6 +60,23 @@ import AudienceCore
                 snap("editor", to: output)
                 return
             }
+            // AUDIENCE_SNAPSHOT_HOME: the home screen alone, in windows from small to very large.
+            if ProcessInfo.processInfo.environment["AUDIENCE_SNAPSHOT_HOME"] != nil {
+                for (name, size) in [("home-1900x1200", CGSize(width: 1900, height: 1200)), ("home-1440x900", CGSize(width: 1440, height: 900)),
+                                     ("home-1000x700", CGSize(width: 1000, height: 700)), ("home-820x1100", CGSize(width: 820, height: 1100))] {
+                    let window = NSWindow(contentRect: CGRect(origin: CGPoint(x: 40, y: 40), size: size), styleMask: .borderless, backing: .buffered, defer: false)
+                    window.contentView = NSHostingView(rootView: IPadHomeView(store: store, newQuiz: {}, createWithAI: {}, openLibrary: {}, openQuiz: { _ in },
+                                                                              showImport: {}, showSettings: {}).frame(width: size.width, height: size.height))
+                    window.orderFrontRegardless()
+                    await pause(2)
+                    if let image = windowImage?(.null, 8, UInt32(window.windowNumber), 1)?.takeRetainedValue() {
+                        try? NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])?.write(to: output.appending(path: "\(name).png"))
+                    }
+                    window.orderOut(nil)
+                }
+                FileManager.default.createFile(atPath: output.appending(path: "done").path, contents: nil)
+                return
+            }
             // AUDIENCE_SNAPSHOT_LIVE: only the waiting room and live results, in the current appearance.
             if ProcessInfo.processInfo.environment["AUDIENCE_SNAPSHOT_LIVE"] != nil {
                 await renderLiveScreens(to: output)

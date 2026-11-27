@@ -20,15 +20,23 @@ struct IPadHomeView: View {
     @ScaledMetric(relativeTo: .body) private var recentWidth = 264.0
     @ScaledMetric(relativeTo: .body) private var recentHeight = 176.0
     @State private var width: CGFloat = 1024
+    @State private var height: CGFloat = 768
     @State private var shown = false
 
     /// Side-by-side layout needs room for the large card and a 400-point column.
     private var wide: Bool { width >= 980 && !typeSize.isAccessibilitySize }
+    /// The content grows with the window, up to a comfortable reading width.
+    private var contentWidth: CGFloat { min(width, 1360) }
+    private var sideColumnWidth: CGFloat { contentWidth >= 1280 ? 460 : 400 }
+    /// The large card takes the height the window offers, within reason.
+    private var heroHeight: CGFloat { wide ? min(max(340, height * 0.34), 460) : 280 }
+    /// Recent questionnaires laid out as a grid: as many columns as fit, two full rows.
+    private var recentColumns: Int { max(2, Int((contentWidth - 64 + 16) / (232 + 16))) }
     private var greeting: String { Calendar.current.component(.hour, from: .now) >= 18 ? "Bonsoir" : "Bonjour" }
 
     var body: some View {
         let all = store.quizzes(in: .all)
-        let recents = Array(all.sorted { $0.updatedAt > $1.updatedAt }.prefix(10))
+        let recents = Array(all.sorted { $0.updatedAt > $1.updatedAt }.prefix(12))
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 40) {
@@ -36,7 +44,7 @@ struct IPadHomeView: View {
                     actions(count: all.count).reveal(1, shown, reduceMotion)
                     recentSection(recents).reveal(2, shown, reduceMotion)
                 }
-                .frame(maxWidth: 1120, alignment: .leading)
+                .frame(maxWidth: 1360, alignment: .leading)
                 .padding(.horizontal, 32).padding(.top, 12).padding(.bottom, 56)
                 .frame(maxWidth: .infinity)
             }
@@ -54,7 +62,7 @@ struct IPadHomeView: View {
                 }
             }
         }
-        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+        .onGeometryChange(for: CGSize.self) { $0.size } action: { width = $0.width; height = $0.height }
         .task { shown = true }
     }
 
@@ -78,7 +86,7 @@ struct IPadHomeView: View {
         if wide {
             HStack(alignment: .top, spacing: 20) {
                 aiCard.frame(maxWidth: .infinity)
-                column.frame(width: 400)
+                column.frame(width: sideColumnWidth)
             }
             .fixedSize(horizontal: false, vertical: true)
         } else {
@@ -117,7 +125,7 @@ struct IPadHomeView: View {
             }
             .foregroundStyle(.white)
             .padding(30)
-            .frame(maxWidth: .infinity, minHeight: wide ? 340 : 280, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: heroHeight, alignment: .leading)
             .background(alignment: .bottomTrailing) {
                 Image(systemName: "sparkles").font(.system(size: 280, weight: .ultraLight))
                     .foregroundStyle(.white.opacity(0.13)).rotationEffect(.degrees(-10))
@@ -185,17 +193,25 @@ struct IPadHomeView: View {
             if quizzes.isEmpty {
                 emptyRecents
             } else {
-                ScrollView(.horizontal) {
+                if wide {
                     GlassEffectContainer(spacing: 16) {
-                        HStack(spacing: 16) { ForEach(quizzes, id: \.code) { recentCard($0) } }.scrollTargetLayout()
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 16), count: recentColumns), spacing: 16) {
+                            ForEach(quizzes.prefix(recentColumns * 2), id: \.code) { recentCard($0, flexible: true) }
+                        }
                     }
+                } else {
+                    ScrollView(.horizontal) {
+                        GlassEffectContainer(spacing: 16) {
+                            HStack(spacing: 16) { ForEach(quizzes.prefix(10), id: \.code) { recentCard($0, flexible: false) } }.scrollTargetLayout()
+                        }
+                    }
+                    .scrollIndicators(.hidden).scrollClipDisabled().scrollTargetBehavior(.viewAligned)
                 }
-                .scrollIndicators(.hidden).scrollClipDisabled().scrollTargetBehavior(.viewAligned)
             }
         }
     }
 
-    private func recentCard(_ quiz: Quiz) -> some View {
+    private func recentCard(_ quiz: Quiz, flexible: Bool) -> some View {
         let tint = store.displayColor(of: quiz)?.color ?? .gray
         let live = store.liveCode == quiz.code
         let count = quiz.questions.count
@@ -218,7 +234,8 @@ struct IPadHomeView: View {
                 }
             }
             .padding(18)
-            .frame(width: recentWidth, height: recentHeight, alignment: .topLeading)
+            .frame(width: flexible ? nil : recentWidth, height: recentHeight, alignment: .topLeading)
+            .frame(maxWidth: flexible ? .infinity : nil, alignment: .topLeading)
             .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 28))
             .contentShape(.rect(cornerRadius: 28))
             .platformHoverEffect()
