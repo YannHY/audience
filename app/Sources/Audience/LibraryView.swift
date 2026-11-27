@@ -19,7 +19,6 @@ struct LibraryView: View {
     @AppStorage("librarySort") private var sort: QuizSort = .modified
     @AppStorage("inspectorVisible") private var inspectorVisible = false
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
-    @State private var expandedColumnVisibility: NavigationSplitViewVisibility = .all
     @State private var mode: DetailMode = .editor
     @State private var confirmPurge = false
 
@@ -89,9 +88,7 @@ struct LibraryView: View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             SidebarView(store: store)
         } content: {
-            QuizListView(store: store, sort: $sort, present: present) {
-                libraryToggle
-            }
+            QuizListView(store: store, sort: $sort, present: present)
         } detail: {
             detail
                 .inspector(isPresented: $inspectorVisible) {
@@ -119,22 +116,6 @@ struct LibraryView: View {
         store.selection = []
         columnVisibility = .all
         withAnimation(.smooth) { store.showingHome = false }
-    }
-
-    private var libraryToggle: some View {
-        Button(columnVisibility == .detailOnly ? "Afficher les questionnaires" : "Masquer les questionnaires",
-               systemImage: "rectangle.lefthalf.inset.filled.arrow.left") {
-            withAnimation {
-                if columnVisibility == .detailOnly {
-                    columnVisibility = expandedColumnVisibility
-                } else {
-                    expandedColumnVisibility = columnVisibility
-                    columnVisibility = .detailOnly
-                }
-            }
-        }
-        .help(columnVisibility == .detailOnly ? "Afficher les questionnaires (⇧⌘L)" : "Masquer les questionnaires (⇧⌘L)")
-        .keyboardShortcut("l", modifiers: [.command, .shift])
     }
 
     /// Opening a questionnaire folds the sidebar so the editor gets the room; with nothing open, it comes back.

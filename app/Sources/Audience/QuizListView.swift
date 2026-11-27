@@ -4,11 +4,10 @@ import AudienceCore
 #endif
 
 #if os(macOS)
-struct QuizListView<ToggleButton: View>: View {
+struct QuizListView: View {
     @Bindable var store: LibraryStore
     @Binding var sort: QuizSort
     var present: (Quiz) -> Void
-    @ViewBuilder var libraryToggle: () -> ToggleButton
     @ScaledMetric(relativeTo: .body) private var columnWidth = IPadColumn.width
     @State private var purgeCodes: Set<String> = []
     @FocusState private var searchFocused: Bool
@@ -66,9 +65,6 @@ struct QuizListView<ToggleButton: View>: View {
         .navigationSplitViewColumnWidth(min: 260, ideal: min(columnWidth, IPadColumn.maximum), max: IPadColumn.maximum)
         .toolbar {
             ToolbarItemGroup {
-                if store.selectedQuiz != nil {
-                    libraryToggle()
-                }
                 Menu {
                     Picker("Trier par", selection: $sort) {
                         ForEach(QuizSort.allCases) { Text($0.title).tag($0) }
@@ -112,7 +108,7 @@ struct QuizListView<ToggleButton: View>: View {
         .glassEffect(.regular, in: .capsule)
         .padding(.horizontal, 10).padding(.vertical, 8)
         .background {
-            Button("Rechercher") { searchFocused = true }.keyboardShortcut("f").hidden().accessibilityHidden(true)
+            Button("Rechercher") { searchFocused = true }.keyboardShortcut("f").frame(width: 0, height: 0).opacity(0).accessibilityHidden(true)
         }
     }
 

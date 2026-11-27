@@ -151,7 +151,7 @@ Pour sauvegarder la clé privée dans un emplacement sécurisé hors du dépôt,
 - **Réglages** : apparence système/claire/sombre, sauvegardes, connexion au site, assistants IA (Mac et iPad) et modèles locaux (Mac).
 - **Aide** : intégrée à l’app, sans passer par la page web. Sur Mac, **Aide → Aide Audience** (⌘?) ouvre une fenêtre à part avec la liste des rubriques et une recherche ; sur iPad, **Réglages → Aide Audience**. Le texte (`Sources/AudienceCore/HelpContent.swift`) est écrit pour chaque plateforme, avec les gestes et raccourcis qui lui sont propres, et offre le questionnaire d’exemple à copier pour le donner à une IA ; `HelpContentTests` vérifie que cet exemple reste importable. La page `aide.html` du site reste celle de la plateforme web.
 
-Raccourcis : ⌘N nouveau questionnaire, ⌥⌘N créer avec une IA, ⇧⌘N nouveau dossier (avec la sélection), ⌘[ retour à l’accueil, ⇧⌘L masquer ou afficher les questionnaires, ⌘D dupliquer, ⌥⌘P présenter, ⌘R synchroniser.
+Raccourcis : ⌘N nouveau questionnaire, ⌥⌘N créer avec une IA, ⇧⌘N nouveau dossier (avec la sélection), ⌘[ retour à l’accueil, ⌘F rechercher dans la liste, ⌘D dupliquer, ⌥⌘P présenter, ⌘R synchroniser.
 
 La navigation utilise `NavigationSplitView`, l’inspecteur système, les barres d’outils et leurs matériaux Liquid Glass. Les contrôles flottants de présentation utilisent `GlassEffectContainer` et `glassEffect`. SF Symbols, menus, champs, dialogues de fichiers et raccourcis suivent les conventions macOS. La transparence est gérée par le système et ses réglages d’accessibilité.
 

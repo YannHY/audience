@@ -250,7 +250,7 @@ public enum HelpContent {
                 HelpRow("⌥⌘N", "Créer avec une IA"),
                 HelpRow("⇧⌘N", "Nouveau dossier (avec la sélection)"),
                 HelpRow("⌘[", "Retour à l’accueil"),
-                HelpRow("⇧⌘L", "Masquer ou afficher la liste des questionnaires"),
+                HelpRow("⌘F", "Rechercher dans la liste"),
                 HelpRow("⌘D", "Dupliquer"),
                 HelpRow("⌥⌘P", "Présenter"),
                 HelpRow("⇧⌘I", "Importer"),
@@ -262,8 +262,7 @@ public enum HelpContent {
             ]
         } else {
             rows += [
-                HelpRow("⌘[", "Retour à l’accueil"),
-                HelpRow("⇧⌘L", "Masquer ou afficher la liste des questionnaires")
+                HelpRow("⌘[", "Retour à l’accueil")
             ]
         }
         return HelpTopic(id: "shortcuts", title: "Raccourcis et apparence", symbol: "keyboard", blocks: [
