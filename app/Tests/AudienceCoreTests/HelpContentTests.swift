@@ -13,12 +13,13 @@ struct HelpContentTests {
         }
     }
 
-    /// Each platform names its own gestures: the Mac has menus and shortcuts, the iPad has neither.
+    /// Each platform names its own gestures: the Mac has menus and shortcuts, the iPad has touch gestures.
     @Test func textFollowsThePlatform() {
         let mac = HelpContent.topics(for: .mac).map(\.searchableText).joined()
         let iPad = HelpContent.topics(for: .iPad).map(\.searchableText).joined()
         #expect(mac.contains("⌥⌘P") && !iPad.contains("⌥⌘P"))
-        #expect(iPad.contains("Questionnaire vierge") && !mac.contains("Questionnaire vierge"))
+        #expect(iPad.contains("Tirez la liste") && !mac.contains("Tirez la liste"))
+        #expect(mac.contains("1. Service") && iPad.contains("1. Service"))
         #expect(HelpContent.topics(for: .mac).map(\.id) == HelpContent.topics(for: .iPad).map(\.id))
     }
 

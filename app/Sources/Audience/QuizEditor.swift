@@ -12,12 +12,12 @@ struct QuizEditor: View {
     @State private var showQuestions = false
     #if os(iOS)
     @State private var questionEditMode = EditMode.inactive
+    #endif
     @ScaledMetric(relativeTo: .body) private var scaledNavigatorWidth = IPadColumn.width
     @ScaledMetric(relativeTo: .body) private var minimumFormWidth: CGFloat = 400
     @ScaledMetric(relativeTo: .body) private var questionButtonSize: CGFloat = 44
     /// Same width as the sidebar and questionnaire columns.
     private var navigatorWidth: CGFloat { min(scaledNavigatorWidth, IPadColumn.maximum) }
-    #endif
     private var quiz: Quiz { store.archive.quizzes[code] ?? Quiz(code: code) }
     private var index: Int? {
         guard let selected, quiz.questions.indices.contains(selected) else { return nil }
@@ -39,17 +39,9 @@ struct QuizEditor: View {
                 }
                 if geometry.size.width >= navigatorWidth + minimumFormWidth {
                     HStack(spacing: 0) {
-                        VStack(spacing: 0) {
-                            HStack {
-                                Text("Questions").font(.headline)
-                                Spacer(minLength: 4)
-                                EditButton().font(.callout).disabled(locked)
-                            }
-                            .padding(.horizontal, 12).frame(minHeight: 44)
-                            navigator
-                        }
-                        .environment(\.editMode, $questionEditMode)
-                        .frame(width: navigatorWidth)
+                        // No edit button: questions are reordered by dragging, and the context menu does the rest.
+                        navigator
+                            .frame(width: navigatorWidth)
                         Divider()
                         editorForm
                     }
@@ -65,7 +57,7 @@ struct QuizEditor: View {
                 navigator
                     .navigationTitle("Questions")
                     .toolbar {
-                        ToolbarItem(placement: .confirmationAction) { Button("Terminé") { showQuestions = false } }
+                        ToolbarItem(placement: .confirmationAction) { DoneButton { showQuestions = false } }
                         ToolbarItem(placement: .primaryAction) { EditButton().disabled(locked) }
                     }
                     .onChange(of: selected) { if !questionEditMode.isEditing { showQuestions = false } }
@@ -76,10 +68,33 @@ struct QuizEditor: View {
             if let selected, selected >= count { self.selected = count > 0 ? count - 1 : nil }
         }
         #else
-        HStack(spacing: 0) {
-            navigator.frame(width: 250)
-            Divider()
-            editorForm
+        GeometryReader { geometry in
+            if geometry.size.width >= navigatorWidth + minimumFormWidth {
+                HStack(spacing: 0) {
+                    navigator.frame(width: navigatorWidth)
+                    Divider()
+                    editorForm
+                }
+            } else {
+                VStack(spacing: 0) {
+                    compactNavigator.padding(.top, 8)
+                    Divider()
+                    editorForm
+                }
+            }
+        }
+        .sheet(isPresented: $showQuestions) {
+            VStack(spacing: 0) {
+                HStack {
+                    Text("Questions").font(.headline)
+                    Spacer()
+                    Button("Terminé") { showQuestions = false }.keyboardShortcut(.defaultAction)
+                }
+                .padding()
+                Divider()
+                navigator
+            }
+            .frame(width: 360, height: 480)
         }
         .overlay(alignment: .top) {
             if store.liveCode == code {
@@ -98,7 +113,6 @@ struct QuizEditor: View {
         #endif
     }
 
-    #if os(iOS)
     private var compactNavigator: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
@@ -107,6 +121,7 @@ struct QuizEditor: View {
                 Spacer()
                 Button("Organiser les questions", systemImage: "list.bullet") { showQuestions = true }
                     .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
+                    .help("Organiser les questions")
                 addMenu.labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
             }
             .padding(.horizontal, 16)
@@ -141,7 +156,6 @@ struct QuizEditor: View {
         }
         .disabled(locked)
     }
-    #endif
 
     private var editorForm: some View {
         Form {
@@ -329,13 +343,9 @@ struct QuestionEditor: View {
                 }
                 .accessibilityElement(children: .combine)
             }
-            let limit = question.fields["timeLimitSec"]?.int ?? 30
-            Picker("Temps de réponse", selection: int("timeLimitSec", fallback: 30)) {
-                // Keep a nonstandard value from an older questionnaire selectable.
-                ForEach(Self.timeLimits.contains(limit) ? Self.timeLimits : (Self.timeLimits + [limit]).sorted(), id: \.self) {
-                    Text($0 < 60 || $0 % 60 != 0 ? "\($0) secondes" : $0 == 60 ? "1 minute" : "\($0 / 60) minutes").tag($0)
-                }
-            }
+            #if os(macOS)
+            timeLimitPicker
+            #endif
             if let message = question.validationMessage {
                 Label(message, systemImage: "info.circle").font(.caption).foregroundStyle(.secondary)
             }
@@ -476,8 +486,25 @@ struct QuestionEditor: View {
                 }
             }
         }
+        #if os(iOS)
+        // On the iPad, the settings that are rarely changed close the question, under one heading.
+        Section("Réglages de la question") {
+            timeLimitPicker
+            Toggle("Montrer les résultats aux participants", isOn: bool("participantResponsesVisible", fallback: true))
+        }
+        #else
         Section {
             Toggle("Montrer les résultats aux participants", isOn: bool("participantResponsesVisible", fallback: true))
+        }
+        #endif
+    }
+    private var timeLimitPicker: some View {
+        let limit = question.fields["timeLimitSec"]?.int ?? 30
+        return Picker("Temps de réponse", selection: int("timeLimitSec", fallback: 30)) {
+            // Keep a nonstandard value from an older questionnaire selectable.
+            ForEach(Self.timeLimits.contains(limit) ? Self.timeLimits : (Self.timeLimits + [limit]).sorted(), id: \.self) {
+                Text($0 < 60 || $0 % 60 != 0 ? "\($0) secondes" : $0 == 60 ? "1 minute" : "\($0 / 60) minutes").tag($0)
+            }
         }
     }
     @ViewBuilder private var imageActions: some View {
@@ -583,8 +610,11 @@ struct QuestionImageViewer: View {
             HStack {
                 Text("Image de la question").font(.headline)
                 Spacer()
-                Button("Fermer", systemImage: "xmark") { dismiss() }
+                CloseButton { dismiss() }
                     .keyboardShortcut(.cancelAction)
+                    #if os(iOS)
+                    .buttonStyle(.glass)
+                    #endif
             }
             .padding()
             Divider()

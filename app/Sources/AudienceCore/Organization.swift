@@ -140,7 +140,7 @@ public extension Quiz {
         set { self["cardColor"] = newValue.map { .string($0.rawValue) } ?? .null }
     }
     var tags: [String] {
-        get { self["tags"].array.map(\.string).filter { !$0.isEmpty } }
+        get { OrganizationText.tags(self["tags"].array.map(\.string)) }
         set { self["tags"] = .array(OrganizationText.tags(newValue).map(JSONValue.string)) }
     }
 }

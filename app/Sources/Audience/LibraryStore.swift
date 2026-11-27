@@ -91,6 +91,10 @@ final class ArchiveWriter: @unchecked Sendable {
     var selection: Set<String> = []
     var search = ""
     var notice: String?
+    /// Shows the landing screen on Mac (three ways in and recent questionnaires).
+    var showingHome = ProcessInfo.processInfo.environment["AUDIENCE_SNAPSHOT_DIR"] == nil
+    /// Shows the "Créer avec une IA" assistant sheet.
+    var showingAssistant = false
     /// Shows the import sheet: a file chosen in the Finder or dropped, or pasted text.
     var importing = false
     #if os(iOS)
@@ -332,7 +336,7 @@ final class ArchiveWriter: @unchecked Sendable {
         guard connected else { return savedLoginPending ? "Connexion à réessayer" : "Disponible hors ligne" }
         let pending = visibleQuizzes.contains(where: isPending)
             || archive.synchronization.pendingPurges.values.contains(activeAccount ?? "")
-        if pending { return syncDrafts > 0 ? "\(syncDrafts) brouillon(s) sur cet appareil" : "Modifications en attente" }
+        if pending { return "Modifications en attente" }
         return "À jour"
     }
 
@@ -367,7 +371,7 @@ final class ArchiveWriter: @unchecked Sendable {
         if commit({ archive in
             archive.quizzes[quiz.code] = quiz
             archive.synchronization.owners[quiz.code] = archive.synchronization.activeAccount
-        }) { search = ""; selection = [quiz.code]; localChange() }
+        }) { search = ""; selection = [quiz.code]; showingHome = false; localChange() }
     }
     func duplicate(_ codes: Set<String>) {
         var copies: Set<String> = []
@@ -501,7 +505,7 @@ final class ArchiveWriter: @unchecked Sendable {
             }
             var count = 0
             if commit({ count = $0.merge(incoming) }) {
-                notice = "\(count) questionnaire(s) importé(s)."; sidebar = .all; localChange()
+                notice = "\(count) questionnaire(s) importé(s)."; sidebar = .all; showingHome = false; localChange()
             }
             return nil
         } catch { return error.localizedDescription }
@@ -514,7 +518,7 @@ final class ArchiveWriter: @unchecked Sendable {
                 let backup = try JSONDecoder().decode(LibraryArchive.self, from: Data(text.utf8))
                 var count = 0
                 if commit({ count = $0.merge(backup) }) {
-                    notice = "\(count) questionnaire(s) importé(s)."; sidebar = .all; localChange()
+                    notice = "\(count) questionnaire(s) importé(s)."; sidebar = .all; showingHome = false; localChange()
                 }
                 return nil
             } catch AudienceError.message(let message) { return message } catch {
@@ -535,7 +539,7 @@ final class ArchiveWriter: @unchecked Sendable {
             archive.quizzes[quiz.code] = quiz
             archive.synchronization.owners[quiz.code] = archive.synchronization.activeAccount
         }) else { return nil }
-        search = ""; selection = [quiz.code]; localChange()
+        search = ""; selection = [quiz.code]; showingHome = false; localChange()
         notice = "Questionnaire importé : \(quiz.questions.count) question(s)."
         return nil
     }

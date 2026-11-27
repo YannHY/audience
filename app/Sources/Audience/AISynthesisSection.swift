@@ -62,19 +62,24 @@ struct AISynthesisSection: View {
         .onChange(of: quiz) { cancel() }
         .onDisappear { cancel() }
         .sheet(isPresented: $managing) {
+            #if os(macOS)
+            VStack(spacing: 0) {
+                HStack {
+                    Text("Assistants IA").font(.title2.bold())
+                    Spacer()
+                    Button("Terminé") { managing = false }.keyboardShortcut(.cancelAction)
+                }.padding(20)
+                AIAssistantsMacView()
+            }.frame(width: 640, height: 640)
+            #else
             NavigationStack {
                 Form { AIAssistantsSection() }
-                    .formStyle(.grouped)
                     .navigationTitle("Assistants IA")
-                    #if os(iOS)
                     .navigationBarTitleDisplayMode(.inline)
-                    #endif
-                    .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Terminé") { managing = false } } }
+                    .toolbar { ToolbarItem(placement: .confirmationAction) { DoneButton { managing = false } } }
             }
-            #if os(macOS)
-            .frame(width: 640, height: 520)
-            #endif
             .presentationSizing(.form)
+            #endif
         }
     }
 
@@ -114,7 +119,7 @@ struct AISynthesisSection: View {
             HStack {
                 Text("\(report.model) · \(report.date.formatted(date: .abbreviated, time: .shortened))").font(.caption).foregroundStyle(.secondary)
                 Spacer()
-                Button("Copier", systemImage: "doc.on.doc") { PlatformClipboard.copy(String(text.characters)) }
+                Button("Copier", systemImage: "doc.on.doc") { PlatformClipboard.copy(String(text.characters)) }.iPadIconOnly()
             }
             Text("Synthèse générée par un modèle : vérifiez ses interprétations avant de les utiliser.").font(.caption).foregroundStyle(.secondary)
         }
@@ -137,7 +142,7 @@ struct AISynthesisSection: View {
                 let key = service.usesAccount ? "" : try keys.key(for: service)
                 let model = service.usesAccount ? "" : (keys.model(for: service) ?? "")
                 guard service.usesAccount || !model.isEmpty else { throw AudienceError.message("Aucun modèle n’est choisi pour \(service.name).") }
-                let reply = try await service.complete(model: model, key: key, system: QuizStatistics.synthesisInstructions,
+                let reply = try await service.complete(model: model, key: key, system: QuizAIText.withProfile(QuizStatistics.synthesisInstructions, profile: AICustomInstructions.text),
                                                        prompt: stats.synthesisEvidence(title: title))
                 try Task.checkCancellation()
                 // The results may have changed while the assistant was writing: that summary would describe old figures.

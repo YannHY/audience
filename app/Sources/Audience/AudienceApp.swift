@@ -63,11 +63,17 @@ struct LibraryCommands: Commands {
             Button("Nouveau questionnaire", action: store.create)
                 .keyboardShortcut("n")
                 .disabled(store.readOnly)
+            Button("Créer avec une IA…") { store.showingAssistant = true }
+                .keyboardShortcut("n", modifiers: [.command, .option])
+                .disabled(store.readOnly)
             Button("Nouveau dossier") { store.createFolder(with: Set(store.selectedQuizzes.filter { !$0.isDeleted }.map(\.code))) }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
                 .disabled(store.readOnly)
         }
         CommandGroup(after: .newItem) {
+            Divider()
+            Button("Accueil") { withAnimation(.smooth) { store.showingHome = true } }
+                .keyboardShortcut("[", modifiers: .command)
             Divider()
             Button("Importer…") { store.importing = true }
                 .keyboardShortcut("i", modifiers: [.command, .shift])

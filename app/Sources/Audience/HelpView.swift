@@ -4,7 +4,7 @@ import AudienceCore
 #endif
 
 /// The help, inside the app: a window of the Mac Help menu, and a page of the iPad settings
-/// (so it needs the navigation stack that shows it). The text comes from `HelpContent`.
+/// (pushed on the settings' navigation stack). The text comes from `HelpContent`.
 struct HelpView: View {
     #if os(macOS)
     private let topics = HelpContent.topics(for: .mac)
@@ -46,11 +46,10 @@ struct HelpView: View {
     #else
     var body: some View {
         List(shown) { topic in
-            NavigationLink(value: topic) { Label(topic.title, systemImage: topic.symbol) }
+            NavigationLink { HelpTopicView(topic: topic) } label: { Label(topic.title, systemImage: topic.symbol) }
         }
         .overlay { if shown.isEmpty { ContentUnavailableView.search(text: search) } }
         .searchable(text: $search, prompt: "Rechercher dans l’aide")
-        .navigationDestination(for: HelpTopic.self) { HelpTopicView(topic: $0) }
         .navigationTitle("Aide Audience")
         .navigationBarTitleDisplayMode(.inline)
     }

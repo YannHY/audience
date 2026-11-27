@@ -14,32 +14,31 @@ enum DetailMode: String, CaseIterable, Identifiable {
 struct LibraryView: View {
     @Bindable var store: LibraryStore
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("librarySort") private var sort: QuizSort = .modified
     @AppStorage("inspectorVisible") private var inspectorVisible = false
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    @State private var expandedColumnVisibility: NavigationSplitViewVisibility = .all
     @State private var mode: DetailMode = .editor
     @State private var confirmPurge = false
 
     var body: some View {
-        NavigationSplitView {
-            SidebarView(store: store)
-        } content: {
-            QuizListView(store: store, sort: $sort, present: present)
-        } detail: {
-            detail
-                .inspector(isPresented: $inspectorVisible) {
-                    Group {
-                        if let quiz = store.selectedQuiz, !quiz.isDeleted {
-                            QuizInspector(store: store, code: quiz.code)
-                        } else {
-                            ContentUnavailableView("Aucune sélection", systemImage: "info.circle",
-                                                   description: Text("Sélectionnez un questionnaire pour voir son rangement et ses réglages."))
-                        }
-                    }
-                    .inspectorColumnWidth(min: 260, ideal: 290, max: 380)
-                }
+        Group {
+            if store.showingHome {
+                IPadHomeView(
+                    store: store,
+                    newQuiz: { store.sidebar = .all; store.create(); openEditor() },
+                    createWithAI: { store.showingAssistant = true },
+                    openLibrary: showLibrary,
+                    openQuiz: { code in store.sidebar = .all; store.selection = [code]; openEditor() },
+                    showImport: { store.importing = true },
+                    showSettings: { openSettings() })
+                    .transition(.opacity)
+            } else {
+                library.transition(.opacity)
+            }
         }
-        .searchable(text: $store.search, placement: .toolbar, prompt: "Titre, code ou étiquette")
         .frame(minWidth: 1000, minHeight: 640)
         .task { await store.connectSaved() }
         .task { await store.automaticSyncLoop() }
@@ -70,13 +69,84 @@ struct LibraryView: View {
             }
         }
         .animation(.smooth, value: store.notice)
-        .sheet(isPresented: $store.importing) { ImportSheet(store: store) }
-        .sheet(isPresented: Binding(get: { store.termsPending }, set: { _ in })) { TermsSheet(store: store) }
+        .sheet(isPresented: $store.showingAssistant) {
+            QuizCreationView(store: store) { store.showingAssistant = false; openEditor() }
+        }
+        .sheet(isPresented: Binding(get: { !store.showingAssistant && store.importing }, set: { if !$0 { store.importing = false } })) {
+            ImportSheet(store: store)
+        }
+        .sheet(isPresented: Binding(get: { !store.showingAssistant && !store.importing && store.termsPending }, set: { _ in })) {
+            TermsSheet(store: store)
+        }
         #if DEBUG
         .onReceive(NotificationCenter.default.publisher(for: DebugSnapshots.present)) { note in
             if let code = note.object as? String { openWindow(id: "presentation", value: code) }
         }
         #endif
+    }
+
+    private var library: some View {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
+            SidebarView(store: store)
+        } content: {
+            QuizListView(store: store, sort: $sort, present: present) {
+                libraryToggle
+            }
+        } detail: {
+            detail
+                .inspector(isPresented: $inspectorVisible) {
+                    Group {
+                        if let quiz = store.selectedQuiz, !quiz.isDeleted {
+                            QuizInspector(store: store, code: quiz.code)
+                        } else {
+                            ContentUnavailableView("Aucune sélection", systemImage: "info.circle",
+                                                   description: Text("Sélectionnez un questionnaire pour voir son rangement et ses réglages."))
+                        }
+                    }
+                    .inspectorColumnWidth(min: 260, ideal: 290, max: 380)
+                }
+        }
+        .searchable(text: $store.search, placement: .toolbar, prompt: "Titre, code ou étiquette")
+        .onChange(of: store.selection) { foldColumns() }
+    }
+
+    private func openEditor() {
+        mode = .editor
+        store.showingHome = false
+        foldColumns()
+    }
+
+    private func showLibrary() {
+        store.selection = []
+        columnVisibility = .all
+        withAnimation(.smooth) { store.showingHome = false }
+    }
+
+    private var libraryToggle: some View {
+        Button(columnVisibility == .detailOnly ? "Afficher les questionnaires" : "Masquer les questionnaires",
+               systemImage: "rectangle.lefthalf.inset.filled.arrow.left") {
+            withAnimation {
+                if columnVisibility == .detailOnly {
+                    columnVisibility = expandedColumnVisibility
+                } else {
+                    expandedColumnVisibility = columnVisibility
+                    columnVisibility = .detailOnly
+                }
+            }
+        }
+        .help(columnVisibility == .detailOnly ? "Afficher les questionnaires (⇧⌘L)" : "Masquer les questionnaires (⇧⌘L)")
+        .keyboardShortcut("l", modifiers: [.command, .shift])
+    }
+
+    /// Opening a questionnaire folds the sidebar so the editor gets the room; with nothing open, it comes back.
+    /// Only the full three-column layout is folded, so a library the user hid stays hidden.
+    private func foldColumns() {
+        let open = !store.selection.isEmpty
+        if open, columnVisibility == .all {
+            withAnimation { columnVisibility = .doubleColumn }
+        } else if !open, columnVisibility == .doubleColumn {
+            withAnimation { columnVisibility = .all }
+        }
     }
 
     @ViewBuilder private var detail: some View {
@@ -104,11 +174,17 @@ struct LibraryView: View {
             }
             .navigationTitle(quiz.title.isEmpty ? "Sans titre" : quiz.title)
             .navigationSubtitle(subtitle(for: quiz))
-            .toolbar { if !quiz.isDeleted { quizToolbar(quiz) } }
+            .toolbar {
+                detailHomeButton
+                if !quiz.isDeleted { quizToolbar(quiz) } else { inspectorToolbar }
+            }
         } else if selected.count > 1 {
             MultipleSelectionView(store: store, quizzes: selected)
                 .navigationTitle("\(selected.count) questionnaires")
-                .toolbar { inspectorToolbar }
+                .toolbar {
+                    detailHomeButton
+                    inspectorToolbar
+                }
         } else {
             ContentUnavailableView {
                 Label("Votre espace de questions", systemImage: "rectangle.stack")
@@ -116,8 +192,26 @@ struct LibraryView: View {
                 Text("Sélectionnez un questionnaire ou créez-en un nouveau.")
             } actions: {
                 Button("Nouveau questionnaire", action: store.create).buttonStyle(.glassProminent).disabled(store.readOnly)
+                Button("Créer avec une IA…") { store.showingAssistant = true }.buttonStyle(.glass).disabled(store.readOnly)
             }
-            .toolbar { inspectorToolbar }
+            .toolbar {
+                detailHomeButton
+                inspectorToolbar
+            }
+        }
+    }
+
+    @ToolbarContentBuilder private var detailHomeButton: some ToolbarContent {
+        ToolbarItem(placement: .navigation) {
+            Button { withAnimation(.smooth) { store.showingHome = true } } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "chevron.backward").font(.body.weight(.semibold))
+                    Text("Accueil")
+                }
+            }
+            .keyboardShortcut("[", modifiers: .command)
+            .help("Retour à l’écran d’accueil (⌘[)")
+            .accessibilityHint("Retourne à l’écran d’accueil.")
         }
     }
 

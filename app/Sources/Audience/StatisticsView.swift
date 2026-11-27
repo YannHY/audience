@@ -36,7 +36,7 @@ struct StatisticsView: View {
                     Spacer()
                     if refreshing { ProgressView().controlSize(.small) }
                     Button("Actualiser", systemImage: "arrow.clockwise") { Task { await refresh() } }
-                        .disabled(!store.connected || refreshing)
+                        .disabled(!store.connected || refreshing).iPadIconOnly()
                 }
                 if let refreshError { Text(refreshError).font(.callout).foregroundStyle(.orange) }
                 if !stats.hasResponses {

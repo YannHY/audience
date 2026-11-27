@@ -1,21 +1,20 @@
 import SwiftUI
 import PDFKit
+import PhotosUI
 import UniformTypeIdentifiers
 #if SWIFT_PACKAGE
 import AudienceCore
 #endif
 
-/// "Créer avec une IA" in three steps: connect a service, give it the content, review what it wrote.
+/// "Créer avec une IA": give the content to the connected assistant, then review what it wrote.
+/// Connecting an assistant belongs to the settings; the sheet only links there when none is connected.
 struct QuizCreationView: View {
     let store: LibraryStore
     let finished: () -> Void
 
-    private enum Step: Int, CaseIterable {
-        case service, content, review
-        var title: String { ["Service", "Contenu", "Questionnaire"][rawValue] }
-    }
+    private enum Step { case content, review }
     private enum Busy { case generating }
-    private enum SourceKind { case document, video }
+    private enum SourceKind { case document, photos, video }
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -23,8 +22,11 @@ struct QuizCreationView: View {
     @ObservedObject private var chatGPT = ChatGPTAuth.shared
     private let keys = AIKeyStore.shared
     @AppStorage("ai.provider") private var providerID = QuizProvider.chatGPT.rawValue
-    @State private var step = Step.service
-    @State private var source = SourceKind.document
+    @State private var step = Step.content
+    @State private var showAssistants = false
+    @State private var showProfile = false
+    @AppStorage(AICustomInstructions.key) private var profile = ""
+    @State private var source: SourceKind?
     @State private var document = ""
     @State private var filename = ""
     @State private var address = ""
@@ -38,6 +40,9 @@ struct QuizCreationView: View {
     @State private var operation: Task<Void, Never>?
     @State private var chooseFile = false
     @State private var dropTargeted = false
+    @State private var photos: [AttachedPhoto] = []
+    @State private var photoItems: [PhotosPickerItem] = []
+    @State private var loadingPhotos = false
     #if os(macOS)
     private let deviceLabel = "ce Mac"
     private let deviceArticle = "le Mac"
@@ -51,8 +56,8 @@ struct QuizCreationView: View {
     #endif
 
     private var large: Bool { typeSize.isAccessibilitySize }
-    private var cardColumns: [GridItem] { large ? [GridItem(.flexible())] : [GridItem(.adaptive(minimum: 250), spacing: 14)] }
     private var provider: QuizProvider { QuizProvider(rawValue: providerID) ?? .chatGPT }
+    private var connectedProviders: [QuizProvider] { QuizProvider.allCases.filter(isConnected) }
     private var video: URL? { YouTubeVideo(url: address)?.watchURL }
     private var trimmedTranscript: String { transcript.trimmingCharacters(in: .whitespacesAndNewlines) }
 
@@ -66,27 +71,35 @@ struct QuizCreationView: View {
     /// What is still missing before the questionnaire can be requested.
     private var contentIssue: String? {
         switch source {
-        case .document: return document.isEmpty ? "Choisissez un document." : nil
+        case nil: return trimmedRequest.isEmpty ? "Décrivez le questionnaire souhaité." : nil
+        case .document: return document.isEmpty ? "Choisissez un document, ou retirez la pièce jointe." : nil
+        case .photos:
+            if loadingPhotos { return "Préparation des photos…" }
+            if photos.isEmpty { return "Ajoutez au moins une photo." }
+            if photos.count > provider.photoLimit { return "\(provider.name) accepte \(provider.photoLimit) photos au maximum : retirez-en." }
+            if keys.photoModel(for: provider) == nil, !provider.usesAccount {
+                return "Aucun modèle \(provider.name) de cette clé ne lit les images. Choisissez un autre assistant."
+            }
+            return nil
         case .video:
-            if video == nil { return "Collez l’adresse d’une vidéo YouTube." }
+            if video == nil { return "Collez l’adresse d’une vidéo YouTube, ou retirez-la." }
             if !provider.readsVideo && trimmedTranscript.isEmpty { return "Collez la transcription de la vidéo." }
             return nil
         }
     }
+    private var trimmedRequest: String { instructions.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var trimmedProfile: String { profile.trimmingCharacters(in: .whitespacesAndNewlines) }
 
     // MARK: Body
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                stepBar.padding(.top, 8).padding(.bottom, 4)
                 ScrollView {
                     Group {
-                        switch step {
-                        case .service: serviceStep
-                        case .content: contentStep
-                        case .review: reviewStep
-                        }
+                        if connectedProviders.isEmpty && draft.isEmpty && busy == nil { setupStep }
+                        else if step == .content { contentStep }
+                        else { reviewStep }
                     }
                     .transition(.opacity)
                     .frame(maxWidth: 680, alignment: .leading)
@@ -94,13 +107,20 @@ struct QuizCreationView: View {
                     .frame(maxWidth: .infinity)
                 }
                 .scrollDismissesKeyboard(.interactively)
-                .safeAreaInset(edge: .bottom) { actionBar }
+                .safeAreaInset(edge: .bottom) { if !connectedProviders.isEmpty || !draft.isEmpty { actionBar } }
             }
             .navigationTitle("Créer avec une IA")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Fermer") { operation?.cancel(); dismiss() } } }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { CloseButton { operation?.cancel(); dismiss() } }
+                if !connectedProviders.isEmpty, step == .content { ToolbarItem(placement: .primaryAction) { providerMenu } }
+            }
+            .navigationDestination(isPresented: $showAssistants) { assistantsPage }
+            .navigationDestination(isPresented: $showProfile) {
+                Form { AICustomInstructionsSection() }.formStyle(.grouped).navigationTitle("Instructions personnalisées")
+            }
         }
         #if os(macOS)
         .frame(minWidth: 720, idealWidth: 760, minHeight: 620, idealHeight: 720)
@@ -110,18 +130,79 @@ struct QuizCreationView: View {
         .interactiveDismissDisabled(busy != nil || !draft.isEmpty)
         .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: step)
         .task(id: providerID) { await keys.refreshModels(provider) }
+        .onAppear(perform: chooseConnectedProvider)
+        .onChange(of: connectedProviders) { old, new in
+            chooseConnectedProvider()
+            // A fresh connection made from the settings page shows its confirmation, then comes back here.
+            if showAssistants, new.count > old.count {
+                if let added = new.first(where: { !old.contains($0) }) { providerID = added.rawValue }
+                Task { try? await Task.sleep(for: .milliseconds(1100)); showAssistants = false }
+            }
+        }
         .onChange(of: providerID) { error = nil }
         .onDisappear { operation?.cancel() }
         #if DEBUG
         .task { applyPreviewState() }
         #endif
-        .fileImporter(isPresented: $chooseFile, allowedContentTypes: Self.documentTypes) { result in
+        .fileImporter(isPresented: $chooseFile, allowedContentTypes: source == .photos ? [.image] : Self.documentTypes,
+                      allowsMultipleSelection: source == .photos) { result in
             switch result {
-            case .success(let url): loadDocument(url)
+            case .success(let urls):
+                if source == .photos { loadPhotoFiles(urls) } else if let url = urls.first { loadDocument(url) }
             case .failure(let error):
                 if (error as NSError).code != NSUserCancelledError { self.error = error.localizedDescription }
             }
         }
+        .onChange(of: photoItems) { _, items in
+            guard !items.isEmpty else { return }
+            photoItems = []
+            source = .photos
+            loadPhotos(items)
+        }
+    }
+
+    // MARK: Photos
+
+    private static let maximumPhotos = 10
+    private var remainingPhotos: Int { max(0, Self.maximumPhotos - photos.count) }
+
+    /// Photos chosen in the Photos library, read one after the other and reduced before sending.
+    private func loadPhotos(_ items: [PhotosPickerItem]) {
+        loadingPhotos = true; error = nil
+        Task { @MainActor in
+            defer { loadingPhotos = false }
+            var failed = 0
+            for item in items.prefix(remainingPhotos) {
+                do {
+                    guard let data = try await item.loadTransferable(type: Data.self) else { failed += 1; continue }
+                    photos.append(try await Self.prepare(data))
+                } catch { failed += 1 }
+            }
+            if failed > 0 { error = failed == 1 ? "Une photo n’a pas pu être lue." : "\(failed) photos n’ont pas pu être lues." }
+        }
+    }
+
+    /// Image files from the Files app or dropped on the panel.
+    private func loadPhotoFiles(_ urls: [URL]) {
+        loadingPhotos = true; error = nil
+        Task { @MainActor in
+            defer { loadingPhotos = false }
+            var failed = 0
+            for url in urls.prefix(remainingPhotos) {
+                let scoped = url.startAccessingSecurityScopedResource()
+                defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+                do {
+                    guard let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize, size <= 40_000_000 else { failed += 1; continue }
+                    photos.append(try await Self.prepare(Data(contentsOf: url)))
+                } catch { failed += 1 }
+            }
+            if failed > 0 { error = failed == 1 ? "Une image n’a pas pu être lue." : "\(failed) images n’ont pas pu être lues." }
+        }
+    }
+
+    /// Reducing a photo takes a moment: it is done away from the interface.
+    private nonisolated static func prepare(_ data: Data) async throws -> AttachedPhoto {
+        try await Task.detached(priority: .userInitiated) { try AttachedPhoto(data) }.value
     }
 
     private func loadDocument(_ url: URL) {
@@ -149,7 +230,7 @@ struct QuizCreationView: View {
         case "generating": step = .review; busy = .generating
         case "docx":
             // AUDIENCE_IPAD_DOCX=<path> loads that file as the document picker would.
-            step = .content
+            step = .content; source = .document
             if let path = ProcessInfo.processInfo.environment["AUDIENCE_IPAD_DOCX"] {
                 let url = URL(filePath: path)
                 do { document = try Self.text(of: url); filename = url.lastPathComponent }
@@ -178,49 +259,14 @@ struct QuizCreationView: View {
 
     // MARK: Progress and actions
 
-    private func reachable(_ target: Step) -> Bool {
-        switch target {
-        case .service: true
-        case .content: isConnected(provider)
-        case .review: !draft.isEmpty
-        }
-    }
-
-    private var stepBar: some View {
-        HStack(spacing: 8) {
-            ForEach(Step.allCases, id: \.self) { item in
-                let current = item == step, done = item.rawValue < step.rawValue
-                Button { if busy == nil, reachable(item) { step = item } } label: {
-                    HStack(spacing: 8) {
-                        ZStack {
-                            Circle().fill(current || done ? Color.accentColor : Color.secondary.opacity(0.25))
-                            if done { Image(systemName: "checkmark").font(.caption.bold()).foregroundStyle(.white) }
-                            else { Text("\(item.rawValue + 1)").font(.caption.bold()).foregroundStyle(current ? .white : .secondary) }
-                        }.frame(width: 26, height: 26)
-                        if !large || current {
-                            Text(item.title).font(.subheadline.weight(current ? .semibold : .regular))
-                                .foregroundStyle(current ? .primary : .secondary)
-                        }
-                    }
-                    .padding(.horizontal, 12).padding(.vertical, 8)
-                    .glassEffect(current ? .regular.tint(Color.accentColor.opacity(0.2)) : .regular, in: .capsule)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Étape \(item.rawValue + 1) : \(item.title)")
-                .accessibilityValue(current ? "en cours" : done ? "terminée" : "")
-                if item != Step.allCases.last { Capsule().fill(.secondary.opacity(0.3)).frame(width: 22, height: 2) }
-            }
-        }
-    }
-
     private var actionBar: some View {
         GlassEffectContainer(spacing: 12) {
             let layout = large ? AnyLayout(VStackLayout(alignment: .trailing, spacing: 10)) : AnyLayout(HStackLayout(spacing: 12))
             layout {
-                if step != .service, busy != .generating {
+                if step == .review, busy != .generating {
                     Button("Retour", systemImage: "chevron.left") {
-                        withAnimation { step = Step(rawValue: step.rawValue - 1) ?? .service }
-                    }.buttonStyle(.glass).controlSize(.large).disabled(busy != nil)
+                        withAnimation { step = .content }
+                    }.buttonStyle(.glass).controlSize(.large).disabled(busy != nil).iPadIconOnly()
                 }
                 if !large { Spacer(minLength: 0) }
                 if let hint = primaryHint {
@@ -240,10 +286,6 @@ struct QuizCreationView: View {
 
     @ViewBuilder private var primaryButton: some View {
         switch step {
-        case .service:
-            Button("Continuer") { withAnimation { step = .content } }
-                .buttonStyle(.glassProminent).controlSize(.large)
-                .disabled(!isConnected(provider) || busy != nil)
         case .content:
             Button("Générer le questionnaire", systemImage: "sparkles", action: generate)
                 .buttonStyle(.glassProminent).controlSize(.large)
@@ -259,156 +301,228 @@ struct QuizCreationView: View {
 
     private var primaryHint: String? {
         switch step {
-        case .service: isConnected(provider) ? nil : "Connectez \(provider.name) pour continuer."
         case .content: contentIssue
         case .review: busy == .generating ? nil : reviewIssue
         }
     }
 
-    // MARK: Step 1 — service
+    // MARK: Assistant
 
-    private var serviceStep: some View {
+    /// Keeps the chosen assistant when it is connected, otherwise takes the first one that is.
+    private func chooseConnectedProvider() {
+        if !isConnected(provider), let first = connectedProviders.first { providerID = first.rawValue; error = nil }
+    }
+
+    /// Shown only when no assistant is connected yet: one way forward, to the assistants settings.
+    private var setupStep: some View {
         VStack(alignment: .leading, spacing: 20) {
-            stepTitle("Choisissez votre assistant", "Il rédigera le questionnaire à partir de votre document ou de votre vidéo.")
-            LazyVGrid(columns: cardColumns, spacing: 14) {
-                ForEach(QuizProvider.allCases) { providerCard($0) }
-            }
-            connectionPanel
+            stepTitle("Connectez d’abord un assistant", "Audience confie la rédaction à ChatGPT, Claude, Gemini ou Groq. La connexion se fait une seule fois, dans les réglages.")
+            HStack(spacing: 10) { ForEach(QuizProvider.allCases) { ProviderLogo(provider: $0, size: 40) } }
+            Button("Connecter un assistant", systemImage: "link") { showAssistants = true }
+                .buttonStyle(.glassProminent).controlSize(.large)
         }
     }
 
-    private func providerCard(_ item: QuizProvider) -> some View {
-        let selected = item == provider, connected = isConnected(item)
-        return Button { providerID = item.rawValue; error = nil } label: {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    ProviderLogo(provider: item, size: 44)
-                    Spacer()
-                    Image(systemName: selected ? "checkmark.circle.fill" : "circle")
-                        .font(.title3).foregroundStyle(selected ? item.tint : Color.secondary.opacity(0.5))
-                }
-                Text(item.name).font(.title3.weight(.semibold))
-                HStack(spacing: 6) {
-                    Circle().fill(connected ? Color.green : Color.secondary.opacity(0.5)).frame(width: 8, height: 8)
-                    Text(status(item)).font(.subheadline).foregroundStyle(connected ? .primary : .secondary).lineLimit(1)
-                }
+    /// The assistant in use, changed from the toolbar; managing connections stays in the settings.
+    private var providerMenu: some View {
+        Menu {
+            Picker("Assistant", selection: $providerID) {
+                ForEach(connectedProviders) { Text($0.name).tag($0.rawValue) }
             }
-            .padding(16).frame(maxWidth: .infinity, alignment: .leading)
-            .glassEffect(selected ? .regular.tint(item.tint.opacity(0.18)).interactive() : .regular.interactive(), in: .rect(cornerRadius: 26))
-            .overlay { if selected { RoundedRectangle(cornerRadius: 26, style: .continuous).strokeBorder(item.tint, lineWidth: 2) } }
-            .contentShape(.rect(cornerRadius: 26))
-            .platformHoverEffect()
+            Divider()
+            Button("Gérer les assistants…", systemImage: "gearshape") { showAssistants = true }
+        } label: {
+            HStack(spacing: 8) {
+                ProviderLogo(provider: provider, size: 22)
+                Text(provider.name)
+            }
         }
-        .buttonStyle(.plain)
-        .accessibilityElement(children: .combine)
-        .accessibilityValue(selected ? "sélectionné" : "")
+        .accessibilityLabel("Assistant : \(provider.name)")
     }
 
-    private var connectionPanel: some View {
-        AIConnectionPanel(provider: provider) { await advanceAfterConnection() }
-            .id(provider)
-            .padding(22).frame(maxWidth: .infinity, alignment: .leading)
-            .glassEffect(.regular, in: .rect(cornerRadius: 28))
-    }
-
-    /// A fresh connection shows its confirmation for a moment, then moves on to the content.
-    private func advanceAfterConnection() async {
-        try? await Task.sleep(for: .milliseconds(1100))
-        guard !Task.isCancelled, step == .service, isConnected(provider) else { return }
-        withAnimation(.smooth) { step = .content }
+    @ViewBuilder private var assistantsPage: some View {
+        #if os(macOS)
+        AIAssistantsMacView().navigationTitle("Assistants IA")
+        #else
+        Form { AIAssistantsSection() }
+            .navigationTitle("Assistants IA")
+            .navigationBarTitleDisplayMode(.inline)
+        #endif
     }
 
     // MARK: Step 2 — content
 
     private var contentStep: some View {
         VStack(alignment: .leading, spacing: 20) {
-            serviceChip
-            stepTitle("Sur quoi porte le questionnaire ?", "Choisissez le contenu que \(provider.name) va lire.")
-            LazyVGrid(columns: cardColumns, spacing: 14) {
-                sourceCard(.document, "Document", "PDF, Word, TXT ou MD", "doc.text.fill")
-                sourceCard(.video, "Vidéo YouTube", "À partir de son adresse", "play.rectangle.fill")
+            stepTitle("Quel questionnaire voulez-vous ?", "Décrivez-le à \(provider.name). Un document, des photos ou une vidéo peuvent servir de source, sans obligation.")
+            requestPanel
+            if let source {
+                VStack(alignment: .leading, spacing: 14) {
+                    switch source {
+                    case .document: documentPanel
+                    case .photos: attachmentHeader("Photos", "photo.on.rectangle.angled"); photosPanel
+                    case .video: attachmentHeader("Vidéo YouTube", "play.rectangle.fill"); videoPanel
+                    }
+                }
+                .padding(18).frame(maxWidth: .infinity, alignment: .leading)
+                .glassEffect(.regular, in: .rect(cornerRadius: 24))
             }
-            VStack(alignment: .leading, spacing: 14) {
-                if source == .document { documentPanel } else { videoPanel }
-            }
-            .padding(22).frame(maxWidth: .infinity, alignment: .leading)
-            .glassEffect(.regular, in: .rect(cornerRadius: 28))
-            optionsPanel
-            footnote("Le contenu est envoyé à \(provider.company) uniquement quand vous \(tapLower) « Générer le questionnaire ».")
+            profileLine
+            footnote("Rien n’est envoyé à \(provider.company) avant que vous \(tapLower) « Générer le questionnaire ».")
             if let error { errorLabel(error) }
         }
     }
 
-    private var serviceChip: some View {
-        HStack(spacing: 12) {
-            ProviderLogo(provider: provider, size: 36)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(provider.name).font(.subheadline.weight(.semibold))
-                Label(status(provider), systemImage: "checkmark.circle.fill").font(.caption).foregroundStyle(.green)
+    /// The request is the heart of the step: what to ask, for whom, how; a source is optional.
+    private var requestPanel: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            TextEditor(text: $instructions)
+                .font(.body).frame(minHeight: large ? 200 : 140).scrollContentBackground(.hidden)
+                .padding(8).background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 16))
+                .overlay(alignment: .topLeading) {
+                    if instructions.isEmpty {
+                        Text("Par exemple : un quiz sur la photosynthèse, avec un texte à trous et deux questions ouvertes. Avec un document joint : « uniquement sur le chapitre 2 ».")
+                            .foregroundStyle(.tertiary).padding(.horizontal, 13).padding(.vertical, 16).allowsHitTesting(false)
+                    }
+                }
+                .onChange(of: instructions) { _, new in
+                    if new.count > QuizAIText.requestLimit { instructions = String(new.prefix(QuizAIText.requestLimit)) }
+                }
+                .accessibilityLabel("Demande à l’assistant")
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) { attachButtons; Spacer(minLength: 12); countPicker }
+                VStack(alignment: .leading, spacing: 12) { HStack(spacing: 10) { attachButtons }; countPicker }
+                VStack(alignment: .leading, spacing: 10) { attachButtons; countPicker }
             }
-            Spacer()
-            Button("Changer") { withAnimation { step = .service } }.buttonStyle(.glass)
         }
-        .padding(.horizontal, 14).padding(.vertical, 10)
-        .glassEffect(.regular, in: .capsule)
+        .padding(18).frame(maxWidth: .infinity, alignment: .leading)
+        .glassEffect(.regular, in: .rect(cornerRadius: 28))
     }
 
-    private func sourceCard(_ kind: SourceKind, _ title: String, _ subtitle: String, _ symbol: String) -> some View {
-        let selected = source == kind
-        return Button { source = kind; error = nil } label: {
-            HStack(spacing: 14) {
-                HomeTile(symbol: symbol, tint: Color.accentColor, size: 44)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title).font(.headline)
-                    Text(subtitle).font(.subheadline).foregroundStyle(.secondary)
-                }
-                Spacer(minLength: 0)
-                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
-                    .font(.title3).foregroundStyle(selected ? Color.accentColor : Color.secondary.opacity(0.5))
+    /// One optional source at a time: the buttons step aside while one is attached.
+    @ViewBuilder private var attachButtons: some View {
+        if source == nil {
+            Button("Document", systemImage: "paperclip") { source = .document; chooseFile = true; error = nil }
+                .buttonStyle(.glass).accessibilityLabel("Joindre un document")
+            PhotosPicker(selection: $photoItems, maxSelectionCount: Self.maximumPhotos, matching: .images) {
+                Label("Photos", systemImage: "photo")
             }
-            .padding(16).frame(maxWidth: .infinity, alignment: .leading)
-            .glassEffect(selected ? .regular.tint(Color.accentColor.opacity(0.18)).interactive() : .regular.interactive(), in: .rect(cornerRadius: 26))
-            .overlay { if selected { RoundedRectangle(cornerRadius: 26, style: .continuous).strokeBorder(Color.accentColor, lineWidth: 2) } }
-            .contentShape(.rect(cornerRadius: 26))
+            .buttonStyle(.glass).accessibilityLabel("Joindre des photos")
+            Button("Vidéo", systemImage: "play.rectangle") { source = .video; error = nil }
+                .buttonStyle(.glass).accessibilityLabel("Partir d’une vidéo YouTube")
+        }
+    }
+
+    private var countPicker: some View {
+        Picker("Nombre de questions", selection: $questionCount) {
+            ForEach([5, 10, 15, 20], id: \.self) { Text("\($0) questions").tag($0) }
+        }
+        .pickerStyle(.menu).labelsHidden().fixedSize()
+    }
+
+    /// The custom instructions, shown so the user knows they are sent, with a way to write or change it.
+    private var profileLine: some View {
+        Button { showProfile = true } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "person.text.rectangle").foregroundStyle(.tint)
+                Text(trimmedProfile.isEmpty
+                     ? "Indiquez une fois pour toutes qui vous êtes et à quel public vous vous adressez, dans vos instructions personnalisées."
+                     : "Instructions personnalisées jointes : « \(trimmedProfile.prefix(80))\(trimmedProfile.count > 80 ? "…" : "") »")
+                    .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.leading).lineLimit(2)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
+            }
+            .padding(.horizontal, 4).contentShape(.rect)
         }
         .buttonStyle(.plain)
-        .accessibilityElement(children: .combine)
-        .accessibilityValue(selected ? "sélectionné" : "")
+        .accessibilityHint("Ouvre les instructions personnalisées")
     }
 
-    @ViewBuilder private var documentPanel: some View {
-        Group {
-            if filename.isEmpty {
-                Button { chooseFile = true } label: {
-                    VStack(spacing: 10) {
-                        Image(systemName: "arrow.down.doc").font(.system(size: 34, weight: .light)).foregroundStyle(.tint)
-                        Text("Choisir un fichier").font(.headline)
-                        Text("PDF, Word (.docx), TXT ou MD · 12 Mo au maximum").font(.subheadline).foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity).padding(.vertical, 30)
-                    .background(dropTargeted ? Color.accentColor.opacity(0.08) : .clear, in: .rect(cornerRadius: 20))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .strokeBorder(dropTargeted ? Color.accentColor : .secondary.opacity(0.4),
-                                          style: StrokeStyle(lineWidth: dropTargeted ? 2 : 1.5, dash: [7, 7]))
-                    }
-                    .contentShape(.rect)
-                }.buttonStyle(.plain)
-            } else {
-                HStack(spacing: 14) {
-                    HomeTile(symbol: "doc.text.fill", tint: Color.accentColor, size: 48)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(filename).font(.headline).lineLimit(2)
-                        Text("\(document.count.formatted()) caractères lus").font(.subheadline).foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    Button("Changer") { chooseFile = true }.buttonStyle(.glass)
-                }
-            }
+    private var removeAttachment: some View {
+        Button("Retirer", systemImage: "xmark.circle.fill") {
+            source = nil
+            document = ""; filename = ""; address = ""; transcript = ""; photos = []; error = nil
         }
+        .labelStyle(.iconOnly).foregroundStyle(.secondary).buttonStyle(.plain).font(.title2)
+        .disabled(loadingPhotos)
+    }
+
+    private func attachmentHeader(_ title: String, _ symbol: String) -> some View {
+        HStack(spacing: 10) {
+            Label(title, systemImage: symbol).font(.headline)
+            Spacer()
+            removeAttachment.accessibilityLabel("Retirer \(title == "Photos" ? "les photos" : "la vidéo")")
+        }
+    }
+
+    private var documentPanel: some View {
+        HStack(spacing: 14) {
+            HomeTile(symbol: "doc.text.fill", tint: Color.accentColor, size: 40)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(filename.isEmpty ? "Aucun document choisi" : filename).font(.headline).lineLimit(2)
+                Text(document.isEmpty ? "PDF, Word (.docx), TXT ou MD · 12 Mo au maximum" : "\(document.count.formatted()) caractères lus")
+                    .font(.subheadline).foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+            Button(filename.isEmpty ? "Choisir" : "Changer") { chooseFile = true }.buttonStyle(.glass)
+            removeAttachment.accessibilityLabel("Retirer le document")
+        }
+        .padding(dropTargeted ? 6 : 0)
+        .background(dropTargeted ? Color.accentColor.opacity(0.08) : .clear, in: .rect(cornerRadius: 16))
         .dropDestination(for: URL.self) { urls, _ in
             guard let url = urls.first(where: \.isFileURL) else { return false }
             loadDocument(url)
+            return true
+        } isTargeted: { dropTargeted = $0 }
+    }
+
+    @ViewBuilder private var photosPanel: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if !photos.isEmpty {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 10)], spacing: 10) {
+                    ForEach(Array(photos.enumerated()), id: \.element.id) { index, photo in
+                        Image(decorative: photo.thumbnail, scale: 1)
+                            .resizable().scaledToFill()
+                            .frame(minWidth: 0, maxWidth: .infinity).frame(height: 104).clipped()
+                            .clipShape(.rect(cornerRadius: 14))
+                            .overlay(alignment: .topTrailing) {
+                                Button { photos.removeAll { $0.id == photo.id } } label: {
+                                    Image(systemName: "xmark.circle.fill").font(.title3)
+                                        .symbolRenderingMode(.palette).foregroundStyle(.white, .black.opacity(0.55))
+                                }
+                                .buttonStyle(.plain).padding(6)
+                                .accessibilityLabel("Retirer la photo \(index + 1)")
+                            }
+                            .accessibilityElement(children: .contain)
+                            .accessibilityLabel("Photo \(index + 1)")
+                    }
+                }
+            }
+            if loadingPhotos {
+                HStack(spacing: 10) { ProgressView(); Text("Préparation des photos…").foregroundStyle(.secondary) }
+            }
+            if remainingPhotos > 0 {
+                let layout = large ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10)) : AnyLayout(HStackLayout(spacing: 10))
+                layout {
+                    PhotosPicker(selection: $photoItems, maxSelectionCount: remainingPhotos, matching: .images) {
+                        Label(photos.isEmpty ? "Choisir des photos" : "Ajouter des photos", systemImage: "photo.on.rectangle")
+                    }
+                    .buttonStyle(.glassProminent)
+                    Button("Choisir des fichiers", systemImage: "folder") { chooseFile = true }.buttonStyle(.glass)
+                }
+                .disabled(loadingPhotos)
+            }
+            Text(photos.isEmpty
+                 ? "Une page de manuel, le tableau, une fiche d’exercices… \(Self.maximumPhotos) photos au maximum. \(provider.name) lit le texte et les schémas visibles."
+                 : "\(photos.count) photo\(photos.count > 1 ? "s" : "") sur \(Self.maximumPhotos). Précisez au besoin ce qu’il faut en tirer dans votre demande.")
+                .font(.subheadline).foregroundStyle(.secondary)
+        }
+        .padding(dropTargeted ? 8 : 0)
+        .background(dropTargeted ? Color.accentColor.opacity(0.08) : .clear, in: .rect(cornerRadius: 20))
+        .dropDestination(for: URL.self) { urls, _ in
+            let files = urls.filter(\.isFileURL)
+            guard !files.isEmpty else { return false }
+            loadPhotoFiles(files)
             return true
         } isTargeted: { dropTargeted = $0 }
     }
@@ -439,50 +553,42 @@ struct QuizCreationView: View {
                 Text("Transcription de la vidéo").font(.headline)
                 Text("\(provider.name) ne peut pas regarder une vidéo. Collez son texte : sur YouTube, ouvrez la description puis \(tapLower) « Afficher la transcription ».")
                     .font(.subheadline).foregroundStyle(.secondary)
-                TextEditor(text: $transcript).frame(minHeight: 150).scrollContentBackground(.hidden)
+                TextEditor(text: $transcript).frame(minHeight: 120).scrollContentBackground(.hidden)
                     .padding(8).background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 14))
-                Button(keys.connected.contains(.gemini) ? "Utiliser Gemini pour lire la vidéo directement" : "Connecter Gemini pour lire la vidéo directement",
-                       systemImage: "sparkle") {
-                    providerID = QuizProvider.gemini.rawValue
-                    if !isConnected(.gemini) { withAnimation { step = .service } }
-                }.buttonStyle(.glass)
+                if isConnected(.gemini) {
+                    Button("Utiliser Gemini pour lire la vidéo directement", systemImage: "sparkle") {
+                        providerID = QuizProvider.gemini.rawValue
+                    }.buttonStyle(.glass)
+                }
             }
         }
-    }
-
-    private var optionsPanel: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Options").font(.headline)
-            LabeledContent("Nombre de questions") {
-                Picker("Nombre de questions", selection: $questionCount) {
-                    ForEach([5, 10, 15, 20], id: \.self) { Text("\($0)").tag($0) }
-                }.pickerStyle(.segmented).labelsHidden().frame(maxWidth: 260)
-            }
-            TextField("Consignes facultatives : niveau, ton, types de questions…", text: $instructions, axis: .vertical)
-                .lineLimit(2...5).padding(12).background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 14))
-        }
-        .padding(22).frame(maxWidth: .infinity, alignment: .leading)
-        .glassEffect(.regular, in: .rect(cornerRadius: 28))
     }
 
     private func generate() {
         let service = provider, kind = source, brief = QuizAIText.brief(questionCount: questionCount, instructions: instructions)
         let youtube = video, text = kind == .document ? document : trimmedTranscript
+        let images = kind == .photos ? photos.map(\.jpeg) : []
+        let system = QuizAIText.quizInstructions(hasSource: kind != nil, profile: profile)
         guard busy == nil, contentIssue == nil else { return }
         step = .review; draft = ""; editMarkdown = false
         run(.generating) {
             let key = service.usesAccount ? "" : try keys.key(for: service)
-            let model = service.usesAccount ? "" : (keys.model(for: service) ?? "")
+            let model = service.usesAccount ? "" : ((kind == .photos ? keys.photoModel(for: service) : keys.model(for: service)) ?? "")
             guard service.usesAccount || !model.isEmpty else { throw AudienceError.message("Aucun modèle n’est choisi pour \(service.name).") }
             let block: String
-            if kind == .video, service.readsVideo, let youtube {
+            if kind == nil {
+                block = ""
+            } else if kind == .photos {
+                block = "<source type=\"photos\">La source est constituée \(images.count == 1 ? "de la photo jointe" : "des \(images.count) photos jointes, dans l’ordre"). Appuie-toi sur le texte, les schémas et les données qu’elles montrent ; ignore ce qui est illisible.</source>"
+            } else if kind == .video, service.readsVideo, let youtube {
                 block = "<source type=\"video\">La source est la vidéo YouTube jointe : \(youtube.absoluteString)</source>"
             } else {
                 guard text.utf8.count <= 240_000 else { throw AudienceError.message("La source est trop longue. Choisissez un extrait.") }
                 block = "<source type=\"\(kind == .video ? "transcription" : "document")\">\n\(text)\n</source>"
             }
-            let result = try await service.generate(model: model, key: key, prompt: "\(brief)\n\n\(block)",
-                                                    video: kind == .video && service.readsVideo ? youtube : nil)
+            let result = try await service.complete(model: model, key: key, system: system,
+                                                    prompt: block.isEmpty ? brief : "\(brief)\n\n\(block)",
+                                                    video: kind == .video && service.readsVideo ? youtube : nil, images: images)
             try Task.checkCancellation()
             let markdown = QuizAIText.unfenced(result)
             guard !markdown.isEmpty else { throw AudienceError.message("Le service n’a renvoyé aucun questionnaire. Réessayez.") }

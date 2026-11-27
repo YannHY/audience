@@ -11,6 +11,7 @@ struct SidebarView: View {
     @FocusState private var renameFocused: Bool
     @State private var folderToDelete: QuizFolder?
     @State private var confirmEmptyTrash = false
+    @ScaledMetric(relativeTo: .body) private var columnWidth = IPadColumn.width
 
     var body: some View {
         List(selection: $store.sidebar) {
@@ -47,7 +48,7 @@ struct SidebarView: View {
                     .dropDestination(for: String.self) { codes, _ in store.moveToTrash(Set(codes)); return true }
             }
         }
-        .navigationSplitViewColumnWidth(min: 190, ideal: 220, max: 300)
+        .navigationSplitViewColumnWidth(min: 220, ideal: min(columnWidth, IPadColumn.maximum), max: IPadColumn.maximum)
         .safeAreaBar(edge: .bottom) { footer }
         .onChange(of: store.renamingFolder) {
             if let id = store.renamingFolder, let folder = store.archive.folders[id] {

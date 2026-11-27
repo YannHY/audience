@@ -130,7 +130,7 @@ struct ResultsView: View {
             Button("Exporter en CSV", systemImage: "square.and.arrow.up") { store.exportResultsCSV(quiz) }
                 .disabled(resultQuestions.isEmpty)
             Button("Actualiser", systemImage: "arrow.clockwise") { Task { await refresh() } }
-                .disabled(!canRefresh || refreshing)
+                .disabled(!canRefresh || refreshing).iPadIconOnly()
         }.fixedSize(horizontal: true, vertical: false)
     }
     private var canRefresh: Bool { store.connected }

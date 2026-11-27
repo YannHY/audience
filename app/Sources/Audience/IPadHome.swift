@@ -50,9 +50,6 @@ struct IPadHomeView: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Button("Importer", systemImage: "square.and.arrow.down", action: showImport).disabled(store.readOnly)
-                }
-                ToolbarItem(placement: .primaryAction) {
                     Button("Réglages", systemImage: "gearshape", action: showSettings)
                 }
             }
@@ -75,24 +72,17 @@ struct IPadHomeView: View {
 
     // MARK: Actions
 
+    /// The AI card, then the same column of plain cards beside it or below it.
     @ViewBuilder private func actions(count: Int) -> some View {
+        let column = VStack(spacing: 16) { blankCard; importCard; libraryCard(count) }
         if wide {
             HStack(alignment: .top, spacing: 20) {
                 aiCard.frame(maxWidth: .infinity)
-                VStack(spacing: 20) { blankCard; libraryCard(count) }.frame(width: 400)
+                column.frame(width: 400)
             }
             .fixedSize(horizontal: false, vertical: true)
-        } else if typeSize.isAccessibilitySize {
-            VStack(spacing: 20) { aiCard; blankCard; libraryCard(count) }
         } else {
-            VStack(spacing: 20) {
-                aiCard
-                HStack(alignment: .top, spacing: 20) {
-                    blankCard.frame(maxWidth: .infinity)
-                    libraryCard(count).frame(maxWidth: .infinity)
-                }
-                .fixedSize(horizontal: false, vertical: true)
-            }
+            VStack(spacing: 20) { aiCard; column }
         }
     }
 
@@ -105,7 +95,7 @@ struct IPadHomeView: View {
                     .glassEffect(.regular.tint(.white.opacity(0.2)), in: .capsule)
                 Spacer(minLength: 24)
                 Text("Créer avec une IA").font(.largeTitle.weight(.bold))
-                Text("Déposez un PDF, un document Word, un texte ou l’adresse d’une vidéo YouTube. L’assistant rédige un questionnaire que vous relisez avant de l’ajouter.")
+                Text("Décrivez le questionnaire voulu, avec ou sans document, photos ou vidéo YouTube. L’assistant le rédige ; vous le relisez avant de l’ajouter.")
                     .font(.title3).foregroundStyle(.white.opacity(0.92))
                     .frame(maxWidth: 540, alignment: .leading)
                 HStack(alignment: .center, spacing: 16) {
@@ -149,6 +139,11 @@ struct IPadHomeView: View {
     private var blankCard: some View {
         actionCard("Questionnaire vierge", "Partir d’une page blanche", "square.and.pencil", .blue, action: newQuiz)
             .keyboardShortcut("n")
+            .disabled(store.readOnly)
+    }
+
+    private var importCard: some View {
+        actionCard("Importer", "Fichiers ou texte d’un questionnaire", "square.and.arrow.down", .green, action: showImport)
             .disabled(store.readOnly)
     }
 
@@ -237,10 +232,8 @@ struct IPadHomeView: View {
         VStack(spacing: 14) {
             Image(systemName: "tray").font(.system(size: 34, weight: .light)).foregroundStyle(.secondary)
             Text("Vos questionnaires récents apparaîtront ici").font(.headline)
-            Text("Créez-en un, générez-le avec une IA ou importez un fichier Markdown.")
+            Text("Créez-en un, générez-le avec une IA ou importez-le.")
                 .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
-            Button("Importer un questionnaire", systemImage: "square.and.arrow.down", action: showImport)
-                .buttonStyle(.glass).disabled(store.readOnly)
         }
         .frame(maxWidth: .infinity).padding(32)
         .overlay {

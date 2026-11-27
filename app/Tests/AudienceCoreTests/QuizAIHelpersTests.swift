@@ -67,10 +67,20 @@ struct QuizAIHelpersTests {
     }
 
     @Test func theBriefStatesTheSizeAndKeepsInstructionsShort() {
-        #expect(QuizAIText.brief(questionCount: 10, instructions: " ") == "Écris environ 10 questions.")
+        #expect(QuizAIText.brief(questionCount: 10, instructions: " ") == "Écris environ 10 questions, sauf si la demande précise un autre nombre.")
         let brief = QuizAIText.brief(questionCount: 5, instructions: "Niveau lycée, ton ludique")
-        #expect(brief.hasPrefix("Écris environ 5 questions."))
+        #expect(brief.hasPrefix("Écris environ 5 questions"))
         #expect(brief.hasSuffix("Niveau lycée, ton ludique"))
-        #expect(QuizAIText.brief(questionCount: 5, instructions: String(repeating: "a", count: 5_000)).count < 1_200)
+        #expect(QuizAIText.brief(questionCount: 5, instructions: String(repeating: "a", count: 9_000)).count < 4_300)
+    }
+
+    @Test func theQuizInstructionsFollowTheSourceAndTheProfile() {
+        let grounded = QuizAIText.quizInstructions(hasSource: true, profile: "")
+        #expect(grounded.contains("exclusivement sur la source"))
+        #expect(!grounded.contains("<instructions>"))
+        let free = QuizAIText.quizInstructions(hasSource: false, profile: "  Professeur de SVT en 4e  ")
+        #expect(free.contains("Aucune source n’est jointe"))
+        #expect(free.hasSuffix("<instructions>\nProfesseur de SVT en 4e\n</instructions>"))
+        #expect(QuizAIText.withProfile("Système", profile: String(repeating: "a", count: 9_000)).count < 2_300)
     }
 }

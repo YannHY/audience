@@ -80,15 +80,19 @@ enum ChatGPTAPI {
         }
     }
 
-    static func response(model: String, system: String, prompt: String, token: String,
+    static func response(model: String, system: String, prompt: String, images: [Data] = [], token: String,
                          sessionConfiguration: URLSessionConfiguration = .ephemeral) async throws -> String {
         var request = URLRequest(url: URL(string: ChatGPTProtocol.resource + "/responses")!)
         request.httpMethod = "POST"; request.timeoutInterval = 180
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+        // Photos go with the text as input images, inline.
+        let content: Any = images.isEmpty ? prompt : [["type": "input_text", "text": prompt]] + images.map { data -> [String: Any] in
+            ["type": "input_image", "image_url": "data:image/jpeg;base64,\(data.base64EncodedString())"]
+        }
         request.httpBody = try JSONSerialization.data(withJSONObject: [
-            "model": model, "instructions": system, "input": [["role": "user", "content": prompt]],
+            "model": model, "instructions": system, "input": [["role": "user", "content": content]],
             "store": false, "stream": true
         ])
         let session = URLSession(configuration: sessionConfiguration, delegate: NoRedirect(), delegateQueue: nil)

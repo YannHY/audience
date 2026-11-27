@@ -37,8 +37,6 @@ struct IPadSettingsView: View {
                                 .disabled(store.busy)
                         }
                     }
-                    Text("Le mot de passe est conservé dans le trousseau de cet iPad. Se déconnecter l’efface.")
-                        .font(.caption).foregroundStyle(.secondary)
                 }
                 if store.connected {
                     Section("Synchronisation") {
@@ -50,6 +48,7 @@ struct IPadSettingsView: View {
                     }
                 }
                 AIAssistantsSection()
+                AICustomInstructionsSection()
                 Section("Sauvegardes") {
                     Text("Les questionnaires sont enregistrés automatiquement sur cet iPad.")
                         .font(.callout).foregroundStyle(.secondary)
@@ -61,7 +60,7 @@ struct IPadSettingsView: View {
                 }
             }
             .navigationTitle("Réglages")
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Terminé") { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .confirmationAction) { DoneButton { dismiss() } } }
         }
         .sheet(isPresented: $store.importing) { ImportSheet(store: store) }
         .modifier(AudienceDialogs(store: store, active: !store.importing))

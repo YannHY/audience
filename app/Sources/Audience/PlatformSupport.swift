@@ -52,7 +52,43 @@ enum IPadColumn {
     static let maximum: CGFloat = 380
 }
 
+/// Closes a sheet or a screen: the system cross on the iPad, the word on the Mac.
+/// VoiceOver still reads « Fermer ».
+struct CloseButton: View {
+    let action: () -> Void
+    var body: some View {
+        #if os(iOS)
+        Button("Fermer", systemImage: "xmark", role: .close, action: action).labelStyle(.iconOnly)
+        #else
+        Button("Fermer", action: action)
+        #endif
+    }
+}
+
+/// Confirms and closes a sheet: the system checkmark on the iPad, the word on the Mac.
+/// VoiceOver still reads « Terminé ».
+struct DoneButton: View {
+    let action: () -> Void
+    var body: some View {
+        #if os(iOS)
+        Button("Terminé", systemImage: "checkmark", role: .confirm, action: action).labelStyle(.iconOnly)
+        #else
+        Button("Terminé", action: action)
+        #endif
+    }
+}
+
 extension View {
+    /// Shows only the icon of a labelled button on the iPad, where its symbol speaks for itself;
+    /// the Mac keeps the word. The title remains the accessibility label.
+    func iPadIconOnly() -> some View {
+        #if os(iOS)
+        labelStyle(.iconOnly)
+        #else
+        self
+        #endif
+    }
+
     func platformHoverEffect(lift: Bool = false) -> some View {
         #if os(iOS)
         hoverEffect(lift ? .lift : .highlight)

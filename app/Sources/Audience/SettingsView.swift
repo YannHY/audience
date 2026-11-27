@@ -42,9 +42,11 @@ struct SettingsView: View {
                                     .disabled(store.busy || email.isEmpty || password.isEmpty)
                                 if store.busy { ProgressView().controlSize(.small) }
                             }
+                            if store.savedLoginPending {
+                                Button("Réessayer la connexion enregistrée") { Task { await store.connectSaved() } }
+                                    .disabled(store.busy)
+                            }
                         }
-                        Text("Le mot de passe est enregistré dans le trousseau de cet appareil : l’app se reconnecte seule à chaque lancement. Se déconnecter l’efface.")
-                            .font(.caption).foregroundStyle(.secondary)
                     }
                     if store.connected {
                         Section("Synchronisation") {
@@ -57,12 +59,6 @@ struct SettingsView: View {
                             }
                             Button("Synchroniser maintenant") { Task { await store.synchronize(showErrors: true) } }
                                 .disabled(store.syncing || store.busy || store.liveCode != nil)
-                            Text("Vos questionnaires, favoris et éléments de la corbeille sont synchronisés automatiquement.")
-                                .font(.caption).foregroundStyle(.secondary)
-                            if store.syncDrafts > 0 {
-                                Text("Les questions incomplètes restent sur cet appareil jusqu’à ce qu’elles soient prêtes.")
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
                             if let message = store.syncError {
                                 Text(message).font(.caption).foregroundStyle(.red).lineLimit(4).textSelection(.enabled)
                             }
@@ -70,11 +66,14 @@ struct SettingsView: View {
                     }
                 }.formStyle(.grouped)
             }
+            Tab("Assistants IA", systemImage: "sparkles", value: 3) {
+                AIAssistantsMacView()
+            }
             Tab("Modèles locaux", systemImage: "internaldrive", value: 2) {
                 LocalModelsView()
             }
         }
-        .frame(width: 640, height: tab == 2 ? 680 : 470)
+        .frame(width: 640, height: tab == 2 || tab == 3 ? 680 : 470)
     }
     private func connect() {
         guard !store.busy, !email.isEmpty, !password.isEmpty else { return }

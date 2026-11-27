@@ -16,12 +16,6 @@ struct AudienceIPadApp: App {
     }
 }
 
-/// Width shared by the iPad list columns (sidebar, questionnaires, questions) so they line up as one grid.
-enum IPadColumn {
-    static let width: CGFloat = 280
-    static let maximum: CGFloat = 380
-}
-
 struct IPadLibraryView: View {
     @Bindable var store: LibraryStore
     @Environment(\.scenePhase) private var scenePhase
@@ -30,7 +24,6 @@ struct IPadLibraryView: View {
     @AppStorage("librarySort") private var sort: QuizSort = .modified
     @State private var column: NavigationSplitViewColumn = .content
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
-    @State private var expandedColumnVisibility: NavigationSplitViewVisibility = .all
     @State private var mode = 0
     @State private var home = ["home", "assistant", nil].contains(ProcessInfo.processInfo.environment["AUDIENCE_IPAD_PREVIEW"])
     @State private var assistant = false
@@ -38,6 +31,9 @@ struct IPadLibraryView: View {
     @State private var showInspector = false
     @State private var presentation: PresentationSelection?
     @State private var purgeCodes: Set<String> = []
+    @State private var tagCodes: Set<String> = []
+    @State private var tagName = ""
+    @State private var detailWidth: CGFloat = 0
 
     private var selection: Binding<String?> {
         Binding(get: { store.selection.first }, set: { store.selection = $0.map { [$0] } ?? [] })
@@ -60,7 +56,7 @@ struct IPadLibraryView: View {
         .sheet(isPresented: $assistant) { QuizCreationView(store: store) { assistant = false; openEditor() } }
         .sheet(isPresented: $showSettings) { IPadSettingsView(store: store) }
         .sheet(isPresented: Binding(get: { !showSettings && !assistant && store.importing }, set: { if !$0 && !showSettings { store.importing = false } })) { ImportSheet(store: store) }
-        .modifier(AudienceDialogs(store: store, active: !showSettings && !assistant && presentation == nil && !showInspector && !store.importing))
+        .modifier(AudienceDialogs(store: store, active: !showSettings && !assistant && presentation == nil && !showInspector && tagCodes.isEmpty && !store.importing))
         .overlay(alignment: .bottom) {
             if let notice = store.notice {
                 Text(notice).font(.callout).padding(14)
@@ -96,22 +92,12 @@ struct IPadLibraryView: View {
             detail
         }
         .navigationSplitViewStyle(.balanced)
-        .searchable(text: $store.search, prompt: "Titre, code ou étiquette")
-        .toolbar {
-            ToolbarItem(placement: .bottomBar) {
-                Button("Réglages", systemImage: "gearshape") { showSettings = true }
-            }
-            ToolbarItem(placement: .bottomBar) {
-                Button("Importer", systemImage: "square.and.arrow.down") { store.importing = true }
-                    .disabled(store.readOnly)
-            }
-        }
         .sheet(isPresented: $showInspector) {
             NavigationStack {
                 if let quiz = store.selectedQuiz {
                     QuizInspector(store: store, code: quiz.code)
                         .navigationTitle("Réglages du questionnaire")
-                        .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Terminé") { showInspector = false } } }
+                        .toolbar { ToolbarItem(placement: .confirmationAction) { DoneButton { showInspector = false } } }
                 }
             }
         }
@@ -123,8 +109,16 @@ struct IPadLibraryView: View {
             get: { !purgeCodes.isEmpty }, set: { if !$0 { purgeCodes = [] } }), titleVisibility: .visible) {
                 Button("Supprimer définitivement", role: .destructive) { store.purge(purgeCodes); purgeCodes = [] }
             }
+        .alert("Nouvelle étiquette", isPresented: Binding(get: { !tagCodes.isEmpty }, set: { if !$0 { tagCodes = [] } })) {
+            TextField("Nom", text: $tagName)
+            Button("Ajouter") { store.addTag(tagName, to: tagCodes); tagCodes = [] }
+            Button("Annuler", role: .cancel) { tagCodes = [] }
+        }
         .onChange(of: store.selection) { foldColumns() }
     }
+
+    /// Asked from the long-press menu, so adding a tag needs no button of its own.
+    private func askTag(_ codes: Set<String>) { tagName = ""; tagCodes = codes }
 
     private var quizList: some View {
         let quizzes = store.listedQuizzes(sort: sort)
@@ -135,12 +129,14 @@ struct IPadLibraryView: View {
                 }
                     .draggable(quiz.code)
                     .contextMenu {
-                        QuizActions(store: store, codes: [quiz.code], purge: { purgeCodes = $0 }, present: present)
+                        QuizActions(store: store, codes: [quiz.code], purge: { purgeCodes = $0 }, present: present, newTag: askTag)
                     }
             }
         }
         .navigationTitle(store.title(of: store.sidebar ?? .all))
         .navigationSplitViewColumnWidth(min(columnWidth, IPadColumn.maximum))
+        // The search belongs to the list, so it stays out of the editor's toolbar.
+        .searchable(text: $store.search, placement: .navigationBarDrawer(displayMode: .always), prompt: "Titre, code ou étiquette")
         // Pull to refresh replaces the sync button: the status itself is in Settings.
         .refreshable {
             if store.connected { await store.synchronize(showErrors: true) } else { await store.connectSaved() }
@@ -155,14 +151,10 @@ struct IPadLibraryView: View {
             }
         }
         .toolbar {
-            if sizeClass == .regular, store.selectedQuiz != nil {
+            // Side by side, these live in the editor's Actions menu; stacked, the editor is out of sight.
+            if sizeClass == .compact {
                 ToolbarItem(placement: .primaryAction) {
-                    libraryToggle
-                }
-            }
-            ToolbarItem(placement: .primaryAction) {
-                Menu("Trier", systemImage: "arrow.up.arrow.down") {
-                    Picker("Trier par", selection: $sort) { ForEach(QuizSort.allCases) { Text($0.title).tag($0) } }
+                    Menu("Actions", systemImage: "ellipsis.circle") { libraryItems }
                 }
             }
             ToolbarItem(placement: .primaryAction) {
@@ -179,13 +171,6 @@ struct IPadLibraryView: View {
     @ViewBuilder private var detail: some View {
         if let quiz = store.selectedQuiz {
             VStack(spacing: 0) {
-                if !quiz.isDeleted {
-                    Picker("Affichage", selection: $mode) {
-                        Text("Éditeur").tag(0)
-                        Text("Résultats").tag(1)
-                        Text("Statistiques").tag(2)
-                    }.pickerStyle(.segmented).padding()
-                }
                 if quiz.isDeleted {
                     ContentUnavailableView {
                         Label("Dans la corbeille", systemImage: "trash")
@@ -201,22 +186,38 @@ struct IPadLibraryView: View {
                     }
                 }
             }
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { detailWidth = $0 }
             .navigationTitle(quiz.title.isEmpty ? "Sans titre" : quiz.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 detailHomeButton
                 if !quiz.isDeleted {
-                    ToolbarItem(placement: .primaryAction) {
-                        Button("Présenter", systemImage: "play.fill") { present(quiz) }
-                    }
-                    ToolbarItem(placement: .primaryAction) {
-                        Menu("Actions", systemImage: "ellipsis.circle") {
-                            Button("Réglages du questionnaire", systemImage: "slider.horizontal.3") { showInspector = true }
-                            Divider()
-                            QuizActions(store: store, codes: [quiz.code], purge: { purgeCodes = $0 }, present: present)
+                    // The title is already the first field of the editor: the bar shows the three views instead.
+                    ToolbarItem(placement: .principal) {
+                        Picker("Affichage", selection: $mode) {
+                            Text("Éditeur").tag(0)
+                            Text("Résultats").tag(1)
+                            Text("Statistiques").tag(2)
                         }
+                        .pickerStyle(.segmented).fixedSize()
                     }
+                    // The app's main action: tinted, with its name, apart from the secondary menu.
+                    ToolbarItem(placement: .primaryAction) {
+                        // A plain HStack: the toolbar would otherwise reduce a Label to its icon.
+                        Button { present(quiz) } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "play.fill")
+                                // The name only when the bar has room for it beside the three views.
+                                if detailWidth >= 720 { Text("Présenter") }
+                            }
+                            .fontWeight(.semibold).foregroundStyle(.white)
+                        }
+                        .buttonStyle(.glassProminent)
+                        .accessibilityLabel("Présenter")
+                    }
+                    ToolbarSpacer(.fixed, placement: .primaryAction)
                 }
+                actionsMenu(quiz.isDeleted ? nil : quiz)
             }
         } else {
             ContentUnavailableView {
@@ -224,20 +225,44 @@ struct IPadLibraryView: View {
             } description: { Text("Sélectionnez un questionnaire ou créez-en un nouveau.") } actions: {
                 Button("Nouveau questionnaire", action: store.create).buttonStyle(.glassProminent).disabled(store.readOnly)
             }
-            .toolbar { detailHomeButton }
+            .toolbar { detailHomeButton; actionsMenu(nil) }
         }
     }
 
-    /// Back to the home screen. It sits in the editor column, which has room for its name and stays
-    /// visible when the sidebar is folded; the selection is kept, so coming back resumes the same questionnaire.
+    /// The only “…” menu: the open questionnaire's actions, then the library's occasional ones.
+    @ToolbarContentBuilder private func actionsMenu(_ quiz: Quiz?) -> some ToolbarContent {
+        ToolbarItem(placement: .primaryAction) {
+            Menu("Actions", systemImage: "ellipsis.circle") {
+                if let quiz {
+                    Button("Réglages du questionnaire", systemImage: "slider.horizontal.3") { showInspector = true }
+                    Divider()
+                    QuizActions(store: store, codes: [quiz.code], purge: { purgeCodes = $0 }, present: present, newTag: askTag, showsPresent: false)
+                }
+                libraryItems
+            }
+        }
+    }
+
+    /// Sorting, import and settings are occasional: a section of the menu instead of three buttons.
+    private var libraryItems: some View {
+        Section("Bibliothèque") {
+            Picker("Trier par", systemImage: "arrow.up.arrow.down", selection: $sort) {
+                ForEach(QuizSort.allCases) { Text($0.title).tag($0) }
+            }
+            .pickerStyle(.menu)
+            Button("Importer…", systemImage: "square.and.arrow.down") { store.importing = true }
+                .disabled(store.readOnly)
+            Button("Réglages", systemImage: "gearshape") { showSettings = true }
+        }
+    }
+
+    /// Back to the home screen, shown as a house so it is not mistaken for the system back chevron. It sits
+    /// in the editor column, which stays visible when the sidebar is folded; the selection is kept, so coming
+    /// back resumes the same questionnaire.
     @ToolbarContentBuilder private var detailHomeButton: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
-            Button { withAnimation(.smooth) { home = true } } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "chevron.backward").font(.body.weight(.semibold))
-                    Text("Accueil")
-                }
-            }
+            Button("Accueil", systemImage: "house") { withAnimation(.smooth) { home = true } }
+                .labelStyle(.iconOnly)
             .keyboardShortcut("[", modifiers: .command)
             .accessibilityHint("Retourne à l’écran d’accueil.")
         }
@@ -250,32 +275,15 @@ struct IPadLibraryView: View {
         withAnimation(.smooth) { home = false }
     }
 
-    private var libraryToggle: some View {
-        // Distinct from the system "sidebar.left" button that brings back the folded sidebar next to it.
-        Button(columnVisibility == .detailOnly ? "Afficher les questionnaires" : "Masquer les questionnaires",
-               systemImage: "rectangle.lefthalf.inset.filled.arrow.left") {
-            withAnimation {
-                if columnVisibility == .detailOnly {
-                    columnVisibility = expandedColumnVisibility
-                } else {
-                    expandedColumnVisibility = columnVisibility
-                    columnVisibility = .detailOnly
-                }
-            }
-        }
-        .help(columnVisibility == .detailOnly ? "Afficher les questionnaires" : "Masquer les questionnaires")
-        .keyboardShortcut("l", modifiers: [.command, .shift])
-    }
-
-    /// Opening a questionnaire folds the sidebar so the editor gets the room; with nothing open, it comes back.
-    /// Only the full three-column layout is folded, so a library the user hid stays hidden.
+    /// Opening a questionnaire gives the editor the whole screen, like a document; the system button at
+    /// the top left brings the lists back. With nothing open, they come back on their own.
     private func foldColumns() {
         let open = store.selectedQuiz != nil
         if open { column = .detail }
         guard sizeClass == .regular else { return }
-        if open, columnVisibility == .all {
-            withAnimation { columnVisibility = .doubleColumn }
-        } else if !open, columnVisibility == .doubleColumn {
+        if open, columnVisibility != .detailOnly {
+            withAnimation { columnVisibility = .detailOnly }
+        } else if !open, columnVisibility == .detailOnly {
             withAnimation { columnVisibility = .all }
         }
     }
@@ -377,7 +385,7 @@ struct IPadSidebar: View {
         List(selection: $store.sidebar) {
             row(.all)
             row(.favorites)
-            Section("Dossiers") {
+            Section {
                 ForEach(store.visibleFolders) { folder in
                     NavigationLink(value: SidebarItem.folder(folder.id)) {
                         Label(folder.name, systemImage: "folder.fill").foregroundStyle(folder.quizColor.color)
@@ -389,15 +397,19 @@ struct IPadSidebar: View {
                             ForEach(QuizColor.allCases) { color in Button(color.title) { store.setFolderColor(folder.id, color) } }
                         }
                         Button("Supprimer le dossier…", systemImage: "trash", role: .destructive) { folderToDelete = folder.id }
+                        Divider()
+                        newFolderButton
                     }
                 }
-                Button("Nouveau dossier", systemImage: "folder.badge.plus") {
-                    folderToRename = store.createFolder(rename: false)
-                    name = "Nouveau dossier"
-                }.disabled(store.readOnly)
+                if store.visibleFolders.isEmpty {
+                    Text("Appui long pour créer un dossier.")
+                        .font(.caption).foregroundStyle(.secondary).selectionDisabled()
+                }
+            } header: {
+                Text("Dossiers").contextMenu { newFolderButton }
             }
             if !store.allTags.isEmpty {
-                Section("Étiquettes") { ForEach(store.allTags, id: \.self) { row(.tag($0)) } }
+                Section("Étiquettes") { ForEach(store.allTags, id: \.self) { tagRow($0) } }
             }
             Section {
                 row(.trash).contextMenu {
@@ -407,8 +419,26 @@ struct IPadSidebar: View {
             }
         }
     }
+    private var newFolderButton: some View {
+        Button("Nouveau dossier", systemImage: "folder.badge.plus") {
+            folderToRename = store.createFolder(rename: false)
+            name = "Nouveau dossier"
+        }.disabled(store.readOnly)
+    }
+    /// A tag is a filter, not a place: touching the selected one again lifts the filter.
+    private func tagRow(_ tag: String) -> some View {
+        let item = SidebarItem.tag(tag)
+        let selected = store.sidebar == item
+        return Button { store.sidebar = selected ? .all : item } label: {
+            Label(tag, systemImage: item.symbol).badge(store.quizzes(in: item).count)
+        }
+        .foregroundStyle(.primary)
+        .listRowBackground(selected ? Color.accentColor.opacity(0.25) : nil)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
     private func row(_ item: SidebarItem) -> some View {
-        NavigationLink(value: item) { Label(store.title(of: item), systemImage: item.symbol).badge(store.quizzes(in: item).count) }
+        let title: String = if case .tag(let tag) = item { tag } else { store.title(of: item) }
+        return NavigationLink(value: item) { Label(title, systemImage: item.symbol).badge(store.quizzes(in: item).count) }
     }
 }
 #endif

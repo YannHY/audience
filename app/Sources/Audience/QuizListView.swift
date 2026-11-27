@@ -4,10 +4,12 @@ import AudienceCore
 #endif
 
 #if os(macOS)
-struct QuizListView: View {
+struct QuizListView<ToggleButton: View>: View {
     @Bindable var store: LibraryStore
     @Binding var sort: QuizSort
     var present: (Quiz) -> Void
+    @ViewBuilder var libraryToggle: () -> ToggleButton
+    @ScaledMetric(relativeTo: .body) private var columnWidth = IPadColumn.width
     @State private var purgeCodes: Set<String> = []
 
     var body: some View {
@@ -46,6 +48,7 @@ struct QuizListView: View {
                     } actions: {
                         if store.search.isEmpty && section != .trash {
                             Button("Nouveau questionnaire", action: store.create).disabled(store.readOnly)
+                            Button("Créer avec une IA…") { store.showingAssistant = true }.buttonStyle(.link).disabled(store.readOnly)
                             if section == .all {
                                 Button("Importer un questionnaire…") { store.importing = true }.buttonStyle(.link).disabled(store.readOnly)
                             }
@@ -56,9 +59,12 @@ struct QuizListView: View {
         }
         .navigationTitle(store.title(of: section))
         .navigationSubtitle(quizzes.count == 1 ? "1 questionnaire" : "\(quizzes.count) questionnaires")
-        .navigationSplitViewColumnWidth(min: 260, ideal: 310, max: 420)
+        .navigationSplitViewColumnWidth(min: 260, ideal: min(columnWidth, IPadColumn.maximum), max: IPadColumn.maximum)
         .toolbar {
             ToolbarItemGroup {
+                if store.selectedQuiz != nil {
+                    libraryToggle()
+                }
                 Menu {
                     Picker("Trier par", selection: $sort) {
                         ForEach(QuizSort.allCases) { Text($0.title).tag($0) }
@@ -69,6 +75,8 @@ struct QuizListView: View {
                     Button("Vider la corbeille", systemImage: "trash.slash") { purgeCodes = Set(quizzes.map(\.code)) }
                         .disabled(quizzes.isEmpty).help("Supprimer définitivement tout le contenu de la corbeille")
                 } else {
+                    Button("Créer avec une IA…", systemImage: "sparkles") { store.showingAssistant = true }
+                        .disabled(store.readOnly).help("Créer avec une IA (⌥⌘N)")
                     Button("Nouveau questionnaire", systemImage: "square.and.pencil", action: store.create)
                         .disabled(store.readOnly).help("Nouveau questionnaire (⌘N)")
                 }
@@ -248,6 +256,11 @@ struct QuizActions: View {
     let codes: Set<String>
     var purge: (Set<String>) -> Void
     var present: (Quiz) -> Void
+    /// Asks for a new tag's name. Given on iPad, where the long-press menu is the way to tag;
+    /// the Mac tags from its inspector, so its menus stay as they were.
+    var newTag: ((Set<String>) -> Void)? = nil
+    /// Off where a Présenter button already sits next to the menu.
+    var showsPresent = true
 
     var body: some View {
         let quizzes = codes.compactMap { store.archive.quizzes[$0] }
@@ -258,7 +271,7 @@ struct QuizActions: View {
             Button("Supprimer définitivement…", systemImage: "trash.slash", role: .destructive) { purge(codes) }
         } else {
             let active = Set(quizzes.filter { !$0.isDeleted }.map(\.code))
-            if quizzes.count == 1, let quiz = quizzes.first {
+            if showsPresent, quizzes.count == 1, let quiz = quizzes.first {
                 Button("Présenter", systemImage: "play.rectangle") { present(quiz) }
                 Divider()
             }
@@ -275,6 +288,20 @@ struct QuizActions: View {
                 Divider()
                 Button("Nouveau dossier avec la sélection", systemImage: "folder.badge.plus") { store.createFolder(with: active) }
             } label: { Label("Déplacer vers", systemImage: "folder") }
+            if let newTag {
+                let targets = quizzes.filter { !$0.isDeleted }
+                let full = targets.allSatisfy { $0.tags.count >= 12 }
+                Menu {
+                    let tags = store.allTags
+                    ForEach(tags, id: \.self) { tag in
+                        let tagged = targets.allSatisfy { $0.tags.contains { $0.caseInsensitiveCompare(tag) == .orderedSame } }
+                        Toggle(tag, isOn: Binding(get: { tagged }, set: { $0 ? store.addTag(tag, to: active) : store.removeTag(tag, from: active) }))
+                            .disabled(!tagged && full)
+                    }
+                    if !tags.isEmpty { Divider() }
+                    Button("Nouvelle étiquette…", systemImage: "plus") { newTag(active) }.disabled(full)
+                } label: { Label("Étiquettes", systemImage: "tag") }
+            }
             Menu {
                 Button("Automatique") { store.setColor(active, nil) }
                 Divider()

@@ -112,9 +112,9 @@ struct PresentationView: View {
         .safeAreaInset(edge: .top, alignment: .trailing) {
             HStack {
                 Spacer()
-                Button("Fermer", systemImage: "xmark") {
+                CloseButton {
                     if isLive { confirmClose = true } else { closePresentation() }
-                }.buttonStyle(.glass).padding(.horizontal)
+                }.buttonStyle(.glass).controlSize(.large).padding(.horizontal)
             }.frame(minHeight: 48)
         }
         .confirmationDialog("Arrêter la session et fermer la présentation ?", isPresented: $confirmClose, titleVisibility: .visible) {
@@ -410,6 +410,7 @@ struct PresentationView: View {
                         .buttonStyle(.glassProminent).keyboardShortcut(.defaultAction)
                     if isLive {
                         Button("Arrêter", systemImage: "stop.fill") { Task { await store.stopLive() } }.tint(.red)
+                            .labelStyle(.iconOnly)
                     } else {
                         launchLiveButton
                     }
@@ -444,7 +445,6 @@ struct PresentationView: View {
         }
         .buttonStyle(.glass).controlSize(.large)
         .disabled(store.busy).padding(.horizontal, 20).padding(.vertical, 10)
-        .background(.bar)
     }
     #endif
 
@@ -491,10 +491,10 @@ struct JoinSheet: View {
             Text(url.absoluteString).font(.callout).foregroundStyle(.secondary).textSelection(.enabled).lineLimit(3)
             HStack {
                 Button("Copier le lien", systemImage: "doc.on.doc") { PlatformClipboard.copy(url.absoluteString) }
-                    .presentationControl()
+                    .iPadIconOnly().presentationControl()
                 ShareLink(item: url) { Label("Partager", systemImage: "square.and.arrow.up") }
-                    .presentationControl()
-                Button("Terminé") { dismiss() }.keyboardShortcut(.defaultAction).buttonStyle(.glassProminent)
+                    .iPadIconOnly().presentationControl()
+                DoneButton { dismiss() }.keyboardShortcut(.defaultAction).buttonStyle(.glassProminent)
                     .presentationControl()
             }
         }.padding(24).frame(idealWidth: 430, maxWidth: 480)

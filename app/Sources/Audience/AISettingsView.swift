@@ -25,6 +25,37 @@ struct AIAssistantsSection: View {
     }
 }
 
+/// What the user would otherwise repeat in every request: who they are, their audience, their habits.
+/// Sent with each questionnaire request and each summary of results, to whichever assistant is used.
+enum AICustomInstructions {
+    static let key = "ai.profile"
+    static var text: String { UserDefaults.standard.string(forKey: key) ?? "" }
+}
+
+struct AICustomInstructionsSection: View {
+    @AppStorage(AICustomInstructions.key) private var profile = ""
+
+    var body: some View {
+        Section {
+            TextEditor(text: $profile)
+                .frame(minHeight: 110)
+                .overlay(alignment: .topLeading) {
+                    if profile.isEmpty {
+                        Text("Par exemple : « Je suis professeur de SVT en collège », « Je forme des adultes à la cybersécurité en entreprise » ou « J’anime des quiz de culture générale ». Ajoutez vos habitudes : questions courtes, ton, types de questions…")
+                            .foregroundStyle(.tertiary).padding(.top, 8).padding(.leading, 5).allowsHitTesting(false)
+                    }
+                }
+                .onChange(of: profile) { _, new in
+                    if new.count > QuizAIText.profileLimit { profile = String(new.prefix(QuizAIText.profileLimit)) }
+                }
+        } header: {
+            Text("Instructions personnalisées")
+        } footer: {
+            Text("Ajoutées à chaque demande faite à l’assistant (création de questionnaire et synthèse des résultats), pour ne pas répéter qui vous êtes, votre public ou vos habitudes. \(profile.count) / \(QuizAIText.profileLimit) caractères.")
+        }
+    }
+}
+
 struct AIProviderRow: View {
     let provider: QuizProvider
     @ObservedObject private var chatGPT = ChatGPTAuth.shared
@@ -82,3 +113,42 @@ struct AIProviderSettingsView: View {
         .task { await AIKeyStore.shared.refreshModels(provider) }
     }
 }
+
+#if os(macOS)
+/// Single-page assistants settings for macOS Settings tabs and sheets (where the window toolbar belongs to TabView).
+struct AIAssistantsMacView: View {
+    @AppStorage("ai.provider") private var providerID = QuizProvider.chatGPT.rawValue
+    private var selected: QuizProvider { QuizProvider(rawValue: providerID) ?? .chatGPT }
+
+    var body: some View {
+        Form {
+            Section {
+                ForEach(QuizProvider.allCases) { provider in
+                    Button { providerID = provider.rawValue } label: {
+                        HStack {
+                            AIProviderRow(provider: provider)
+                            Spacer()
+                            Image(systemName: provider == selected ? "checkmark.circle.fill" : "circle")
+                                .font(.title3)
+                                .foregroundStyle(provider == selected ? provider.tint : Color.secondary.opacity(0.4))
+                        }
+                        .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                }
+            } header: {
+                Text("Assistants IA")
+            } footer: {
+                Text("Connectez ChatGPT avec votre compte, ou Claude, Gemini et Groq avec une clé API, pour créer des questionnaires et résumer les résultats. Rien n’est envoyé avant que vous le demandiez ; les connexions sont gardées dans le Trousseau de ce Mac.")
+            }
+            Section(selected.name) {
+                AIConnectionPanel(provider: selected)
+                    .id(selected)
+            }
+            AICustomInstructionsSection()
+        }
+        .formStyle(.grouped)
+        .task(id: providerID) { await AIKeyStore.shared.refreshModels(selected) }
+    }
+}
+#endif

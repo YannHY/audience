@@ -55,8 +55,8 @@ public enum HelpContent {
         HelpTopic(id: "start", title: "Premiers pas", symbol: "hand.wave", blocks: [
             .text("Audience prépare des questionnaires, les présente à un groupe et recueille en direct les réponses du public, depuis son téléphone."),
             .bullets([
-                mac ? "**Créez** un questionnaire avec **Nouveau questionnaire** (⌘N), ou importez-en un (⇧⌘I)."
-                    : "**Créez** un questionnaire depuis l’accueil : **Créer avec une IA**, **Questionnaire vierge** ou **Bibliothèque**.",
+                mac ? "**Créez** un questionnaire depuis l’accueil (**Créer avec une IA**, **Questionnaire vierge**, **Importer** ou **Bibliothèque**), avec **Nouveau questionnaire** (⌘N), **Créer avec une IA…** (⌥⌘N) ou **Importer…** (⇧⌘I)."
+                    : "**Créez** un questionnaire depuis l’accueil : **Créer avec une IA**, **Questionnaire vierge**, **Importer** ou **Bibliothèque**.",
                 "**Présentez-le** avec le bouton **Présenter** : un QR code et un code s’affichent pour que le public rejoigne la session.",
                 "**Consultez** les réponses dans **Résultats** et **Statistiques**, ou exportez-les en CSV."
             ]),
@@ -65,20 +65,18 @@ public enum HelpContent {
     }
 
     private static func create(_ mac: Bool) -> HelpTopic {
-        var blocks: [HelpBlock] = [
-            .text(mac ? "**Nouveau questionnaire** (⌘N) ajoute un questionnaire vide à la bibliothèque. Donnez-lui un titre, puis ajoutez des questions avec **Ajouter une question**."
+        let blocks: [HelpBlock] = [
+            .text(mac ? "**Questionnaire vierge** sur l’accueil (ou **Nouveau questionnaire**, ⌘N) ajoute un questionnaire vide à la bibliothèque. Donnez-lui un titre, puis ajoutez des questions avec **Ajouter une question**."
                       : "**Questionnaire vierge** (ou le bouton **Nouveau questionnaire** de la bibliothèque) ajoute un questionnaire vide. Donnez-lui un titre, puis ajoutez des questions avec **Ajouter une question**."),
             .bullets([
                 "Pour chaque question, choisissez le **Format**, saisissez l’**énoncé** et réglez le **Temps de réponse**.",
-                mac ? "La liste des questions, à gauche de l’éditeur, permet de les réordonner par glisser-déposer. Le menu contextuel propose **Dupliquer**, **Monter**, **Descendre** et **Supprimer…** ; la touche Suppr supprime la question sélectionnée."
-                    : "La liste des questions permet de les réordonner. Dans une fenêtre étroite, un bandeau numéroté passe d’une question à l’autre et **Organiser les questions** ouvre la liste. Le menu contextuel d’une question (appui long) propose **Dupliquer**, **Monter**, **Descendre** et **Supprimer…**.",
+                mac ? "La liste des questions, à gauche de l’éditeur, permet de les réordonner par glisser-déposer. Dans une fenêtre étroite, un bandeau numéroté passe d’une question à l’autre et **Organiser les questions** ouvre la liste. Le menu contextuel propose **Dupliquer**, **Monter**, **Descendre** et **Supprimer…** ; la touche Suppr supprime la question sélectionnée."
+                    : "La liste des questions permet de les réordonner par glisser-déposer. Dans une fenêtre étroite, un bandeau numéroté passe d’une question à l’autre et **Organiser les questions** ouvre la liste. Le menu contextuel d’une question (appui long) propose **Dupliquer**, **Monter**, **Descendre** et **Supprimer…**.",
                 "Une icône d’avertissement signale une question incomplète. Tant qu’une question est incomplète, le questionnaire ne peut pas être présenté et reste sur cet appareil, sans être synchronisé.",
                 "Les modifications sont enregistrées automatiquement."
-            ])
+            ]),
+            .text("Le bouton **‹ Accueil** (⌘[) ramène à l’écran d’accueil ; le questionnaire en cours est retrouvé en y revenant.")
         ]
-        if !mac {
-            blocks.append(.text("Le bouton **‹ Accueil** (⌘[) ramène à l’écran d’accueil ; le questionnaire en cours est retrouvé en y revenant."))
-        }
         return HelpTopic(id: "create", title: "Créer un questionnaire", symbol: "square.and.pencil", blocks: blocks)
     }
 
@@ -147,9 +145,12 @@ public enum HelpContent {
                 "**Statistiques** : nombre de réponses, justes et fausses, taux de réussite et réponses les plus fréquentes pour chaque question. Les réponses libres et les sondages ne sont pas évalués, et le taux ne porte que sur les réponses évaluées."
             ])
         ]
-        blocks.append(mac
-            ? .text("**Synthèse locale** (dans Statistiques) : avec Ollama installé sur ce Mac, un modèle local résume les résultats, les difficultés observées et les pistes de reprise. **Modèles…** permet de détecter ou de télécharger un modèle. Les noms des participants ne quittent pas votre Mac. Vérifiez toujours les interprétations du modèle.")
-            : .text("**Synthèse par un assistant IA** (dans Statistiques) : l’assistant que vous avez connecté (ChatGPT avec votre compte, Claude, Gemini ou Groq avec une clé API) résume les résultats, les difficultés observées et les pistes de reprise. Connectez-le d’abord dans **Réglages → Assistants IA**. Rien n’est envoyé avant que vous touchiez **Générer la synthèse** ; les noms et identifiants des participants ne le sont jamais, mais les réponses libres les plus fréquentes, si. Vérifiez toujours les interprétations du modèle."))
+        blocks.append(.text(mac
+            ? "**Synthèse par un assistant IA** (dans Statistiques) : l’assistant que vous avez connecté (ChatGPT avec votre compte, Claude, Gemini ou Groq avec une clé API) résume les résultats, les difficultés observées et les pistes de reprise. Connectez-le d’abord dans **Audience → Réglages → Assistants IA**. Rien n’est envoyé avant que vous cliquiez sur **Générer la synthèse** ; les noms et identifiants des participants ne le sont jamais, mais les réponses libres les plus fréquentes, si. Vérifiez toujours les interprétations du modèle."
+            : "**Synthèse par un assistant IA** (dans Statistiques) : l’assistant que vous avez connecté (ChatGPT avec votre compte, Claude, Gemini ou Groq avec une clé API) résume les résultats, les difficultés observées et les pistes de reprise. Connectez-le d’abord dans **Réglages → Assistants IA**. Rien n’est envoyé avant que vous touchiez **Générer la synthèse** ; les noms et identifiants des participants ne le sont jamais, mais les réponses libres les plus fréquentes, si. Vérifiez toujours les interprétations du modèle."))
+        if mac {
+            blocks.append(.text("**Synthèse locale** (dans Statistiques) : avec Ollama installé sur ce Mac, un modèle local résume les résultats hors ligne, sans clé API. **Modèles…** permet de détecter ou de télécharger un modèle. Les données restent sur votre Mac."))
+        }
         blocks.append(.note("Les résultats sont téléchargés depuis le site quand vous êtes connecté ; ceux d’une sauvegarde importée restent consultables sans connexion."))
         return HelpTopic(id: "results", title: "Résultats et statistiques", symbol: "chart.bar", blocks: blocks)
     }
@@ -158,7 +159,7 @@ public enum HelpContent {
         HelpTopic(id: "library", title: "Organiser vos questionnaires", symbol: "folder", blocks: [
             .bullets([
                 mac ? "**Dossiers** : **Nouveau dossier** (⇧⌘N) crée un dossier, avec la sélection si elle existe. Glissez un questionnaire sur un dossier pour le ranger ; le menu contextuel d’un dossier permet de le renommer, de lui donner une couleur ou de le supprimer (ses questionnaires sont conservés)."
-                    : "**Dossiers** : **Nouveau dossier**, dans la barre latérale, crée un dossier. Glissez un questionnaire dessus pour le ranger ; le menu contextuel d’un dossier permet de le renommer, de lui donner une couleur ou de le supprimer (ses questionnaires sont conservés).",
+                    : "**Dossiers** : un appui long sur **Dossiers**, dans la barre latérale, propose **Nouveau dossier**. Glissez un questionnaire dessus pour le ranger ; le menu contextuel d’un dossier permet de le renommer, de lui donner une couleur ou de le supprimer (ses questionnaires sont conservés).",
                 "**Étiquettes** : ajoutez-en jusqu’à 12 à un questionnaire, dans l’inspecteur. Chaque étiquette devient une entrée de la barre latérale.",
                 "**Favoris**, **couleur** du questionnaire (Automatique reprend celle du dossier) et **tri** de la liste.",
                 "**Recherche** par titre, code ou étiquette.",
@@ -180,7 +181,7 @@ public enum HelpContent {
     private static func importExport(_ mac: Bool) -> HelpTopic {
         HelpTopic(id: "import", title: "Importer et exporter", symbol: "square.and.arrow.down", blocks: [
             .text(mac ? "**Fichier → Importer…** (⇧⌘I) ouvre une fenêtre unique : choisissez des fichiers, glissez-les, ou collez le texte d’un questionnaire."
-                      : "**Importer**, en haut de l’accueil et dans la barre du bas de la bibliothèque, ouvre une fenêtre unique : choisissez des fichiers dans **Fichiers**, ou collez le texte d’un questionnaire."),
+                      : "**Importer**, sur l’accueil et dans le menu **Actions** (…) en haut à droite, ouvre une fenêtre unique : choisissez des fichiers dans **Fichiers**, ou collez le texte d’un questionnaire."),
             .bullets([
                 "Fichiers acceptés : questionnaires **Markdown** (`.md`, plusieurs à la fois), archive **ZIP** exportée du site et sauvegarde **Audience** (`.json`).",
                 mac ? "**Fichier → Exporter une sauvegarde…** (⇧⌘E) ou **Tout exporter…** dans les réglages enregistre toute la bibliothèque ; **Exporter…** n’enregistre que la sélection. Les images et les réponses sont incluses, sans identifiant de connexion."
@@ -201,23 +202,21 @@ public enum HelpContent {
         ])
     }
 
-    /// The assistant exists on iPad only; the Mac topic points to the Markdown import instead.
     private static func assistant(_ mac: Bool) -> HelpTopic {
-        guard !mac else {
-            return HelpTopic(id: "assistant", title: "Créer avec une IA", symbol: "sparkles", blocks: [
-                .text("L’assistant qui rédige un questionnaire à partir d’un document ou d’une vidéo est disponible sur iPad. Sur Mac, demandez à une IA générative de rédiger un questionnaire au format Markdown d’Audience (voir **Importer et exporter**), puis importez-le.")
-            ])
-        }
+        let device = mac ? "du Mac" : "de l’iPad"
+        let settings = mac ? "**Audience → Réglages → Assistants IA**" : "**Réglages → Assistants IA**"
+        let entry = mac ? "**Créer avec une IA**, depuis l’accueil, la barre d’outils ou **Fichier → Créer avec une IA…** (⌥⌘N)," : "**Créer avec une IA**, depuis l’accueil,"
         return HelpTopic(id: "assistant", title: "Créer avec une IA", symbol: "sparkles", blocks: [
-            .text("**Créer avec une IA**, depuis l’accueil, rédige un questionnaire à partir d’un document ou d’une vidéo. Vous le relisez avant de l’ajouter à la bibliothèque."),
+            .text("\(entry) rédige un questionnaire à partir de votre demande, avec ou sans document, photos ou vidéo. Vous le relisez avant de l’ajouter à la bibliothèque."),
             .rows([
-                HelpRow("1. Service", "Choisissez ChatGPT, Claude, Gemini ou Groq. ChatGPT se connecte avec votre compte ; les trois autres se connectent avec une **clé API** collée une seule fois. Vous pouvez aussi les connecter, les changer ou les retirer dans **Réglages → Assistants IA**."),
-                HelpRow("2. Contenu", "Un document PDF, Word (`.docx`), TXT ou Markdown (12 Mo au maximum), ou l’adresse d’une vidéo YouTube. Le nombre de questions est facultatif. Gemini regarde directement la vidéo ; les autres services demandent sa transcription."),
+                HelpRow("1. Service", "Choisissez ChatGPT, Claude, Gemini ou Groq. ChatGPT se connecte avec votre compte ; les trois autres se connectent avec une **clé API** collée une seule fois. Vous pouvez aussi les connecter, les changer ou les retirer dans \(settings)."),
+                HelpRow("2. Demande", "Décrivez le questionnaire voulu : sujet, public, types de questions. Une source est facultative : un document PDF, Word (`.docx`), TXT ou Markdown (12 Mo au maximum), des photos ou l’adresse d’une vidéo YouTube. Gemini regarde directement la vidéo ; les autres services demandent sa transcription."),
                 HelpRow("3. Questionnaire", "La liste des questions à relire, avec le Markdown modifiable. Une question à corriger est signalée avant l’ajout.")
             ]),
             .bullets([
                 "Rien n’est envoyé avant **Générer le questionnaire**.",
-                "La clé API est vérifiée, puis conservée dans le Trousseau de l’iPad. **Retirer la clé** l’efface. Elle n’est envoyée qu’au service concerné.",
+                "Les **instructions personnalisées** (\(mac ? "**Audience → Réglages → Assistants IA**" : "**Réglages**")) disent une fois pour toutes qui vous êtes, à quel public vous vous adressez et vos habitudes ; elles accompagnent chaque demande et chaque synthèse des résultats.",
+                "La clé API est vérifiée, puis conservée dans le Trousseau \(device). **Retirer la clé** l’efface. Elle n’est envoyée qu’au service concerné.",
                 "La facturation d’une clé API dépend de l’offre API du service, pas de l’abonnement grand public."
             ])
         ])
@@ -248,7 +247,10 @@ public enum HelpContent {
         ]
         if mac {
             rows += [
+                HelpRow("⌥⌘N", "Créer avec une IA"),
                 HelpRow("⇧⌘N", "Nouveau dossier (avec la sélection)"),
+                HelpRow("⌘[", "Retour à l’accueil"),
+                HelpRow("⇧⌘L", "Masquer ou afficher la liste des questionnaires"),
                 HelpRow("⌘D", "Dupliquer"),
                 HelpRow("⌥⌘P", "Présenter"),
                 HelpRow("⇧⌘I", "Importer"),
