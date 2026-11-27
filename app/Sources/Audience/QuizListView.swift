@@ -11,6 +11,7 @@ struct QuizListView<ToggleButton: View>: View {
     @ViewBuilder var libraryToggle: () -> ToggleButton
     @ScaledMetric(relativeTo: .body) private var columnWidth = IPadColumn.width
     @State private var purgeCodes: Set<String> = []
+    @FocusState private var searchFocused: Bool
 
     var body: some View {
         let quizzes = store.listedQuizzes(sort: sort)
@@ -57,6 +58,9 @@ struct QuizListView<ToggleButton: View>: View {
                 }
             }
         }
+        // The search lives in this column rather than in the window toolbar: there, the system ran it over
+        // the inspector and pushed the inspector's toggle away from the panel it folds.
+        .safeAreaInset(edge: .top, spacing: 0) { searchField }
         .navigationTitle(store.title(of: section))
         .navigationSubtitle(quizzes.count == 1 ? "1 questionnaire" : "\(quizzes.count) questionnaires")
         .navigationSplitViewColumnWidth(min: 260, ideal: min(columnWidth, IPadColumn.maximum), max: IPadColumn.maximum)
@@ -90,6 +94,26 @@ struct QuizListView<ToggleButton: View>: View {
                             isPresented: Binding(get: { !purgeCodes.isEmpty }, set: { if !$0 { purgeCodes = [] } }), titleVisibility: .visible) {
             Button("Supprimer définitivement", role: .destructive) { store.purge(purgeCodes); purgeCodes = [] }
         } message: { Text("Les réponses associées seront aussi supprimées, sur cet appareil et sur le compte synchronisé. Cette action est irréversible.") }
+    }
+
+    private var searchField: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass").foregroundStyle(.secondary).accessibilityHidden(true)
+            TextField("Titre, code ou étiquette", text: $store.search)
+                .textFieldStyle(.plain)
+                .focused($searchFocused)
+                .onExitCommand { store.search = ""; searchFocused = false }
+            if !store.search.isEmpty {
+                Button("Effacer la recherche", systemImage: "xmark.circle.fill") { store.search = "" }
+                    .labelStyle(.iconOnly).buttonStyle(.plain).foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 12).padding(.vertical, 7)
+        .glassEffect(.regular, in: .capsule)
+        .padding(.horizontal, 10).padding(.vertical, 8)
+        .background {
+            Button("Rechercher") { searchFocused = true }.keyboardShortcut("f").hidden().accessibilityHidden(true)
+        }
     }
 
     private func isFolder(_ item: SidebarItem) -> Bool { if case .folder = item { true } else { false } }

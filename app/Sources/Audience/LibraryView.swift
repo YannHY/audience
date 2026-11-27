@@ -106,7 +106,6 @@ struct LibraryView: View {
                     .inspectorColumnWidth(min: 260, ideal: 290, max: 380)
                 }
         }
-        .searchable(text: $store.search, placement: .toolbar, prompt: "Titre, code ou étiquette")
         .onChange(of: store.selection) { foldColumns() }
     }
 
