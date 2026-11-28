@@ -623,8 +623,19 @@ public enum RichText {
     }
 
     /// Styled pieces of a statement, whether it was written in the website's HTML or in Markdown.
-    public static func runs(_ text: String) -> [Run] {
-        let html = normalized(text)
+    public static func runs(_ text: String) -> [Run] { runs(parsingHTML: normalized(text)) }
+
+    /// Styled pieces of an answer. The website shows answers as plain text, the app stores them escaped:
+    /// inline emphasis (*italique*, **gras**, <u>souligné</u>) is shown, but "- 3" stays an answer, not a list.
+    public static func answerRuns(_ text: String) -> [Run] { runs(parsingHTML: inline(text.unformattedText)) }
+    /// An answer without formatting marks, for accessibility and sorting.
+    public static func answerPlainText(_ text: String) -> String { answerRuns(text).map(\.text).joined() }
+    /// True when the answer shows bold, italic or underlined text.
+    public static func answerIsFormatted(_ text: String) -> Bool {
+        answerRuns(text).contains { $0.bold || $0.italic || $0.underline }
+    }
+
+    private static func runs(parsingHTML html: String) -> [Run] {
         guard html.contains("<") else {
             let plain = html.unformattedText.trimmingCharacters(in: .whitespacesAndNewlines)
             return plain.isEmpty ? [] : [Run(plain)]

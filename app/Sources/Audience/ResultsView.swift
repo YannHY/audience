@@ -8,6 +8,8 @@ struct ResultRow: Identifiable {
     /// Letter of the answer, as on the presentation screen (A, B, C…), or the star rating.
     let badge: String
     let label: String
+    /// The label with its bold and italic parts, for answers written in Markdown.
+    var styled: AttributedString? = nil
     let count: Int
     var correct = false
 }
@@ -179,8 +181,8 @@ struct ResultCard: View {
         }
         if question.kind.hasAnswers && question.kind != .ranking {
             return question.answers.indices.map {
-                ResultRow(badge: Self.letter($0), label: question.answers[$0].plainText, count: counts[String($0)].int,
-                          correct: showCorrect && isCorrect($0))
+                ResultRow(badge: Self.letter($0), label: RichText.answerPlainText(question.answers[$0]), styled: RichText.attributedAnswer(question.answers[$0]),
+                          count: counts[String($0)].int, correct: showCorrect && isCorrect($0))
             }
         }
         return counts.object.keys.sorted().map { ResultRow(badge: "", label: $0.plainText, count: counts[$0].int) }
@@ -251,7 +253,7 @@ struct ResultBar: View {
             }
             VStack(alignment: .leading, spacing: 8 * scale) {
                 HStack(alignment: .firstTextBaseline, spacing: 10 * scale) {
-                    Text(row.label).font(.system(size: 17 * scale)).lineLimit(2)
+                    Text(row.styled ?? AttributedString(row.label)).font(.system(size: 17 * scale)).lineLimit(2)
                     if row.correct { Image(systemName: "checkmark.circle.fill").foregroundStyle(.green) }
                     Spacer(minLength: 12 * scale)
                     Text("\(row.count)").font(.system(size: 17 * scale, weight: .semibold).monospacedDigit())

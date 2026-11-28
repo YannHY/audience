@@ -55,4 +55,13 @@ struct RichTextTests {
             #expect(RichText.markdown(fromHTML: RichText.html(fromMarkdown: markdown)) == markdown)
         }
     }
+    @Test func answersShowInlineEmphasisOnly() {
+        #expect(RichText.answerRuns("Tu t&#39;ennuies. (*s&#39;ennuyer*)") == [
+            .init("Tu t'ennuies. ("), .init("s'ennuyer", italic: true), .init(")")
+        ])
+        #expect(RichText.answerPlainText("Je paie. (*payer*)") == "Je paie. (payer)")
+        #expect(RichText.answerIsFormatted("**Oui**") && !RichText.answerIsFormatted("2*3*4"))
+        #expect(RichText.answerRuns("- 3") == [.init("- 3")])
+        #expect(RichText.answerRuns("a &lt; b &amp; c") == [.init("a < b & c")])
+    }
 }

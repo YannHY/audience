@@ -367,9 +367,16 @@ struct QuestionEditor: View {
                                 Image(systemName: isCorrect(i) ? "checkmark.circle.fill" : "circle").foregroundStyle(isCorrect(i) ? Color.green : Color.secondary)
                             }.buttonStyle(.plain).help("Marquer comme bonne réponse").accessibilityLabel("Réponse \(i + 1) correcte").accessibilityValue(isCorrect(i) ? "Oui" : "Non")
                         } else { Text("\(i + 1)").foregroundStyle(.secondary).frame(width: 20) }
-                        TextField("Réponse \(i + 1)", text: Binding(get: { question.answers.indices.contains(i) ? question.answers[i].unformattedText : "" }, set: { value in
-                            var answers = question.answers; guard answers.indices.contains(i) else { return }; answers[i] = value.htmlEscaped; question.answers = answers
-                        }), prompt: Text("Réponse \(i + 1)")).labelsHidden()
+                        VStack(alignment: .leading, spacing: 3) {
+                            TextField("Réponse \(i + 1)", text: Binding(get: { question.answers.indices.contains(i) ? question.answers[i].unformattedText : "" }, set: { value in
+                                var answers = question.answers; guard answers.indices.contains(i) else { return }; answers[i] = value.htmlEscaped; question.answers = answers
+                            }), prompt: Text("Réponse \(i + 1)")).labelsHidden()
+                            // The *italique* and **gras** marks are shown as the presentation shows them.
+                            if question.answers.indices.contains(i), RichText.answerIsFormatted(question.answers[i]) {
+                                Text(RichText.attributedAnswer(question.answers[i])).font(.callout).foregroundStyle(.secondary)
+                                    .accessibilityLabel("Aperçu : \(RichText.answerPlainText(question.answers[i]))")
+                            }
+                        }
                         Button("Supprimer la réponse", systemImage: "minus.circle") { question.removeAnswer(at: i) }
                             .labelStyle(.iconOnly).buttonStyle(.borderless).disabled(question.answers.count <= 2)
                     }

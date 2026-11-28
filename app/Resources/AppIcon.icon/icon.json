@@ -1,0 +1,266 @@
+{
+  "fill-specializations": [
+    {
+      "value": {
+        "linear-gradient": [
+          "display-p3:0.36,0.29,0.88,1.0",
+          "display-p3:0.13,0.09,0.42,1.0"
+        ],
+        "orientation": {
+          "start": {
+            "x": 0.5,
+            "y": 0.0
+          },
+          "stop": {
+            "x": 0.5,
+            "y": 1.0
+          }
+        }
+      }
+    },
+    {
+      "appearance": "dark",
+      "value": {
+        "linear-gradient": [
+          "display-p3:0.20,0.18,0.28,1.0",
+          "display-p3:0.05,0.05,0.07,1.0"
+        ],
+        "orientation": {
+          "start": {
+            "x": 0.5,
+            "y": 0.0
+          },
+          "stop": {
+            "x": 0.5,
+            "y": 1.0
+          }
+        }
+      }
+    }
+  ],
+  "groups": [
+    {
+      "layers": [
+        {
+          "name": "rang2",
+          "image-name": "rang2.png",
+          "glass": true,
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "display-p3:0.07,0.04,0.24,1"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "display-p3:0.03,0.03,0.04,1"
+              }
+            }
+          ]
+        },
+        {
+          "name": "rang1",
+          "image-name": "rang1.png",
+          "glass": true,
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "display-p3:0.12,0.08,0.36,1"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "display-p3:0.08,0.08,0.10,1"
+              }
+            }
+          ]
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "translucency": {
+        "enabled": false,
+        "value": 0.3
+      }
+    },
+    {
+      "layers": [
+        {
+          "name": "micro",
+          "image-name": "micro.png",
+          "glass": true,
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "display-p3:0.20,0.15,0.50,1"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "display-p3:0.12,0.11,0.16,1"
+              }
+            }
+          ]
+        },
+        {
+          "name": "pupitre",
+          "image-name": "pupitre.png",
+          "glass": true,
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "display-p3:0.58,0.52,0.98,1"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "display-p3:0.40,0.37,0.50,1"
+              }
+            }
+          ]
+        },
+        {
+          "name": "orateur",
+          "image-name": "orateur.png",
+          "glass": true,
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "display-p3:1,1,1,1"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "display-p3:1.0,0.90,0.70,1"
+              }
+            }
+          ]
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "translucency": {
+        "enabled": false,
+        "value": 0.3
+      }
+    },
+    {
+      "layers": [
+        {
+          "name": "ombre",
+          "image-name": "ombre.png",
+          "glass": false,
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "display-p3:0.10,0.06,0.35,0.45"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "display-p3:0,0,0,0.5"
+              }
+            }
+          ]
+        },
+        {
+          "name": "flaque",
+          "image-name": "flaque.png",
+          "glass": false,
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "display-p3:1,1,1,0.45"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "display-p3:1.0,0.88,0.65,0.3"
+              }
+            }
+          ]
+        },
+        {
+          "name": "estrade",
+          "image-name": "estrade.png",
+          "glass": true,
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "display-p3:0.80,0.76,1.0,1"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "display-p3:0.36,0.33,0.44,1"
+              }
+            }
+          ]
+        },
+        {
+          "name": "face",
+          "image-name": "face.png",
+          "glass": true,
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "display-p3:0.50,0.44,0.95,1"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "display-p3:0.22,0.20,0.28,1"
+              }
+            }
+          ]
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.3
+      },
+      "translucency": {
+        "enabled": false,
+        "value": 0.3
+      }
+    },
+    {
+      "layers": [
+        {
+          "name": "lumiere",
+          "image-name": "lumiere.png",
+          "glass": false,
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "display-p3:1,1,1,0.55"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "display-p3:1.0,0.88,0.65,0.35"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "supported-platforms": {
+    "squares": "shared"
+  }
+}

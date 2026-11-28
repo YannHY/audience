@@ -12,8 +12,11 @@ import AudienceCore
 
 extension RichText {
     /// A statement with its bold, italic and underlined parts, for Text. The size and weight stay the view's.
-    static func attributed(_ text: String) -> AttributedString {
-        runs(text).reduce(into: AttributedString()) { result, run in
+    static func attributed(_ text: String) -> AttributedString { attributed(runs: runs(text)) }
+    /// An answer with its inline emphasis (*italique*, **gras**), for Text.
+    static func attributedAnswer(_ text: String) -> AttributedString { attributed(runs: answerRuns(text)) }
+    private static func attributed(runs: [Run]) -> AttributedString {
+        runs.reduce(into: AttributedString()) { result, run in
             var piece = AttributedString(run.text)
             var intent: InlinePresentationIntent = []
             if run.bold { intent.insert(.stronglyEmphasized) }

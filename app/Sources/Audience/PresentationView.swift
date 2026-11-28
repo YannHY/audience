@@ -167,7 +167,7 @@ struct PresentationView: View {
         if question.kind.hasAnswers {
             // A ranking is stored in the expected order: never show that order before the correction.
             let order = question.kind == .ranking && !reveal
-                ? question.answers.indices.sorted { question.answers[$0].plainText.localizedStandardCompare(question.answers[$1].plainText) == .orderedAscending }
+                ? question.answers.indices.sorted { RichText.answerPlainText(question.answers[$0]).localizedStandardCompare(RichText.answerPlainText(question.answers[$1])) == .orderedAscending }
                 : Array(question.answers.indices)
             VStack(spacing: 12 * scale) {
                 ForEach(Array(order.enumerated()), id: \.element) { position, i in
@@ -178,7 +178,7 @@ struct PresentationView: View {
                             .foregroundStyle(good ? Color.white : Color.secondary)
                             .frame(width: 40 * scale, height: 40 * scale)
                             .background(good ? Color.green : Color.secondary.opacity(0.15), in: .circle)
-                        Text(question.answers[i].plainText).font(.system(size: 24 * scale))
+                        Text(RichText.attributedAnswer(question.answers[i])).font(.system(size: 24 * scale))
                         Spacer()
                         if good { Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).font(.system(size: 24 * scale)) }
                     }

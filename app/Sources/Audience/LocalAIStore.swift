@@ -125,10 +125,17 @@ struct LocalModelsView: View {
                         }
                     }
                 }
-                HStack {
-                    TextField("Autre modèle Ollama (nom:version)", text: $customModel)
-                    Button("Télécharger") { ai.download(customModel.trimmingCharacters(in: .whitespacesAndNewlines)) }
-                        .disabled(!ai.available || ai.downloading != nil || customModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                LabeledContent("Autre modèle Ollama") {
+                    HStack {
+                        TextField("Nom du modèle", text: $customModel, prompt: Text("nom:version"))
+                            .labelsHidden()
+                            .textFieldStyle(.roundedBorder)
+                            .autocorrectionDisabled()
+                            .frame(minWidth: 160, maxWidth: 260)
+                            .onSubmit { if canDownloadCustom { downloadCustom() } }
+                        Button("Télécharger", action: downloadCustom)
+                            .disabled(!canDownloadCustom)
+                    }
                 }
                 if let name = ai.downloading {
                     VStack(alignment: .leading, spacing: 8) {
@@ -155,4 +162,7 @@ struct LocalModelsView: View {
         .formStyle(.grouped)
         .task { await ai.refresh() }
     }
+    private var trimmedCustomModel: String { customModel.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var canDownloadCustom: Bool { ai.available && ai.downloading == nil && !trimmedCustomModel.isEmpty }
+    private func downloadCustom() { ai.download(trimmedCustomModel) }
 }
