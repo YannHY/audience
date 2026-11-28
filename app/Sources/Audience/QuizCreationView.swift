@@ -502,10 +502,11 @@ struct QuizCreationView: View {
                 HStack(spacing: 10) { ProgressView(); Text("Préparation des photos…").foregroundStyle(.secondary) }
             }
             if remainingPhotos > 0 {
+                let pickerTitle = photos.isEmpty ? "Choisir des photos" : "Ajouter des photos"
                 let layout = large ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10)) : AnyLayout(HStackLayout(spacing: 10))
                 layout {
                     PhotosPicker(selection: $photoItems, maxSelectionCount: remainingPhotos, matching: .images) {
-                        Label(photos.isEmpty ? "Choisir des photos" : "Ajouter des photos", systemImage: "photo.on.rectangle")
+                        Label(pickerTitle, systemImage: "photo.on.rectangle")
                     }
                     .buttonStyle(.glassProminent)
                     Button("Choisir des fichiers", systemImage: "folder") { chooseFile = true }.buttonStyle(.glass)
