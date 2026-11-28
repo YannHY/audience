@@ -4,6 +4,9 @@ import CryptoKit
 /// A private, in-memory cookie jar. Passwords and session cookies are never persisted.
 public actor RemoteClient: SyncRemote, OrganizationRemote {
     public static let siteURL = URL(string: "https://www.ralentirtravaux.com/apps/audience/")!
+    /// The site has no self-service sign-up: during the beta, accounts are requested from the contact page.
+    public static let accessRequestURL = siteURL.appending(path: "contact.html")
+    public static let passwordResetURL = siteURL.appending(path: "forgot_password.php")
     /// Same link as the website's QR code: r.html reads the session code from `c`.
     public static func participantURL(code: String, site: URL = siteURL) -> URL? {
         guard var url = URLComponents(url: site.appending(path: "r.html"), resolvingAgainstBaseURL: false) else { return nil }

@@ -141,7 +141,9 @@ public enum HelpContent {
             .text("Le sélecteur **Éditeur / Résultats / Statistiques** change l’affichage du questionnaire."),
             .bullets([
                 "**Résultats** : une barre par réponse (lettre, nombre, pourcentage, bonne réponse en vert) et les réponses textuelles. **Actualiser** relit le site ; pendant le direct, les résultats se mettent à jour toutes les trois secondes.",
-                "**Exporter en CSV** enregistre le bilan : une ligne par question, une colonne par participant.",
+                mac
+                    ? "**Exporter en CSV** enregistre le bilan : une ligne par question, une colonne par participant."
+                    : "Le bouton d’export (carré et flèche vers le haut, à côté d’**Actualiser**) enregistre le bilan en CSV : une ligne par question, une colonne par participant.",
                 "**Statistiques** : nombre de réponses, justes et fausses, taux de réussite et réponses les plus fréquentes pour chaque question. Les réponses libres et les sondages ne sont pas évalués, et le taux ne porte que sur les réponses évaluées."
             ])
         ]
@@ -227,6 +229,7 @@ public enum HelpContent {
             .text(mac ? "Dans **Audience → Réglages → Compte**, connectez-vous avec l’adresse e-mail et le mot de passe de votre compte Audience. Le mot de passe est conservé dans le trousseau de ce Mac : l’app se reconnecte seule à chaque lancement."
                       : "Dans **Réglages → Compte Audience**, connectez-vous avec l’adresse e-mail et le mot de passe de votre compte Audience. Le mot de passe est conservé dans le trousseau de cet iPad : l’app se reconnecte seule à chaque lancement."),
             .bullets([
+                "Pas encore de compte ? Pendant la bêta, les comptes sont ouverts sur demande : utilisez **Demander un accès** dans les réglages, qui ouvre la page Contact du site. **Mot de passe oublié** ouvre la page de réinitialisation.",
                 "Une fois connecté, la bibliothèque se synchronise automatiquement avec le site : vos questionnaires, dossiers, étiquettes, favoris et corbeille.",
                 mac ? "**Synchroniser maintenant** (⌘R) relance un échange sans attendre."
                     : "Tirez la liste des questionnaires vers le bas, ou utilisez **Synchroniser maintenant** dans les réglages, pour relancer un échange sans attendre.",

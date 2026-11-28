@@ -30,6 +30,415 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="styles.css?v=20261121y">
     <link rel="stylesheet" href="app.css?v=20261122a">
+    <style>
+        /* Specific to this page (app.css is shared with nouveautes.html). */
+        .page-mac .mac .mac-button.mac-button-secondary {
+            background: transparent;
+            color: var(--mac-accent);
+            box-shadow: inset 0 0 0 1.5px var(--mac-accent);
+        }
+
+        .page-mac .mac .mac-button.mac-button-secondary:hover {
+            background: color-mix(in srgb, var(--mac-accent) 10%, transparent);
+        }
+
+        /* ----- Annonce de l’app iPad, en tête de page ----- */
+        .mac-announce {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0 0 20px;
+            padding: 5px 16px 5px 5px;
+            border-radius: 999px;
+            border: 1px solid var(--mac-line);
+            background: var(--mac-bg-alt);
+            color: var(--mac-ink);
+            font-size: 0.95rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .mac-announce:hover {
+            border-color: color-mix(in srgb, var(--mac-accent) 50%, transparent);
+            box-shadow: 0 8px 24px -12px color-mix(in srgb, var(--mac-accent) 60%, transparent);
+            transform: translateY(-1px);
+        }
+
+        .mac-announce::after {
+            content: '›';
+            color: var(--mac-accent);
+            font-size: 1.1rem;
+            line-height: 1;
+        }
+
+        .mac-announce-tag {
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: linear-gradient(100deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%);
+            color: #ffffff;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+        }
+
+        /* ----- Section iPad ----- */
+        .ipad-feature {
+            --ipad-band: linear-gradient(180deg, #ffffff 0%, #f4f3ff 45%, #f5f5f7 100%);
+            --ipad-glow-a: rgba(99, 102, 241, 0.42);
+            --ipad-glow-b: rgba(219, 39, 119, 0.28);
+            --ipad-tab-active: #ffffff;
+            --ipad-device-shadow: rgba(30, 27, 75, 0.3);
+            position: relative;
+            overflow: hidden;
+            background: var(--ipad-band);
+        }
+
+        :root.theme-dark .ipad-feature {
+            --ipad-band: linear-gradient(180deg, #000000 0%, #0c0a1c 45%, #101012 100%);
+            --ipad-glow-a: rgba(99, 102, 241, 0.42);
+            --ipad-glow-b: rgba(219, 39, 119, 0.26);
+            --ipad-tab-active: #1c1c1e;
+            --ipad-device-shadow: rgba(0, 0, 0, 0.7);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root:not(.theme-light) .ipad-feature {
+                --ipad-band: linear-gradient(180deg, #000000 0%, #0c0a1c 45%, #101012 100%);
+                --ipad-glow-a: rgba(99, 102, 241, 0.42);
+                --ipad-glow-b: rgba(219, 39, 119, 0.26);
+                --ipad-tab-active: #1c1c1e;
+                --ipad-device-shadow: rgba(0, 0, 0, 0.7);
+            }
+        }
+
+        .ipad-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+            grid-template-areas:
+                "head  stage"
+                "tabs  stage"
+                "cta   stage";
+            grid-template-rows: auto auto 1fr;
+            column-gap: clamp(40px, 6vw, 96px);
+        }
+
+        .ipad-head {
+            grid-area: head;
+            text-align: left;
+            padding-top: clamp(8px, 3vw, 40px);
+        }
+
+        .ipad-head .mac-lede {
+            margin: 0 !important;
+            font-size: clamp(1.05rem, 2vw, 1.3rem);
+        }
+
+        .ipad-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px !important;
+            color: var(--mac-accent);
+            font-size: 1.05rem;
+            font-weight: 600;
+        }
+
+        .ipad-kicker span {
+            padding: 3px 10px;
+            border-radius: 999px;
+            background: color-mix(in srgb, var(--mac-accent) 14%, transparent);
+            font-size: 0.8rem;
+        }
+
+        /* Feature tabs: the active one opens, with a progress bar while the tour plays. */
+        .ipad-tabs {
+            grid-area: tabs;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin: 36px 0 32px;
+        }
+
+        .page-mac .ipad-tab {
+            all: unset;
+            box-sizing: border-box;
+            position: relative;
+            display: grid;
+            grid-template-columns: 40px minmax(0, 1fr);
+            column-gap: 16px;
+            align-items: start;
+            padding: 16px 20px 18px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            color: var(--mac-ink-soft);
+            transition: background-color 0.35s ease, box-shadow 0.35s ease, color 0.35s ease;
+        }
+
+        .page-mac .ipad-tab:hover {
+            color: var(--mac-ink);
+        }
+
+        .page-mac .ipad-tab:focus-visible {
+            outline: 2px solid var(--mac-accent);
+            outline-offset: 2px;
+        }
+
+        .page-mac .ipad-tab.is-active {
+            color: var(--mac-ink);
+            background: var(--ipad-tab-active);
+            box-shadow: 0 18px 40px -24px rgba(15, 23, 42, 0.35), 0 0 0 1px var(--mac-line);
+        }
+
+        .ipad-tab-icon {
+            display: grid;
+            place-items: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: color-mix(in srgb, var(--mac-ink) 7%, transparent);
+            font-size: 1rem;
+            transition: background-color 0.35s ease, color 0.35s ease;
+        }
+
+        .ipad-tab.is-active .ipad-tab-icon {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: #ffffff;
+        }
+
+        .ipad-tab-title {
+            display: block;
+            padding-top: 8px;
+            font-size: 1.12rem;
+            font-weight: 600;
+            letter-spacing: -0.015em;
+        }
+
+        .ipad-tab-reveal {
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 0.45s cubic-bezier(0.2, 0.7, 0.2, 1);
+        }
+
+        .ipad-tab.is-active .ipad-tab-reveal {
+            grid-template-rows: 1fr;
+        }
+
+        .ipad-tab-text {
+            display: block;
+            overflow: hidden;
+            color: var(--mac-ink-soft);
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        .ipad-tab-text::before {
+            content: '';
+            display: block;
+            height: 6px;
+        }
+
+        .ipad-tab-bar {
+            position: absolute;
+            left: 72px;
+            right: 20px;
+            bottom: 9px;
+            height: 2px;
+            border-radius: 2px;
+            background: var(--mac-line);
+            transform-origin: left center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .ipad-tab-fill {
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: var(--mac-accent);
+            transform: scaleX(0);
+            transform-origin: left center;
+        }
+
+        .ipad-feature.is-playing .ipad-tab.is-active .ipad-tab-bar {
+            opacity: 1;
+        }
+
+        /* The end of this animation advances the tour to the next tab. */
+        .ipad-feature.is-playing .ipad-tab.is-active .ipad-tab-fill {
+            animation: ipad-progress 6.5s linear forwards;
+        }
+
+        .ipad-feature.is-paused .ipad-tab-fill {
+            animation-play-state: paused !important;
+        }
+
+        @keyframes ipad-progress {
+            from { transform: scaleX(0); }
+            to { transform: scaleX(1); }
+        }
+
+        /* Call to action, with a QR code for visitors reading the page on a Mac. */
+        .ipad-cta {
+            grid-area: cta;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 18px 28px;
+        }
+
+        .ipad-cta .mac-button {
+            padding: 14px 26px;
+        }
+
+        .ipad-qr {
+            display: none;
+            align-items: center;
+            gap: 14px;
+            color: var(--mac-ink-soft);
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .ipad-qr strong {
+            color: var(--mac-ink);
+            font-weight: 600;
+        }
+
+        .ipad-qr-code {
+            flex: none;
+            width: 76px;
+            height: 76px;
+            padding: 7px;
+            border-radius: 14px;
+            background: #ffffff;
+            box-shadow: 0 0 0 1px var(--mac-line), 0 10px 24px -14px rgba(15, 23, 42, 0.4);
+        }
+
+        .ipad-qr-code svg {
+            display: block;
+            width: 100%;
+            height: 100%;
+            shape-rendering: crispEdges;
+        }
+
+        @media (hover: hover) and (pointer: fine) and (min-width: 961px) {
+            .ipad-qr {
+                display: flex;
+            }
+        }
+
+        .ipad-cta-note {
+            flex-basis: 100%;
+            color: var(--mac-ink-soft);
+            font-size: 0.88rem;
+        }
+
+        /* The device: framed screenshots stacked, a glow behind, a slight tilt under the pointer. */
+        .ipad-stage {
+            grid-area: stage;
+            position: relative;
+            display: grid;
+            place-items: center;
+            perspective: 1800px;
+        }
+
+        .ipad-stage::before {
+            content: '';
+            position: absolute;
+            inset: -6% -18% -10%;
+            border-radius: 50%;
+            background:
+                radial-gradient(closest-side at 36% 38%, var(--ipad-glow-a), transparent),
+                radial-gradient(closest-side at 68% 70%, var(--ipad-glow-b), transparent);
+            filter: blur(40px);
+            pointer-events: none;
+            animation: ipad-glow 14s ease-in-out infinite alternate;
+        }
+
+        @keyframes ipad-glow {
+            from { transform: translate3d(-3%, 2%, 0) scale(0.96); }
+            to { transform: translate3d(3%, -2%, 0) scale(1.06); }
+        }
+
+        .ipad-device {
+            position: relative;
+            width: min(100%, 540px);
+            aspect-ratio: 1000 / 1405;
+            transform: rotateX(var(--ipad-rx, 0deg)) rotateY(var(--ipad-ry, 0deg));
+            transition: transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1);
+            filter: drop-shadow(0 50px 60px var(--ipad-device-shadow));
+        }
+
+        .ipad-screen {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 0.7s ease;
+        }
+
+        /* The outgoing screen stays below until the new one has faded in, so the bezel never dims. */
+        .ipad-screen.was-active {
+            opacity: 1;
+            transition: none;
+            z-index: 1;
+        }
+
+        .ipad-screen.is-active {
+            opacity: 1;
+            z-index: 2;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .ipad-stage::before,
+            .ipad-tab-fill {
+                animation: none !important;
+            }
+
+            .ipad-screen,
+            .ipad-device,
+            .ipad-tab-reveal {
+                transition: none;
+            }
+        }
+
+        @media (max-width: 960px) {
+            .ipad-grid {
+                grid-template-columns: minmax(0, 1fr);
+                grid-template-areas: "head" "stage" "tabs" "cta";
+                grid-template-rows: none;
+            }
+
+            .ipad-head {
+                text-align: center;
+                padding-top: 0;
+            }
+
+            .ipad-head .mac-lede {
+                margin: 0 auto !important;
+            }
+
+            .ipad-stage {
+                margin-top: 48px;
+            }
+
+            .ipad-device {
+                width: min(100%, 400px);
+            }
+
+            .ipad-tabs {
+                width: min(100%, 560px);
+                margin: 44px auto 28px;
+            }
+
+            .ipad-cta {
+                justify-content: center;
+                text-align: center;
+            }
+        }
+    </style>
 </head>
 <body class="page-mac">
     <div id="accountBar" class="account-bar"></div>
@@ -42,6 +451,7 @@
                     <source srcset="img/app/icone-mac-sombre.png" media="(prefers-color-scheme: dark)" data-dark-source>
                     <img class="mac-hero-icon" src="img/app/icone-mac.png" alt="" width="128" height="128">
                 </picture>
+                <a class="mac-announce" href="#ipad"><span class="mac-announce-tag">Nouveau</span>Audience pour iPad, en bêta publique</a>
                 <p class="mac-eyebrow">Audience pour Mac et iPad</p>
                 <h1 class="mac-hero-title">Vos questions<br><span class="mac-gradient">En direct</span></h1>
                 <p class="mac-lede">Préparez vos questionnaires, seul ou avec une IA, projetez-les en plein écran et voyez les réponses de la salle arriver en temps réel. Deux vraies applications, rapides, élégantes et utilisables hors ligne.</p>
@@ -50,7 +460,10 @@
                         <i class="fa-brands fa-apple" aria-hidden="true"></i>
                         Télécharger pour Mac
                     </a>
-                    <a class="mac-link" href="#ipad">Découvrir la version iPad</a>
+                    <a class="mac-button mac-button-secondary" href="https://testflight.apple.com/join/rAP2gxnz" target="_blank" rel="noopener noreferrer">
+                        <i class="fa-solid fa-tablet-screen-button" aria-hidden="true"></i>
+                        Tester sur iPad
+                    </a>
                 </div>
                 <p class="mac-note">Gratuit et libre · macOS 26 et iPadOS 26 ou ultérieur</p>
             </div>
@@ -60,8 +473,8 @@
                     <img class="mac-shot" src="img/app/editeur.webp" width="2200" height="1536" alt="La fenêtre d’Audience sur Mac : dossiers colorés à gauche, liste des questionnaires, puis l’éditeur d’une question à choix unique.">
                 </picture>
                 <picture>
-                    <source srcset="img/app/ipad-editeur-sombre.webp" media="(prefers-color-scheme: dark)" data-dark-source>
-                    <img class="mac-ipad mac-ipad-hero" src="img/app/ipad-editeur.webp" width="1200" height="1702" alt="Audience sur iPad : la liste des questionnaires rangés par dossiers et étiquettes, et l’éditeur d’une question illustrée.">
+                    <source srcset="img/app/ipad-editeur-sombre.webp?v=20261128" media="(prefers-color-scheme: dark)" data-dark-source>
+                    <img class="mac-ipad mac-ipad-hero" src="img/app/ipad-editeur.webp?v=20261128" width="1200" height="1685" alt="Audience sur iPad : la liste des questionnaires rangés par dossiers et étiquettes, et l’éditeur d’une question illustrée.">
                 </picture>
 
             </div>
@@ -86,13 +499,97 @@
                             Télécharger
                         </a>
                     </article>
-                    <article class="mac-product mac-reveal" id="ipad">
+                    <article class="mac-product mac-reveal">
                         <i class="fa-solid fa-tablet-screen-button" aria-hidden="true"></i>
                         <h3 class="mac-product-title">Audience pour iPad</h3>
                         <p>Tout le tactile : préparez en portrait ou en paysage, présentez en plein écran, pilotez le direct du bout des doigts. Et la même création par IA.</p>
-                        <p class="mac-product-meta">iPadOS 26 ou ultérieur</p>
-                        <span class="mac-badge">Bientôt disponible</span>
+                        <p class="mac-product-meta">iPadOS 26 ou ultérieur · version bêta sur TestFlight</p>
+                        <a class="mac-button" href="https://testflight.apple.com/join/rAP2gxnz" target="_blank" rel="noopener noreferrer">
+                            <i class="fa-solid fa-flask" aria-hidden="true"></i>
+                            Tester avec TestFlight
+                        </a>
                     </article>
+                </div>
+            </div>
+        </section>
+
+        <!-- iPad -->
+        <section class="mac-section ipad-feature" id="ipad">
+            <div class="mac-wrap ipad-grid">
+                <div class="ipad-head mac-reveal">
+                    <p class="ipad-kicker">Audience pour iPad <span>Bêta publique</span></p>
+                    <h2 class="mac-title">Tout Audience,<br>du bout des doigts.</h2>
+                    <p class="mac-lede">Préparez dans le train, présentez depuis l’estrade, suivez les réponses en direct. Votre bibliothèque vous attend, synchronisée avec le Mac et le site.</p>
+                </div>
+
+                <div class="ipad-tabs mac-reveal" role="tablist" aria-label="Découvrir Audience sur iPad">
+                    <button class="ipad-tab is-active" type="button" role="tab" id="ipad-tab-1" aria-selected="true" aria-controls="ipad-panel">
+                        <span class="ipad-tab-icon"><i class="fa-solid fa-house" aria-hidden="true"></i></span>
+                        <span>
+                            <span class="ipad-tab-title">L’accueil</span>
+                            <span class="ipad-tab-reveal"><span class="ipad-tab-text">Créer avec une IA, partir d’une page blanche, importer ou rouvrir un questionnaire récent : tout part d’ici.</span></span>
+                        </span>
+                        <span class="ipad-tab-bar" aria-hidden="true"><span class="ipad-tab-fill"></span></span>
+                    </button>
+                    <button class="ipad-tab" type="button" role="tab" id="ipad-tab-2" aria-selected="false" aria-controls="ipad-panel" tabindex="-1">
+                        <span class="ipad-tab-icon"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i></span>
+                        <span>
+                            <span class="ipad-tab-title">Créer avec une IA</span>
+                            <span class="ipad-tab-reveal"><span class="ipad-tab-text">Décrivez le questionnaire, joignez un document ou la photo d’une page de manuel : l’assistant rédige, vous relisez avant d’ajouter.</span></span>
+                        </span>
+                        <span class="ipad-tab-bar" aria-hidden="true"><span class="ipad-tab-fill"></span></span>
+                    </button>
+                    <button class="ipad-tab" type="button" role="tab" id="ipad-tab-3" aria-selected="false" aria-controls="ipad-panel" tabindex="-1">
+                        <span class="ipad-tab-icon"><i class="fa-solid fa-qrcode" aria-hidden="true"></i></span>
+                        <span>
+                            <span class="ipad-tab-title">Présenter</span>
+                            <span class="ipad-tab-reveal"><span class="ipad-tab-text">Un QR code et un code en grand : la salle rejoint en quelques secondes, et l’iPad reste éveillé jusqu’à la fin.</span></span>
+                        </span>
+                        <span class="ipad-tab-bar" aria-hidden="true"><span class="ipad-tab-fill"></span></span>
+                    </button>
+                    <button class="ipad-tab" type="button" role="tab" id="ipad-tab-4" aria-selected="false" aria-controls="ipad-panel" tabindex="-1">
+                        <span class="ipad-tab-icon"><i class="fa-solid fa-chart-simple" aria-hidden="true"></i></span>
+                        <span>
+                            <span class="ipad-tab-title">Analyser</span>
+                            <span class="ipad-tab-reveal"><span class="ipad-tab-text">Réponses justes et fausses, taux de réussite et réponses les plus fréquentes, question par question.</span></span>
+                        </span>
+                        <span class="ipad-tab-bar" aria-hidden="true"><span class="ipad-tab-fill"></span></span>
+                    </button>
+                </div>
+
+                <div class="ipad-stage mac-reveal">
+                    <div class="ipad-device" id="ipad-panel" role="tabpanel" aria-labelledby="ipad-tab-1">
+                        <picture>
+                            <source srcset="img/app/ipad-accueil-sombre.webp?v=20261128" media="(prefers-color-scheme: dark)" data-dark-source>
+                            <img class="ipad-screen is-active" src="img/app/ipad-accueil.webp?v=20261128" width="1000" height="1405" loading="lazy" alt="Audience sur iPad : l’accueil, avec la grande carte « Créer avec une IA » (ChatGPT, Claude, Gemini, Groq), les raccourcis Questionnaire vierge, Importer et Bibliothèque, puis les questionnaires récents.">
+                        </picture>
+                        <picture>
+                            <source srcset="img/app/ipad-ia-sombre.webp?v=20261128" media="(prefers-color-scheme: dark)" data-dark-source>
+                            <img class="ipad-screen" src="img/app/ipad-ia.webp?v=20261128" width="1000" height="1405" loading="lazy" aria-hidden="true" alt="Audience sur iPad : « Votre questionnaire est prêt », les treize questions proposées par l’assistant, avec leur type, et le bouton « Ajouter à ma bibliothèque ».">
+                        </picture>
+                        <picture>
+                            <source srcset="img/app/ipad-presentation-sombre.webp" media="(prefers-color-scheme: dark)" data-dark-source>
+                            <img class="ipad-screen" src="img/app/ipad-presentation.webp" width="1000" height="1405" loading="lazy" aria-hidden="true" alt="Audience sur iPad : « Rejoignez le questionnaire », avec l’adresse du site, le code en grand, le QR code et les boutons Commencer et Lancer en direct.">
+                        </picture>
+                        <picture>
+                            <source srcset="img/app/ipad-statistiques-sombre.webp" media="(prefers-color-scheme: dark)" data-dark-source>
+                            <img class="ipad-screen" src="img/app/ipad-statistiques.webp" width="1000" height="1405" loading="lazy" aria-hidden="true" alt="Audience sur iPad : les statistiques d’un questionnaire, avec 15 réponses reçues, 80 % de réussite et le détail des réponses question par question.">
+                        </picture>
+                    </div>
+                </div>
+
+                <div class="ipad-cta mac-reveal">
+                    <a class="mac-button" href="https://testflight.apple.com/join/rAP2gxnz" target="_blank" rel="noopener noreferrer">
+                        <i class="fa-solid fa-flask" aria-hidden="true"></i>
+                        Rejoindre la bêta
+                    </a>
+                    <div class="ipad-qr">
+                        <div class="ipad-qr-code" role="img" aria-label="QR code du lien d’invitation TestFlight">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 29 29" aria-hidden="true"><path stroke="#111" d="M0 0.5h7m3 0h1m1 0h1m4 0h3m2 0h7m-29 1h1m5 0h1m2 0h1m1 0h2m2 0h1m1 0h2m3 0h1m5 0h1m-29 1h1m1 0h3m1 0h1m5 0h1m3 0h3m3 0h1m1 0h3m1 0h1m-29 1h1m1 0h3m1 0h1m8 0h1m2 0h3m1 0h1m1 0h3m1 0h1m-29 1h1m1 0h3m1 0h1m2 0h1m2 0h2m2 0h1m1 0h1m3 0h1m1 0h3m1 0h1m-29 1h1m5 0h1m1 0h2m1 0h2m1 0h2m2 0h3m1 0h1m5 0h1m-29 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-20 1h2m1 0h1m3 0h3m-19 1h1m2 0h1m1 0h2m1 0h1m1 0h5m3 0h1m1 0h2m1 0h1m-21 1h1m4 0h1m2 0h3m2 0h1m3 0h3m2 0h1m2 0h1m-27 1h1m2 0h3m8 0h2m1 0h1m1 0h1m2 0h4m-28 1h1m1 0h3m2 0h2m1 0h1m1 0h2m2 0h1m2 0h5m2 0h2m-28 1h2m2 0h3m1 0h1m2 0h3m1 0h3m2 0h4m1 0h1m1 0h2m-29 1h2m1 0h2m3 0h1m1 0h5m1 0h2m1 0h3m-22 1h2m1 0h2m1 0h1m1 0h2m1 0h1m4 0h1m1 0h1m2 0h1m3 0h4m-28 1h1m2 0h1m4 0h2m1 0h2m2 0h3m1 0h2m1 0h1m1 0h1m1 0h1m-26 1h1m1 0h1m1 0h1m2 0h3m3 0h1m1 0h1m2 0h2m1 0h1m3 0h1m-27 1h1m2 0h2m2 0h1m5 0h1m1 0h2m2 0h4m1 0h1m2 0h1m-29 1h1m4 0h9m3 0h1m2 0h1m2 0h2m2 0h2m-27 1h1m1 0h2m4 0h1m4 0h4m1 0h1m1 0h1m4 0h2m-29 1h1m1 0h1m2 0h2m1 0h1m4 0h4m3 0h5m1 0h1m-19 1h1m1 0h2m2 0h1m1 0h1m3 0h1m3 0h1m1 0h3m-29 1h7m7 0h1m1 0h1m3 0h1m1 0h1m1 0h1m2 0h1m-28 1h1m5 0h1m1 0h2m3 0h2m1 0h1m1 0h1m1 0h1m3 0h5m-29 1h1m1 0h3m1 0h1m5 0h1m1 0h5m1 0h5m-25 1h1m1 0h3m1 0h1m1 0h1m1 0h1m11 0h6m-28 1h1m1 0h3m1 0h1m4 0h1m1 0h2m1 0h1m3 0h1m3 0h3m1 0h1m-29 1h1m5 0h1m6 0h1m3 0h4m2 0h1m3 0h1m-28 1h7m1 0h5m2 0h1m1 0h1m2 0h5m2 0h1"/></svg>
+                        </div>
+                        <p><strong>Sur un Mac ?</strong><br>Visez ce code avec<br>l’appareil photo de l’iPad.</p>
+                    </div>
+                    <p class="ipad-cta-note">Gratuit · iPadOS 26 ou ultérieur · avec l’app TestFlight d’Apple</p>
                 </div>
             </div>
         </section>
@@ -151,8 +648,8 @@
                 </div>
                 <div class="mac-reveal">
                     <picture>
-                        <source srcset="img/app/inspecteur-sombre.webp" media="(prefers-color-scheme: dark)" data-dark-source>
-                        <img class="mac-shot" src="img/app/inspecteur.webp" width="2200" height="1535" loading="lazy" alt="Audience sur Mac : le dossier Théâtre, une question illustrée sur Molière et l’inspecteur avec dossier, couleur, étiquettes et réglages de participation.">
+                        <source srcset="img/app/inspecteur-sombre.webp?v=20261128" media="(prefers-color-scheme: dark)" data-dark-source>
+                        <img class="mac-shot" src="img/app/inspecteur.webp?v=20261128" width="2200" height="1536" loading="lazy" alt="Audience sur Mac : le dossier Théâtre, la question « Quelles œuvres sont de Molière ? » à choix multiples avec ses bonnes réponses cochées, et l’inspecteur avec dossier, couleur, étiquettes et réglages de participation.">
                     </picture>
                 </div>
                 <div class="mac-stats mac-reveal">
@@ -249,13 +746,18 @@
                         <i class="fa-brands fa-apple" aria-hidden="true"></i>
                         Télécharger pour Mac
                     </a>
+                    <a class="mac-button mac-button-secondary" href="https://testflight.apple.com/join/rAP2gxnz" target="_blank" rel="noopener noreferrer">
+                        <i class="fa-solid fa-tablet-screen-button" aria-hidden="true"></i>
+                        Tester sur iPad
+                    </a>
                     <a class="mac-link" href="https://github.com/YannHY/audience" target="_blank" rel="noopener noreferrer">Voir le code source</a>
                     <a class="mac-link" href="nouveautes.html">Historique des versions</a>
                 </div>
                 <p class="mac-requirements">
                     Mac : macOS 26 ou ultérieur, application universelle signée et notarisée par Apple.<br>
                     Décompressez l’archive, puis glissez Audience dans le dossier Applications.<br>
-                    iPad : iPadOS 26 ou ultérieur, bientôt disponible.
+                    iPad : iPadOS 26 ou ultérieur, en version bêta sur TestFlight.<br>
+                    Ouvrez le lien depuis l’iPad : il propose d’installer l’app TestFlight d’Apple, puis Audience.
                 </p>
             </div>
         </section>
@@ -300,6 +802,107 @@
         } else {
             revealed.forEach(function(element) { element.classList.add('is-visible'); });
         }
+
+        // iPad tour: each tab shows its screen; while the section is on screen, the progress bar
+        // of the active tab advances to the next one. Hovering pauses; reduced motion stops it.
+        (function() {
+            const section = document.getElementById('ipad');
+            if (!section) return;
+            const tabs = Array.from(section.querySelectorAll('.ipad-tab'));
+            const screens = Array.from(section.querySelectorAll('.ipad-screen'));
+            const panel = section.querySelector('.ipad-device');
+            const stage = section.querySelector('.ipad-stage');
+            const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+            let current = 0;
+            let visible = false;
+
+            function restartBar() {
+                const fill = tabs[current].querySelector('.ipad-tab-fill');
+                fill.style.animation = 'none';
+                void fill.offsetWidth;
+                fill.style.animation = '';
+            }
+
+            function select(index, focus) {
+                if (index !== current) {
+                    const previous = current;
+                    current = index;
+                    tabs.forEach(function(tab, i) {
+                        const on = i === index;
+                        tab.classList.toggle('is-active', on);
+                        tab.setAttribute('aria-selected', on ? 'true' : 'false');
+                        tab.tabIndex = on ? 0 : -1;
+                    });
+                    screens.forEach(function(screen, i) {
+                        screen.classList.toggle('is-active', i === index);
+                        screen.classList.toggle('was-active', i === previous);
+                        screen.setAttribute('aria-hidden', i === index ? 'false' : 'true');
+                        if (i === index) screen.loading = 'eager';
+                    });
+                    panel.setAttribute('aria-labelledby', tabs[index].id);
+                }
+                if (focus) tabs[index].focus();
+                restartBar();
+            }
+
+            screens.forEach(function(screen) {
+                screen.addEventListener('transitionend', function(event) {
+                    if (event.propertyName !== 'opacity' || !screen.classList.contains('is-active')) return;
+                    screens.forEach(function(other) { other.classList.remove('was-active'); });
+                });
+            });
+
+            tabs.forEach(function(tab, i) {
+                tab.addEventListener('click', function() { select(i); });
+                tab.querySelector('.ipad-tab-fill').addEventListener('animationend', function() {
+                    select((i + 1) % tabs.length);
+                });
+                tab.addEventListener('keydown', function(event) {
+                    const keys = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 };
+                    if (event.key in keys) select((i + keys[event.key] + tabs.length) % tabs.length, true);
+                    else if (event.key === 'Home') select(0, true);
+                    else if (event.key === 'End') select(tabs.length - 1, true);
+                    else return;
+                    event.preventDefault();
+                });
+            });
+
+            function updatePlaying() {
+                section.classList.toggle('is-playing', visible && !reduce.matches);
+            }
+            if (reduce.addEventListener) reduce.addEventListener('change', updatePlaying);
+
+            if ('IntersectionObserver' in window) {
+                new IntersectionObserver(function(entries) {
+                    visible = entries[0].isIntersecting;
+                    if (visible) screens.forEach(function(screen) { screen.loading = 'eager'; });
+                    updatePlaying();
+                }, { threshold: 0.35 }).observe(section.querySelector('.ipad-grid'));
+            }
+
+            [section.querySelector('.ipad-tabs'), stage].forEach(function(element) {
+                element.addEventListener('pointerenter', function(event) {
+                    if (event.pointerType === 'mouse') section.classList.add('is-paused');
+                });
+                element.addEventListener('pointerleave', function() { section.classList.remove('is-paused'); });
+                element.addEventListener('focusin', function() { section.classList.add('is-paused'); });
+                element.addEventListener('focusout', function() { section.classList.remove('is-paused'); });
+            });
+
+            // A gentle tilt that follows the mouse.
+            stage.addEventListener('pointermove', function(event) {
+                if (event.pointerType !== 'mouse' || reduce.matches) return;
+                const box = stage.getBoundingClientRect();
+                const x = (event.clientX - box.left) / box.width - 0.5;
+                const y = (event.clientY - box.top) / box.height - 0.5;
+                panel.style.setProperty('--ipad-ry', (x * 9).toFixed(2) + 'deg');
+                panel.style.setProperty('--ipad-rx', (-y * 6).toFixed(2) + 'deg');
+            });
+            stage.addEventListener('pointerleave', function() {
+                panel.style.removeProperty('--ipad-ry');
+                panel.style.removeProperty('--ipad-rx');
+            });
+        })();
     </script>
 </body>
 </html>

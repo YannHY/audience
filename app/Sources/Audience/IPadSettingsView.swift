@@ -1,5 +1,8 @@
 #if os(iOS)
 import SwiftUI
+#if SWIFT_PACKAGE
+import AudienceCore
+#endif
 
 struct IPadSettingsView: View {
     @Bindable var store: LibraryStore
@@ -36,6 +39,14 @@ struct IPadSettingsView: View {
                             Button("Réessayer la connexion enregistrée") { Task { await store.connectSaved() } }
                                 .disabled(store.busy)
                         }
+                        Link("Mot de passe oublié", destination: RemoteClient.passwordResetURL)
+                    }
+                }
+                if !store.connected {
+                    Section {
+                        Text("Sans compte, vous pouvez créer et présenter vos questionnaires sur cet iPad. Un compte permet au public de répondre (**Lancer en direct**) et synchronise votre bibliothèque avec le site.")
+                            .font(.callout).foregroundStyle(.secondary)
+                        Link("Pas encore de compte ? Demander un accès", destination: RemoteClient.accessRequestURL)
                     }
                 }
                 if store.connected {

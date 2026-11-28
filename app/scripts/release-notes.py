@@ -118,7 +118,7 @@ def page(history):
 <body>
 <main>
   <header>
-    <picture><source srcset="../img/app/icone-sombre.png" media="(prefers-color-scheme: dark)"><img src="../img/app/icone.png" alt="" width="56" height="56"></picture>
+    <picture><source srcset="../img/app/icone-mac-sombre.png" media="(prefers-color-scheme: dark)"><img src="../img/app/icone-mac.png" alt="" width="56" height="56"></picture>
     <div><p class="brand">Audience pour Mac</p><h1>Nouveautés</h1></div>
   </header>
 {sections}  <footer><a href="../nouveautes.html">Toutes les nouveautés sur le site</a></footer>
@@ -153,6 +153,8 @@ def site_release(entry, latest):
 
 HISTORY_STYLE = '''
         .nv-hero { padding-bottom: clamp(40px, 6vw, 64px); }
+        .page-mac .mac .mac-button.mac-button-secondary { background: transparent; color: var(--mac-accent); box-shadow: inset 0 0 0 1.5px var(--mac-accent); }
+        .page-mac .mac .mac-button.mac-button-secondary:hover { background: color-mix(in srgb, var(--mac-accent) 10%, transparent); }
         :root .page-mac .mac h1.nv-title { font-size: clamp(2.4rem, 6vw, 4.2rem); }
         .nv-history { padding: clamp(24px, 4vw, 48px) 0 clamp(72px, 10vw, 120px); }
         .nv-list { --nv-aside: 190px; --nv-gap: 72px; width: min(980px, calc(100% - 40px)); margin: 0 auto; }
@@ -241,18 +243,22 @@ def site_page(history):
         <section class="mac-hero nv-hero">
             <div class="mac-wrap">
                 <picture>
-                    <source srcset="img/app/icone-sombre.png" media="(prefers-color-scheme: dark)" data-dark-source>
-                    <img class="mac-hero-icon" src="img/app/icone.png" alt="" width="128" height="128">
+                    <source srcset="img/app/icone-mac-sombre.png" media="(prefers-color-scheme: dark)" data-dark-source>
+                    <img class="mac-hero-icon" src="img/app/icone-mac.png" alt="" width="128" height="128">
                 </picture>
                 <p class="mac-eyebrow">Audience pour Mac et iPad</p>
                 <h1 class="mac-hero-title nv-title">Toutes les<br><span class="mac-gradient">nouveautés</span></h1>
-                <p class="mac-lede">L’évolution d’Audience, version après version. Les mises à jour s’installent automatiquement depuis l’application.</p>
+                <p class="mac-lede">L’évolution d’Audience, version après version. Sur Mac, les mises à jour s’installent depuis l’application ; sur iPad, l’app TestFlight d’Apple les propose.</p>
                 <div class="mac-cta">
                     <a class="mac-button" href="mac/Audience-macOS.zip" download>
                         <i class="fa-brands fa-apple" aria-hidden="true"></i>
-                        Télécharger la version {escape(history[0]["version"])}
+                        Télécharger la version {escape(history[0]["version"])} pour Mac
                     </a>
-                    <a class="mac-link" href="app.html">Découvrir l’application</a>
+                    <a class="mac-button mac-button-secondary" href="{TESTFLIGHT_URL}" target="_blank" rel="noopener noreferrer">
+                        <i class="fa-solid fa-tablet-screen-button" aria-hidden="true"></i>
+                        Tester sur iPad
+                    </a>
+                    <a class="mac-link" href="app.html">Découvrir les applications</a>
                 </div>
             </div>
         </section>
@@ -303,6 +309,8 @@ def site_page(history):
 
 
 SITE_CSS_VERSION = '20261122a'
+# Public TestFlight invitation for the iPad beta.
+TESTFLIGHT_URL = 'https://testflight.apple.com/join/rAP2gxnz'
 
 
 def main():

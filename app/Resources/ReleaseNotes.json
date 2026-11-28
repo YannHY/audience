@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.3.7",
+    "build": 14,
+    "date": "2026-11-28",
+    "notes": [
+      "Réglages → Compte : sans compte, le lien « Demander un accès » ouvre la page Contact du site, et « Mot de passe oublié » la page de réinitialisation. Un court texte rappelle ce que l’app permet sans compte.",
+      "Résultats : les boutons « Exporter en CSV » et « Actualiser » se placent à droite, comme dans Statistiques."
+    ]
+  },
+  {
     "version": "1.3.6",
     "build": 13,
     "date": "2026-11-28",

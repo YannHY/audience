@@ -9,8 +9,8 @@
     <key>CFBundleName</key><string>Audience</string>
     <key>CFBundleDisplayName</key><string>Audience</string>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleShortVersionString</key><string>1.3.6</string>
-    <key>CFBundleVersion</key><string>13</string>
+    <key>CFBundleShortVersionString</key><string>1.3.7</string>
+    <key>CFBundleVersion</key><string>14</string>
     <key>LSRequiresIPhoneOS</key><true/>
     <key>UIApplicationSceneManifest</key><dict>
         <key>UIApplicationSupportsMultipleScenes</key><false/>

@@ -7,7 +7,7 @@ import AudienceCore
 struct QuizEditor: View {
     @Bindable var store: LibraryStore
     let code: String
-    @State private var selected: Int? = 0
+    @State private var selected: Int? = Self.initialQuestion
     @State private var deleteIndex: Int?
     @State private var showQuestions = false
     #if os(iOS)
@@ -18,6 +18,13 @@ struct QuizEditor: View {
     @ScaledMetric(relativeTo: .body) private var questionButtonSize: CGFloat = 44
     /// Same width as the sidebar and questionnaire columns.
     private var navigatorWidth: CGFloat { min(scaledNavigatorWidth, IPadColumn.maximum) }
+    /// The first question, except in Debug where AUDIENCE_SNAPSHOT_QUESTION=<n> opens question n (from 1), for screenshots.
+    private static var initialQuestion: Int? {
+        #if DEBUG
+        if let value = ProcessInfo.processInfo.environment["AUDIENCE_SNAPSHOT_QUESTION"], let number = Int(value), number > 0 { return number - 1 }
+        #endif
+        return 0
+    }
     private var quiz: Quiz { store.archive.quizzes[code] ?? Quiz(code: code) }
     private var index: Int? {
         guard let selected, quiz.questions.indices.contains(selected) else { return nil }

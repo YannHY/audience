@@ -96,7 +96,8 @@ struct ResultsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
                 ViewThatFits(in: .horizontal) {
-                    HStack { reportTitle; reportActions }
+                    // Actions at the trailing edge, as in Statistics, rather than right after the title.
+                    HStack { reportTitle; Spacer(minLength: 16); reportActions }
                     VStack(alignment: .leading, spacing: 16) { reportTitle; reportActions }
                 }
                 if let refreshError {
@@ -130,7 +131,7 @@ struct ResultsView: View {
         HStack {
             if refreshing { ProgressView().controlSize(.small) }
             Button("Exporter en CSV", systemImage: "square.and.arrow.up") { store.exportResultsCSV(quiz) }
-                .disabled(resultQuestions.isEmpty)
+                .disabled(resultQuestions.isEmpty).iPadIconOnly()
             Button("Actualiser", systemImage: "arrow.clockwise") { Task { await refresh() } }
                 .disabled(!canRefresh || refreshing).iPadIconOnly()
         }.fixedSize(horizontal: true, vertical: false)
