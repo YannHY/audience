@@ -1,5 +1,15 @@
 [
   {
+    "version": "1.3.6",
+    "build": 13,
+    "date": "2026-11-28",
+    "notes": [
+      "Nouvelle icône pour Mac et iPad : un orateur à son pupitre, sous le projecteur, face à son public, dans le style Liquid Glass de macOS et iPadOS 26.",
+      "Les réponses affichent le gras, l’italique et le souligné en présentation et dans les résultats ; l’éditeur en montre un aperçu sous chaque réponse mise en forme.",
+      "Réglages → Assistants IA : le champ « Autre modèle Ollama » est plus lisible et le téléchargement se lance avec la touche Entrée."
+    ]
+  },
+  {
     "version": "1.3.5",
     "build": 12,
     "date": "2026-11-28",

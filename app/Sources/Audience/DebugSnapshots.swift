@@ -65,6 +65,8 @@ import AudienceCore
                 for (name, size) in [("home-1900x1200", CGSize(width: 1900, height: 1200)), ("home-1440x900", CGSize(width: 1440, height: 900)),
                                      ("home-1000x700", CGSize(width: 1000, height: 700)), ("home-820x1100", CGSize(width: 820, height: 1100))] {
                     let window = NSWindow(contentRect: CGRect(origin: CGPoint(x: 40, y: 40), size: size), styleMask: .borderless, backing: .buffered, defer: false)
+                    // AUDIENCE_SNAPSHOT_DARK: the home screen in dark mode too.
+                    window.appearance = NSAppearance(named: ProcessInfo.processInfo.environment["AUDIENCE_SNAPSHOT_DARK"] != nil ? .darkAqua : .aqua)
                     window.contentView = NSHostingView(rootView: IPadHomeView(store: store, newQuiz: {}, createWithAI: {}, openLibrary: {}, openQuiz: { _ in },
                                                                               showImport: {}, showSettings: {}).frame(width: size.width, height: size.height))
                     window.orderFrontRegardless()

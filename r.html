@@ -740,9 +740,45 @@
                 return out;
             }
 
+            // Answers are plain text; the Mac and iPad apps store them HTML-escaped. Like the apps, show
+            // inline emphasis (*italique*, **gras**, <u>souligné</u>) but never lists, so "- 3" stays an
+            // answer. LaTeX segments are left untouched for KaTeX.
+            const ANSWER_WORD = '\\p{L}\\p{N}_';
+            const ANSWER_EMPHASIS = [
+                [new RegExp(`(^|[^${ANSWER_WORD}*])\\*\\*(\\S(?:.*?\\S)?)\\*\\*(?![${ANSWER_WORD}*])`, 'gu'), 'strong'],
+                [new RegExp(`(^|[^${ANSWER_WORD}])__([^\\s_](?:.*?[^\\s_])?)__(?![${ANSWER_WORD}])`, 'gu'), 'strong'],
+                [new RegExp(`(^|[^${ANSWER_WORD}*])\\*([^\\s*](?:.*?[^\\s*])?)\\*(?![${ANSWER_WORD}*])`, 'gu'), 'em'],
+                [new RegExp(`(^|[^${ANSWER_WORD}])_([^\\s_](?:.*?[^\\s_])?)_(?![${ANSWER_WORD}])`, 'gu'), 'em']
+            ];
+
+            function formatAnswerInline(text) {
+                let html = text
+                    .replace(/\\\\/g, '').replace(/\\\*/g, '').replace(/\\_/g, '')
+                    .replace(/<u>/gi, '').replace(/<\/u>/gi, '');
+                html = escapeRichTextHtml(html);
+                ANSWER_EMPHASIS.forEach(([pattern, tag]) => {
+                    html = html.replace(pattern, `$1<${tag}>$2</${tag}>`);
+                });
+                return html
+                    .replace(//g, '\\').replace(//g, '*').replace(//g, '_')
+                    .replace(//g, '<u>').replace(//g, '</u>');
+            }
+
+            function answerHtml(value) {
+                // Site answers are raw ("x<5" stays text); app answers are escaped, with <br> for line breaks.
+                const text = decodeHtmlEntitiesDeep(String(value ?? '').replace(/<br\s*\/?>/gi, '\n'))
+                    .replace(/ /g, ' ').trim();
+                return text
+                    .split(/(\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\])/)
+                    .map((part, index) => index % 2 ? escapeRichTextHtml(part) : formatAnswerInline(part))
+                    .join('')
+                    .replace(/\n/g, '<br>');
+            }
+
             function updateRankingOrderFromDom() {
+                // The original answer, not the displayed text, identifies each item for the server.
                 currentRankingOrder = Array.from(answerOptionsEl.querySelectorAll('.ranking-sort-item .ranking-sort-text'))
-                    .map(node => (node.textContent || '').trim())
+                    .map(node => (node.dataset.value ?? node.textContent ?? '').trim())
                     .filter(Boolean);
             }
 
@@ -779,7 +815,9 @@
                         <span class="ranking-sort-handle" draggable="false" role="button" aria-label="Déplacer cet élément" title="Glisser pour déplacer"><i class="fa-solid fa-grip-lines" aria-hidden="true"></i></span>
                         <span class="ranking-sort-text"></span>
                     `;
-                    row.querySelector('.ranking-sort-text').textContent = item;
+                    const textEl = row.querySelector('.ranking-sort-text');
+                    textEl.dataset.value = item;
+                    textEl.innerHTML = answerHtml(item);
                     list.appendChild(row);
                 });
 
@@ -2465,7 +2503,7 @@
                     data.answers.forEach((option, index) => {
                         const optionElement = document.createElement('div');
                         optionElement.className = 'option-item option-item-checkbox';
-                        optionElement.textContent = option;
+                        optionElement.innerHTML = answerHtml(option);
                         optionElement.dataset.index = index;
 
                         optionElement.addEventListener('click', function() {
@@ -2517,7 +2555,7 @@
                     data.answers.forEach((option, index) => {
                         const optionElement = document.createElement('div');
                         optionElement.className = 'option-item';
-                        optionElement.textContent = option;
+                        optionElement.innerHTML = answerHtml(option);
                         optionElement.dataset.index = index;
 
                         optionElement.addEventListener('click', function() {
