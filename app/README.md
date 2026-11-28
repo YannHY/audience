@@ -12,7 +12,7 @@ Les mêmes connexions se gèrent aussi dans **Réglages → Assistants IA** (con
 
 Les logos des assistants (`Resources/iPad.xcassets/Logo*.imageset`) sont les SVG officiels du paquet [@lobehub/icons-static-svg](https://github.com/lobehub/lobe-icons) 1.106.0 (licence MIT), reproduits sans modification de forme ; seuls l’en-tête et l’écriture des arcs ont été normalisés pour le compilateur de catalogues, et ChatGPT, Gemini et Groq sont monochromes, teintés à l’affichage. OpenAI, ChatGPT, Claude, Anthropic, Gemini, Google et Groq sont des marques de leurs propriétaires, utilisées uniquement pour désigner le service auquel l’utilisateur se connecte. Vérifier les chartes de marque de chacun avant une publication sur l’App Store.
 
-L’archive prête à utiliser est `build/Publication-1.3.4-11/mac/Audience-macOS.zip` : décompressez-la puis ouvrez **Audience.app**. Une copie est également disponible dans `build/Audience.app` :
+L’archive prête à utiliser est `build/Publication-1.3.5-12/mac/Audience-macOS.zip` : décompressez-la puis ouvrez **Audience.app**. Une copie est également disponible dans `build/Audience.app` :
 
 ```sh
 open build/Audience.app
@@ -24,7 +24,7 @@ Le binaire est universel : Apple Silicon et Intel. Par défaut, les scripts appl
 
 Le dossier `build` garde quatre entrées visibles :
 
-- `Publication-1.3.4-11/` : les fichiers de la version actuelle à publier, avec les instructions.
+- `Publication-1.3.5-12/` : les fichiers de la version actuelle à publier, avec les instructions.
 - `Audience.app` : l’application Mac à ouvrir.
 - `archives/` : les dossiers de publication des anciennes versions.
 - `travail/` : les fichiers techniques de compilation, les exports intermédiaires, l’historique Sparkle et les captures de vérification.
@@ -78,7 +78,7 @@ Les données sont enregistrées dans `Library/Application Support/AudienceNative
 
 ## Préparer une publication Mac et TestFlight
 
-La version de publication courante est **1.3.4 (build 11)** sur Mac et iPad. Après compilation Mac signée/notarisée, génération du flux avec `scripts/publish-update.sh` et création de l’archive iPad, exécuter :
+La version de publication courante est **1.3.5 (build 12)** sur Mac et iPad. Après compilation Mac signée/notarisée, génération du flux avec `scripts/publish-update.sh` et création de l’archive iPad, exécuter :
 
 ```sh
 python3 scripts/prepare-publication.py
@@ -86,7 +86,7 @@ python3 scripts/prepare-publication.py
 
 La préparation vérifie que les versions Mac et iPad correspondent et contrôle la signature de l’archive iPad avant de la compresser. Si l’export `build/travail/TestFlight/Export/Audience.ipa` est présent, sa version est également vérifiée avant son ajout au dossier de publication.
 
-Le dossier `build/Publication-1.3.4-11/mac/` contient uniquement les fichiers de téléchargement et de mise à jour Mac : téléchargement courant, archives versionnées, correctifs Sparkle, notes de version, flux et sources natives correspondantes. La préparation en place aussi une copie au premier niveau du site, dans `audience/mac/` : c’est ce dossier qu’il suffit de glisser dans `/apps/audience/` sur le serveur, en publiant `appcast.xml` en dernier. Il est remplacé à chaque nouvelle version et exclu de Git. Les pages, feuilles de style, scripts et images du site existant ne sont pas recopiés dans le dossier de publication.
+Le dossier `build/Publication-1.3.5-12/mac/` contient uniquement les fichiers de téléchargement et de mise à jour Mac : téléchargement courant, archives versionnées, correctifs Sparkle, notes de version, flux et sources natives correspondantes. La préparation en place aussi une copie au premier niveau du site, dans `audience/mac/` : c’est ce dossier qu’il suffit de glisser dans `/apps/audience/` sur le serveur, en publiant `appcast.xml` en dernier. Il est remplacé à chaque nouvelle version et exclu de Git. Les pages, feuilles de style, scripts et images du site existant ne sont pas recopiés dans le dossier de publication.
 
 Pour préparer l’iPad avec une configuration App Store Connect distincte de celle des appareils de développement :
 
@@ -97,7 +97,7 @@ Pour préparer l’iPad avec une configuration App Store Connect distincte de ce
 
 L’archive originale se trouve dans `build/travail/TestFlight/Audience-iPad.xcarchive`. L’export utilise `Resources/ExportOptions-TestFlight.plist`, la méthode `app-store-connect` et la destination `export` : **aucun envoi à Apple n’est effectué**. Un compte Apple développeur connecté à Xcode et un profil App Store correspondant sont nécessaires à la signature de distribution.
 
-Le dossier `build/Publication-1.3.4-11/iPad-TestFlight/` fournit l’archive compressée pour préserver sa signature lors des copies iCloud, l’IPA de distribution dans `Export-AppStoreConnect/`, la configuration d’export, un script de réexport et les textes pour la fiche bêta. L’IPA 1.3.4 (11) reste à exporter depuis Xcode Organizer (certificat Cloud Managed Apple Distribution, profil App Store de l’équipe `D73WW234K6`) à partir de `build/travail/TestFlight/Audience-iPad.xcarchive` ; l’export de la 1.3.2 (9) est conservé dans `build/travail/TestFlight/Export-1.3.2-9/`. Ne pas déposer ce dossier sur le serveur web. Après envoi à App Store Connect, le build doit être traité par Apple avant d’être sélectionné dans TestFlight.
+Le dossier `build/Publication-1.3.5-12/iPad-TestFlight/` fournit l’archive compressée pour préserver sa signature lors des copies iCloud, l’IPA de distribution dans `Export-AppStoreConnect/`, la configuration d’export, un script de réexport et les textes pour la fiche bêta. L’IPA 1.3.5 (12) reste à exporter depuis Xcode Organizer (certificat Cloud Managed Apple Distribution, profil App Store de l’équipe `D73WW234K6`) à partir de `build/travail/TestFlight/Audience-iPad.xcarchive` ; l’export de la 1.3.2 (9) est conservé dans `build/travail/TestFlight/Export-1.3.2-9/`. Ne pas déposer ce dossier sur le serveur web. Après envoi à App Store Connect, le build doit être traité par Apple avant d’être sélectionné dans TestFlight.
 
 ## Signature Apple Developer
 

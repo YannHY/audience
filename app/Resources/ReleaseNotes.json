@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.3.5",
+    "build": 12,
+    "date": "2026-11-28",
+    "notes": [
+      "Création par une IA : vous pouvez joindre des photos (page de manuel, tableau, fiche) comme source, en plus d’un document ou d’une vidéo.",
+      "Les assistants IA (ChatGPT, Claude, Gemini, Groq) se gèrent aussi dans Réglages → Assistants IA, et la synthèse des résultats s’appuie sur l’assistant choisi.",
+      "L’écran d’accueil s’adapte aux grandes fenêtres : le contenu est mieux réparti et les questionnaires récents s’affichent en grille.",
+      "La recherche se trouve maintenant en haut de la liste des questionnaires ; ⌘F place le curseur dedans.",
+      "Le bouton de l’inspecteur se trouve à l’extrémité de la barre d’outils, et un seul bouton replie la barre latérale."
+    ]
+  },
+  {
     "version": "1.3.4",
     "build": 11,
     "date": "2026-11-22",
